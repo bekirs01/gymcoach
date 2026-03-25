@@ -75,6 +75,8 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 20),
                   _buildLeagueCard(context),
                   const SizedBox(height: 20),
+                  _buildTerritoryCard(context),
+                  const SizedBox(height: 20),
                   _buildRecommendedExercises(context, ref),
                   const SizedBox(height: 20),
                   _buildMotivationCard(context),
@@ -416,6 +418,55 @@ class HomeScreen extends ConsumerWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTerritoryCard(BuildContext context) {
+    return _iOSCard(
+      context,
+      onTap: () => context.push('/territory'),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF14B8A6).withOpacity(0.35),
+                  const Color(0xFF06B6D4).withOpacity(0.2),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.map_rounded, size: 28, color: Color(0xFF2DD4BF)),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Bölgeni Fethet',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Haritada alan kap — yürüdükçe puan topla (demo).',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withOpacity(0.65),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.4), size: 24),
         ],
       ),
     );

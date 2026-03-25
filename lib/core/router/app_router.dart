@@ -13,6 +13,7 @@ import '../../presentation/screens/league/camera_rep_counter_screen.dart';
 import '../../presentation/screens/league/camera_session_config.dart';
 import '../../presentation/screens/league/league_camera_setup_screen.dart';
 import '../../presentation/screens/league/league_screen.dart';
+import '../../features/territory/presentation/territory_map_screen.dart';
 import '../../presentation/screens/profile/settings_screen.dart';
 
 /// Uygulama routing yapılandırması
@@ -68,6 +69,10 @@ class AppRouter {
       GoRoute(
         path: '/league/camera-setup',
         builder: (context, state) => const LeagueCameraSetupScreen(),
+      ),
+      GoRoute(
+        path: '/territory',
+        builder: (context, state) => const TerritoryMapScreen(),
       ),
       GoRoute(
         path: '/league/camera-reps',

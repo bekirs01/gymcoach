@@ -47,5 +47,7 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Tekrar saymak ve lig puanı için canlı kamera görüntüsü kullanılır; video kaydedilmez.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Bölgeni Fethet: haritada konumunu göstermek ve rota çizmek için kullanılır.</string>
 </dict>
 </plist>
