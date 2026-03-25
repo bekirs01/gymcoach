@@ -9,6 +9,8 @@ import '../../presentation/screens/main/main_shell.dart';
 import '../../presentation/screens/onboarding/onboarding_flow_screen.dart';
 import '../../presentation/screens/plan/create_plan_screen.dart';
 import '../../presentation/screens/plan/plan_detail_screen.dart';
+import '../../presentation/screens/league/camera_rep_counter_screen.dart';
+import '../../presentation/screens/league/league_screen.dart';
 import '../../presentation/screens/profile/settings_screen.dart';
 
 /// Uygulama routing yapılandırması
@@ -65,6 +67,14 @@ class AppRouter {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/league',
+        builder: (context, state) => const LeagueScreen(),
+      ),
+      GoRoute(
+        path: '/league/camera-reps',
+        builder: (context, state) => const CameraRepCounterScreen(),
       ),
     ],
   );

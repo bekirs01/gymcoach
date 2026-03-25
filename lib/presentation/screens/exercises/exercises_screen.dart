@@ -28,6 +28,31 @@ class ExercisesScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Card(
+            elevation: 0,
+            color: AppColors.primary.withOpacity(0.12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(color: AppColors.primary.withOpacity(0.35)),
+            ),
+            child: ListTile(
+              leading: Icon(Icons.photo_camera_rounded, color: AppColors.primary),
+              title: const Text(
+                'Камера: жим гантелей над плечами',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
+                'Два гантеля вместе — счёт повторов для лиги. Также: главная → Лига.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => context.push('/league/camera-reps'),
+            ),
+          ),
+          const SizedBox(height: 16),
           Text(
             'Просмотрите категории',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(

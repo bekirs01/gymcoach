@@ -73,6 +73,8 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 20),
                   _buildTodayStats(context, statsAsync),
                   const SizedBox(height: 20),
+                  _buildLeagueCard(context),
+                  const SizedBox(height: 20),
                   _buildRecommendedExercises(context, ref),
                   const SizedBox(height: 20),
                   _buildMotivationCard(context),
@@ -414,6 +416,50 @@ class HomeScreen extends ConsumerWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeagueCard(BuildContext context) {
+    return _iOSCard(
+      context,
+      onTap: () => context.push('/league'),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.emoji_events_rounded, size: 28, color: AppColors.secondary),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Лига',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Соревнуйся: камера + скоро второй зачёт',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withOpacity(0.65),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.4), size: 24),
         ],
       ),
     );

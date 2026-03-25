@@ -7,10 +7,13 @@ import '../../data/repositories/exercise_repository.dart';
 import '../../data/repositories/exercise_repository_impl.dart';
 import '../../data/repositories/guide_repository.dart';
 import '../../data/repositories/guide_repository_impl.dart';
+import '../../data/repositories/league_repository.dart';
+import '../../data/repositories/league_repository_impl.dart';
 import '../../data/repositories/user_repository.dart';
 import '../../data/repositories/user_repository_impl.dart';
 import '../../data/repositories/workout_plan_repository.dart';
 import '../../data/repositories/workout_plan_repository_impl.dart';
+import '../../domain/models/league.dart';
 import '../../domain/models/user_profile.dart';
 
 /// SharedPreferences - main'de override edilir
@@ -44,6 +47,20 @@ final guideRepositoryProvider = Provider<GuideRepository>((ref) {
 final dailyStatsRepositoryProvider = Provider<DailyStatsRepository>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return DailyStatsRepositoryImpl(prefs);
+});
+
+/// Lig puanları
+final leagueRepositoryProvider = Provider<LeagueRepository>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return LeagueRepositoryImpl(prefs);
+});
+
+/// Lig tablosu (profil adı ile)
+final leagueStandingsProvider = FutureProvider<List<LeagueStanding>>((ref) async {
+  final profile = await ref.watch(userProfileProvider.future);
+  final name = profile?.firstName;
+  final repo = ref.watch(leagueRepositoryProvider);
+  return repo.getStandings(name);
 });
 
 /// Onboarding tamamlandı mı

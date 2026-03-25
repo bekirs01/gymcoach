@@ -35,7 +35,12 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
     super.dispose();
   }
 
+  void _unfocusKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   void _nextPage() {
+    _unfocusKeyboard();
     if (_currentPage < 5) {
       setState(() => _currentPage++);
       _pageController.nextPage(
@@ -46,6 +51,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
   }
 
   void _prevPage() {
+    _unfocusKeyboard();
     if (_currentPage > 0) {
       setState(() => _currentPage--);
       _pageController.previousPage(
@@ -55,7 +61,13 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
     }
   }
 
+  EdgeInsets _stepScrollPadding(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset);
+  }
+
   Future<void> _completeOnboarding() async {
+    _unfocusKeyboard();
     final repo = ref.read(userRepositoryProvider);
     final profile = UserProfile(
       firstName: _state.firstName?.trim().isNotEmpty == true ? _state.firstName!.trim() : null,
@@ -74,6 +86,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
           children: [
@@ -83,12 +96,12 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  _buildNameStep(),
-                  _buildGenderStep(),
-                  _buildBodyStep(),
-                  _buildGoalStep(),
-                  _buildActivityStep(),
-                  _buildSummaryStep(),
+                  _buildNameStep(context),
+                  _buildGenderStep(context),
+                  _buildBodyStep(context),
+                  _buildGoalStep(context),
+                  _buildActivityStep(context),
+                  _buildSummaryStep(context),
                 ],
               ),
             ),
@@ -119,9 +132,10 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
     );
   }
 
-  Widget _buildNameStep() {
+  Widget _buildNameStep(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: _stepScrollPadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -141,6 +155,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
           const SizedBox(height: 32),
           TextField(
             textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
             decoration: const InputDecoration(
               labelText: 'Имя',
               hintText: 'Бекир',
@@ -150,11 +165,13 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
           const SizedBox(height: 16),
           TextField(
             textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.done,
             decoration: const InputDecoration(
               labelText: 'Фамилия',
               hintText: 'Иванов',
             ),
             onChanged: (v) => _state.lastName = v,
+            onSubmitted: (_) => _unfocusKeyboard(),
           ),
           const SizedBox(height: 24),
           PrimaryButton(
@@ -171,9 +188,10 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
     );
   }
 
-  Widget _buildGenderStep() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
+  Widget _buildGenderStep(BuildContext context) {
+    return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: _stepScrollPadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -215,9 +233,10 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
     );
   }
 
-  Widget _buildBodyStep() {
+  Widget _buildBodyStep(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: _stepScrollPadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -237,6 +256,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
           const SizedBox(height: 32),
           TextField(
             keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.next,
             decoration: const InputDecoration(
               labelText: 'Возраст',
               hintText: '25',
@@ -247,6 +267,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
           const SizedBox(height: 16),
           TextField(
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.next,
             decoration: const InputDecoration(
               labelText: 'Рост',
               hintText: '170',
@@ -257,12 +278,14 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
           const SizedBox(height: 16),
           TextField(
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.done,
             decoration: const InputDecoration(
               labelText: 'Вес',
               hintText: '70',
               suffixText: 'кг',
             ),
             onChanged: (v) => _state.weightKg = double.tryParse(v),
+            onSubmitted: (_) => _unfocusKeyboard(),
           ),
           const SizedBox(height: 24),
           PrimaryButton(
@@ -280,9 +303,10 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
     );
   }
 
-  Widget _buildGoalStep() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
+  Widget _buildGoalStep(BuildContext context) {
+    return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: _stepScrollPadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -323,7 +347,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
             onTap: () => setState(() => _state.goal = FitnessGoal.stayFit),
             icon: Icons.self_improvement,
           ),
-          const Spacer(),
+          const SizedBox(height: 28),
           PrimaryButton(
             label: 'Продолжить',
             onPressed: _state.goal != null ? _nextPage : null,
@@ -333,9 +357,10 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
     );
   }
 
-  Widget _buildActivityStep() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
+  Widget _buildActivityStep(BuildContext context) {
+    return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: _stepScrollPadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -379,7 +404,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
                 setState(() => _state.activityLevel = ActivityLevel.advanced),
             icon: Icons.star,
           ),
-          const Spacer(),
+          const SizedBox(height: 28),
           PrimaryButton(
             label: 'Продолжить',
             onPressed: _state.activityLevel != null ? _nextPage : null,
@@ -389,7 +414,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
     );
   }
 
-  Widget _buildSummaryStep() {
+  Widget _buildSummaryStep(BuildContext context) {
     _state.activityLevel ??= ActivityLevel.beginner;
 
     String goalText = '';
@@ -423,7 +448,8 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: _stepScrollPadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
