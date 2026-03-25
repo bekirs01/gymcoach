@@ -11,14 +11,38 @@ class ExercisesScreen extends ConsumerWidget {
   const ExercisesScreen({super.key});
 
   static const List<({ExerciseCategory category, String label, IconData icon})>
-      categories = [
-    (category: ExerciseCategory.arm, label: 'Руки', icon: Icons.sports_martial_arts),
+  categories = [
+    (
+      category: ExerciseCategory.arm,
+      label: 'Руки',
+      icon: Icons.sports_martial_arts,
+    ),
     (category: ExerciseCategory.leg, label: 'Ноги', icon: Icons.directions_run),
-    (category: ExerciseCategory.chest, label: 'Грудь', icon: Icons.fitness_center),
-    (category: ExerciseCategory.back, label: 'Спина', icon: Icons.accessibility_new),
-    (category: ExerciseCategory.shoulder, label: 'Плечи', icon: Icons.sports_gymnastics),
-    (category: ExerciseCategory.abs, label: 'Пресс', icon: Icons.self_improvement),
-    (category: ExerciseCategory.fullBody, label: 'Всё тело', icon: Icons.person),
+    (
+      category: ExerciseCategory.chest,
+      label: 'Грудь',
+      icon: Icons.fitness_center,
+    ),
+    (
+      category: ExerciseCategory.back,
+      label: 'Спина',
+      icon: Icons.accessibility_new,
+    ),
+    (
+      category: ExerciseCategory.shoulder,
+      label: 'Плечи',
+      icon: Icons.sports_gymnastics,
+    ),
+    (
+      category: ExerciseCategory.abs,
+      label: 'Пресс',
+      icon: Icons.self_improvement,
+    ),
+    (
+      category: ExerciseCategory.fullBody,
+      label: 'Всё тело',
+      icon: Icons.person,
+    ),
   ];
 
   @override
@@ -36,7 +60,10 @@ class ExercisesScreen extends ConsumerWidget {
               side: BorderSide(color: AppColors.primary.withOpacity(0.35)),
             ),
             child: ListTile(
-              leading: Icon(Icons.photo_camera_rounded, color: AppColors.primary),
+              leading: Icon(
+                Icons.photo_camera_rounded,
+                color: AppColors.primary,
+              ),
               title: const Text(
                 'Камера: жим гантелей над плечами',
                 style: TextStyle(fontWeight: FontWeight.w600),
@@ -49,22 +76,24 @@ class ExercisesScreen extends ConsumerWidget {
                 ),
               ),
               trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => context.push('/league/camera-reps'),
+              onTap: () => context.push('/league/camera-setup'),
             ),
           ),
           const SizedBox(height: 16),
           Text(
             'Просмотрите категории',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 16),
-          ...categories.map((c) => _CategorySection(
-                category: c.category,
-                label: c.label,
-                icon: c.icon,
-              )),
+          ...categories.map(
+            (c) => _CategorySection(
+              category: c.category,
+              label: c.label,
+              icon: c.icon,
+            ),
+          ),
         ],
       ),
     );
@@ -85,7 +114,9 @@ class _CategorySection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return FutureBuilder(
-      future: ref.read(exerciseRepositoryProvider).getExercisesByCategory(category),
+      future: ref
+          .read(exerciseRepositoryProvider)
+          .getExercisesByCategory(category),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
         final exercises = snapshot.data!;
@@ -100,16 +131,18 @@ class _CategorySection extends ConsumerWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            ...exercises.map((ex) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _ExerciseCard(exercise: ex),
-                )),
+            ...exercises.map(
+              (ex) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _ExerciseCard(exercise: ex),
+              ),
+            ),
             const SizedBox(height: 20),
           ],
         );
@@ -150,15 +183,15 @@ class _ExerciseCard extends StatelessWidget {
                     Text(
                       exercise.name,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${exercise.targetMuscle} • ${exercise.difficultyDisplayName}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     Text(
                       exercise.durationOrRepsText,

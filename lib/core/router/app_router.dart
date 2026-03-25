@@ -10,6 +10,8 @@ import '../../presentation/screens/onboarding/onboarding_flow_screen.dart';
 import '../../presentation/screens/plan/create_plan_screen.dart';
 import '../../presentation/screens/plan/plan_detail_screen.dart';
 import '../../presentation/screens/league/camera_rep_counter_screen.dart';
+import '../../presentation/screens/league/camera_session_config.dart';
+import '../../presentation/screens/league/league_camera_setup_screen.dart';
 import '../../presentation/screens/league/league_screen.dart';
 import '../../presentation/screens/profile/settings_screen.dart';
 
@@ -23,18 +25,12 @@ class AppRouter {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const InitialRedirect(),
-      ),
+      GoRoute(path: '/', builder: (context, state) => const InitialRedirect()),
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingFlowScreen(),
       ),
-      GoRoute(
-        path: '/main',
-        builder: (context, state) => const MainShell(),
-      ),
+      GoRoute(path: '/main', builder: (context, state) => const MainShell()),
       GoRoute(
         path: '/exercise/:id',
         builder: (context, state) {
@@ -42,10 +38,7 @@ class AppRouter {
           return ExerciseDetailScreen(exerciseId: id);
         },
       ),
-      GoRoute(
-        path: '/guide',
-        builder: (context, state) => const GuideScreen(),
-      ),
+      GoRoute(path: '/guide', builder: (context, state) => const GuideScreen()),
       GoRoute(
         path: '/guide/:id',
         builder: (context, state) {
@@ -73,8 +66,23 @@ class AppRouter {
         builder: (context, state) => const LeagueScreen(),
       ),
       GoRoute(
+        path: '/league/camera-setup',
+        builder: (context, state) => const LeagueCameraSetupScreen(),
+      ),
+      GoRoute(
         path: '/league/camera-reps',
-        builder: (context, state) => const CameraRepCounterScreen(),
+        builder: (context, state) {
+          final exercise = cameraExerciseTypeFromId(
+            state.uri.queryParameters['exercise'],
+          );
+          final weight = double.tryParse(
+            state.uri.queryParameters['weight'] ?? '',
+          );
+          return CameraRepCounterScreen(
+            exerciseType: exercise,
+            initialWeightKg: weight,
+          );
+        },
       ),
     ],
   );

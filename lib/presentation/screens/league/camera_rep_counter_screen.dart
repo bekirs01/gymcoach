@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
@@ -11,18 +12,27 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/mlkit_camera_input_image.dart';
+import 'camera_session_config.dart';
 import 'pose_painter.dart';
 
 /// Kamera: tam ekran iPhone kamerası + iskelet çizimi + tekrar sayımı.
 /// `camera` paketi iOS'ta `NSCameraUsageDescription` sayesinde izni kendi sorar.
 class CameraRepCounterScreen extends ConsumerStatefulWidget {
-  const CameraRepCounterScreen({super.key});
+  const CameraRepCounterScreen({
+    super.key,
+    this.exerciseType = CameraExerciseType.dumbbellShoulderPress,
+    this.initialWeightKg,
+  });
+
+  final CameraExerciseType exerciseType;
+  final double? initialWeightKg;
 
   @override
   ConsumerState<CameraRepCounterScreen> createState() => _State();
 }
 
-class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingObserver {
+class _State extends ConsumerState<CameraRepCounterScreen>
+    with WidgetsBindingObserver {
   List<CameraDescription> _cameras = [];
   CameraController? _controller;
   int _cameraIdx = -1;
@@ -37,7 +47,7 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
   Size _imageSize = Size.zero;
   InputImageRotation _rotation = InputImageRotation.rotation0deg;
   bool _processing = false;
-  int _frameSkip = 0;
+  int _poseMissingFrames = 0;
 
   int _reps = 0;
   int _phase = 0; // 0 = aşağı, 1 = yukarı
@@ -48,6 +58,14 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
   static const _phaseGap = Duration(milliseconds: 320);
 
   double _weightKg = 10;
+  double _bodyWeightKg = 70;
+  double? _filteredLwY;
+  double? _filteredRwY;
+  double? _filteredLsY;
+  double? _filteredRsY;
+  bool _bothHandsUp = false;
+
+  static const _maxPoseHoldFrames = 3;
 
   static const _orientations = {
     DeviceOrientation.portraitUp: 0,
@@ -60,12 +78,14 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _weightKg = (widget.initialWeightKg ?? 10).clamp(1, 200).toDouble();
     _poseDetector = PoseDetector(
       options: PoseDetectorOptions(
         model: PoseDetectionModel.base,
         mode: PoseDetectionMode.stream,
       ),
     );
+    unawaited(_loadBodyWeightFromProfile());
     _requestPermissionAndBoot();
   }
 
@@ -75,6 +95,17 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
     _kill();
     _poseDetector?.close();
     super.dispose();
+  }
+
+  Future<void> _loadBodyWeightFromProfile() async {
+    final profile = await ref.read(userProfileProvider.future);
+    if (!mounted || profile == null) return;
+    setState(() {
+      _bodyWeightKg = profile.weightKg;
+      if (widget.initialWeightKg == null) {
+        _weightKg = profile.weightKg.clamp(1, 200).toDouble();
+      }
+    });
   }
 
   @override
@@ -115,11 +146,15 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
     try {
       _cameras = await availableCameras();
       if (_cameras.isEmpty) throw Exception('Cihazda kamera yok');
-      _cameraIdx = _cameras.indexWhere((c) => c.lensDirection == CameraLensDirection.front);
+      _cameraIdx = _cameras.indexWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+      );
       if (_cameraIdx < 0) _cameraIdx = 0;
       await _startCamera();
     } on CameraException catch (e) {
-      _setFatal('Kamera erişilemedi: ${e.description}\n\nAyarlar → GymCoach → Kamera iznini aç.');
+      _setFatal(
+        'Kamera erişilemedi: ${e.description}\n\nAyarlar → GymCoach → Kamera iznini aç.',
+      );
     } catch (e) {
       _setFatal('$e');
     }
@@ -129,9 +164,11 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
     final cam = _cameras[_cameraIdx];
     final ctrl = CameraController(
       cam,
-      ResolutionPreset.high,
+      ResolutionPreset.medium,
       enableAudio: false,
-      imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+      imageFormatGroup: Platform.isAndroid
+          ? ImageFormatGroup.nv21
+          : ImageFormatGroup.bgra8888,
     );
     await ctrl.initialize();
     if (!mounted) {
@@ -165,7 +202,8 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
   InputImageRotation _computeRotation(CameraDescription cam) {
     final sensor = cam.sensorOrientation;
     if (Platform.isIOS) {
-      return InputImageRotationValue.fromRawValue(sensor) ?? InputImageRotation.rotation0deg;
+      return InputImageRotationValue.fromRawValue(sensor) ??
+          InputImageRotation.rotation0deg;
     }
     var comp = _orientations[_controller!.value.deviceOrientation] ?? 0;
     if (cam.lensDirection == CameraLensDirection.front) {
@@ -173,13 +211,12 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
     } else {
       comp = (sensor - comp + 360) % 360;
     }
-    return InputImageRotationValue.fromRawValue(comp) ?? InputImageRotation.rotation0deg;
+    return InputImageRotationValue.fromRawValue(comp) ??
+        InputImageRotation.rotation0deg;
   }
 
   Future<void> _onFrame(CameraImage image) async {
     if (_processing) return;
-    _frameSkip++;
-    if (_frameSkip % 2 != 0) return;
 
     final ctrl = _controller;
     if (ctrl == null || !ctrl.value.isInitialized) return;
@@ -198,8 +235,9 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
       final rot = _computeRotation(ctrl.description);
       final sz = Size(image.width.toDouble(), image.height.toDouble());
       _countReps(poses, sz.height);
+      final stablePoses = _stabilizePoses(poses);
       setState(() {
-        _poses = poses;
+        _poses = stablePoses;
         _imageSize = sz;
         _rotation = rot;
       });
@@ -210,7 +248,10 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
   }
 
   void _countReps(List<Pose> poses, double imgH) {
-    if (poses.isEmpty) return;
+    if (poses.isEmpty) {
+      _bothHandsUp = false;
+      return;
+    }
     final p = poses.first;
     final ls = p.landmarks[PoseLandmarkType.leftShoulder];
     final rs = p.landmarks[PoseLandmarkType.rightShoulder];
@@ -219,9 +260,19 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
     if (ls == null || rs == null || lw == null || rw == null) return;
     if ([ls, rs, lw, rw].any((l) => l.likelihood < _minLikelihood)) return;
 
+    _filteredLwY = _smooth(_filteredLwY, lw.y);
+    _filteredRwY = _smooth(_filteredRwY, rw.y);
+    _filteredLsY = _smooth(_filteredLsY, ls.y);
+    _filteredRsY = _smooth(_filteredRsY, rs.y);
+
     final m = imgH * _marginFrac;
-    final bothUp = lw.y < ls.y - m && rw.y < rs.y - m;
-    final bothDown = lw.y > ls.y + m && rw.y > rs.y + m;
+    final bothUp =
+        (_filteredLwY! < _filteredLsY! - m) &&
+        (_filteredRwY! < _filteredRsY! - m);
+    final bothDown =
+        (_filteredLwY! > _filteredLsY! + m) &&
+        (_filteredRwY! > _filteredRsY! + m);
+    _bothHandsUp = bothUp;
 
     if (!_phaseInit) {
       _phaseInit = true;
@@ -230,7 +281,8 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
     }
 
     final now = DateTime.now();
-    final ok = _lastPhaseAt == null || now.difference(_lastPhaseAt!) >= _phaseGap;
+    final ok =
+        _lastPhaseAt == null || now.difference(_lastPhaseAt!) >= _phaseGap;
     if (!ok) return;
 
     if (_phase == 0 && bothUp) {
@@ -243,7 +295,29 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
     }
   }
 
-  double get _caloriesBurned => _reps * _weightKg * 0.0035;
+  double get _caloriesBurned {
+    final bodyWeightFactor = (_bodyWeightKg / 70).clamp(0.7, 1.8);
+    return _reps *
+        _weightKg *
+        widget.exerciseType.calorieFactor *
+        bodyWeightFactor;
+  }
+
+  double _smooth(double? prev, double next) {
+    if (prev == null) return next;
+    const alpha = 0.38;
+    return prev + (next - prev) * alpha;
+  }
+
+  List<Pose> _stabilizePoses(List<Pose> poses) {
+    if (poses.isNotEmpty) {
+      _poseMissingFrames = 0;
+      return poses;
+    }
+    _poseMissingFrames++;
+    if (_poseMissingFrames <= _maxPoseHoldFrames) return _poses;
+    return const <Pose>[];
+  }
 
   Future<void> _finish() async {
     if (_reps > 0) {
@@ -259,16 +333,22 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
   Widget build(BuildContext context) {
     final pad = MediaQuery.paddingOf(context);
 
-    if (_permissionChecking) return _loadingView(text: 'Kamera izni isteniyor…');
+    if (_permissionChecking) {
+      return _loadingView(text: 'Kamera izni isteniyor…');
+    }
     final status = _cameraPermissionStatus;
     if (status != null && !status.isGranted) {
       return _permissionView(status);
     }
     if (_fatalError != null) return _errorView(pad);
-    if (_initializing || _controller == null) return _loadingView(text: 'Kamera açılıyor…');
+    if (_initializing || _controller == null) {
+      return _loadingView(text: 'Kamera açılıyor…');
+    }
 
     final ctrl = _controller!;
-    if (!ctrl.value.isInitialized) return _loadingView(text: 'Kamera hazırlanıyor…');
+    if (!ctrl.value.isInitialized) {
+      return _loadingView(text: 'Kamera hazırlanıyor…');
+    }
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -299,14 +379,19 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
   }
 
   Widget _skeletonOverlay(CameraController ctrl) {
-    if (_poses.isEmpty || _imageSize == Size.zero) return const SizedBox.shrink();
+    if (_imageSize == Size.zero || _poses.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return Positioned.fill(
-      child: CustomPaint(
-        painter: PosePainter(
-          poses: _poses,
-          imageSize: _imageSize,
-          rotation: _rotation,
-          cameraLensDirection: ctrl.description.lensDirection,
+      child: RepaintBoundary(
+        child: CustomPaint(
+          painter: PosePainter(
+            poses: _poses,
+            bothHandsUp: _bothHandsUp,
+            imageSize: _imageSize,
+            rotation: _rotation,
+            cameraLensDirection: ctrl.description.lensDirection,
+          ),
         ),
       ),
     );
@@ -358,9 +443,11 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
           children: [
             _miniStat('Ağırlık', '${_weightKg.toStringAsFixed(0)} kg'),
             const SizedBox(height: 4),
+            _miniStat('Vucut', '${_bodyWeightKg.toStringAsFixed(0)} kg'),
+            const SizedBox(height: 4),
             _miniStat('Kalori', '${_caloriesBurned.toStringAsFixed(1)} kcal'),
             const SizedBox(height: 4),
-            _miniStat('Faz', _phase == 0 ? 'Aşağı ↓' : 'Yukarı ↑'),
+            _miniStat('Faz', _phase == 0 ? 'Asagi' : 'Yukari'),
           ],
         ),
       ),
@@ -371,9 +458,19 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11)),
+        Text(
+          label,
+          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11),
+        ),
         const SizedBox(width: 6),
-        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+          ),
+        ),
       ],
     );
   }
@@ -395,34 +492,25 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Text('Ağırlık (kg)', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12)),
-                Expanded(
-                  child: Slider(
-                    value: _weightKg.clamp(1, 200),
-                    min: 1,
-                    max: 200,
-                    divisions: 199,
-                    label: '${_weightKg.round()} kg',
-                    activeColor: AppColors.primary,
-                    onChanged: (v) => setState(() => _weightKg = v.roundToDouble()),
-                  ),
-                ),
-                SizedBox(
-                  width: 54,
-                  child: Text(
-                    '${_weightKg.round()} kg',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-              ],
+            Text(
+              widget.exerciseType.title,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.92),
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Row(
               children: [
-                Text('Hassasiyet', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12)),
+                Text(
+                  'Hassasiyet',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 12,
+                  ),
+                ),
                 Expanded(
                   child: Slider(
                     value: _marginFrac.clamp(0.02, 0.12),
@@ -437,8 +525,13 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
             ),
             const SizedBox(height: 6),
             Text(
-              'İki kolu birden omuz üstüne kaldır → indir = +1',
-              style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12),
+              _bothHandsUp
+                  ? 'Harika! Iki kol da omuz ustunde — cizgiler yesil.'
+                  : 'Iki kolu birden omuz ustune kaldir -> indir = +1',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.85),
+                fontSize: 12,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
@@ -447,13 +540,18 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               child: Text(
                 _reps > 0
                     ? 'Bitir  ·  $_reps tekrar  ·  ${_caloriesBurned.toStringAsFixed(1)} kcal'
                     : 'Bitir',
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
               ),
             ),
           ],
@@ -486,7 +584,10 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
           children: [
             const CircularProgressIndicator(color: AppColors.primary),
             const SizedBox(height: 16),
-            Text(text, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+            Text(
+              text,
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
           ],
         ),
       ),
@@ -504,13 +605,21 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.camera_alt_outlined, size: 56, color: AppColors.primary),
+              const Icon(
+                Icons.camera_alt_outlined,
+                size: 56,
+                color: AppColors.primary,
+              ),
               const SizedBox(height: 20),
               Text(
                 isPermanent
                     ? 'Kamera izni kapalı. Ayarlar -> GymCoach -> Kamera kısmından aç.'
                     : 'Bu ekran için kamera izni gerekiyor. İzin verince kamera otomatik açılacak.',
-                style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.5),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  height: 1.5,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -550,11 +659,19 @@ class _State extends ConsumerState<CameraRepCounterScreen> with WidgetsBindingOb
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.videocam_off_rounded, size: 56, color: AppColors.primary),
+              const Icon(
+                Icons.videocam_off_rounded,
+                size: 56,
+                color: AppColors.primary,
+              ),
               const SizedBox(height: 20),
               Text(
                 _fatalError ?? 'Bilinmeyen hata',
-                style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.5),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  height: 1.5,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 28),

@@ -28,8 +28,15 @@ class LeagueScreen extends ConsumerWidget {
         ],
       ),
       body: standingsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-        error: (e, _) => Center(child: Text('Hata: $e', style: const TextStyle(color: Colors.white70))),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        error: (e, _) => Center(
+          child: Text(
+            'Hata: $e',
+            style: const TextStyle(color: Colors.white70),
+          ),
+        ),
         data: (rows) => RefreshIndicator(
           color: AppColors.primary,
           backgroundColor: const Color(0xFF1C2128),
@@ -38,7 +45,7 @@ class LeagueScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
             children: [
               FilledButton.icon(
-                onPressed: () => context.push('/league/camera-reps'),
+                onPressed: () => context.push('/league/camera-setup'),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   minimumSize: const Size(double.infinity, 52),
@@ -56,12 +63,20 @@ class LeagueScreen extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline_rounded, color: Colors.white.withOpacity(0.6), size: 22),
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: Colors.white.withOpacity(0.6),
+                      size: 22,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'İkinci puan sistemi yakında eklenecek.',
-                        style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 13, height: 1.35),
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.75),
+                          fontSize: 13,
+                          height: 1.35,
+                        ),
                       ),
                     ),
                   ],
@@ -79,10 +94,15 @@ class LeagueScreen extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(
                 'Toplam = kamera + (gelecekte) ikinci puan',
-                style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.5)),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white.withOpacity(0.5),
+                ),
               ),
               const SizedBox(height: 12),
-              ...rows.asMap().entries.map((e) => _rowTile(context, e.key + 1, e.value)),
+              ...rows.asMap().entries.map(
+                (e) => _rowTile(context, e.key + 1, e.value),
+              ),
             ],
           ),
         ),
@@ -95,7 +115,9 @@ class LeagueScreen extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: highlight ? AppColors.primary.withOpacity(0.15) : const Color(0xFF1C2128),
+        color: highlight
+            ? AppColors.primary.withOpacity(0.15)
+            : const Color(0xFF1C2128),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -116,7 +138,9 @@ class LeagueScreen extends ConsumerWidget {
                   row.displayName + (highlight ? ' (sen)' : ''),
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: highlight ? Colors.white : Colors.white.withOpacity(0.9),
+                    color: highlight
+                        ? Colors.white
+                        : Colors.white.withOpacity(0.9),
                   ),
                 ),
               ),
@@ -144,7 +168,14 @@ class LeagueScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Text(label, style: TextStyle(fontSize: 10, color: accent)),
-        Text('$value', style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 13)),
+        Text(
+          '$value',
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            fontSize: 13,
+          ),
+        ),
       ],
     );
   }
