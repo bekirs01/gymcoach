@@ -26,7 +26,7 @@ List<LeaderboardEntry> topByTerritoryCount(TerritoryGameState state) {
       userId: e.key,
       displayName: e.value.displayName,
       score: c,
-      secondaryHint: '$c bölge',
+      secondaryHint: '$c зон',
     );
   }).toList()
     ..sort((a, b) => b.score.compareTo(a.score));
@@ -60,7 +60,7 @@ List<LeaderboardEntry> topByCaptures(TerritoryGameState state) {
           userId: e.key,
           displayName: e.value.displayName,
           score: e.value.totalCaptures,
-          secondaryHint: '${e.value.totalCaptures} fetih',
+          secondaryHint: '${e.value.totalCaptures} захв.',
         ),
       )
       .toList()

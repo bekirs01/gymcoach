@@ -31,7 +31,7 @@ class GymCoachApp extends ConsumerWidget {
     final router = AppRouter(rootNavigatorKey).router;
 
     return MaterialApp.router(
-      title: 'GymCoach',
+      title: 'GymCoach — фитнес',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

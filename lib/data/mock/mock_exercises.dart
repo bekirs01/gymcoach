@@ -4,7 +4,7 @@ import '../../domain/models/exercise.dart';
 final mockExercises = <Exercise>[
   const Exercise(
     id: 'ex_arm_1',
-    name: 'Biceps Curl',
+    name: 'Сгибание на бицепс',
     category: ExerciseCategory.arm,
     targetMuscle: 'Бицепс',
     difficulty: DifficultyLevel.beginner,
@@ -16,7 +16,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_arm_2',
-    name: 'Triceps Dips',
+    name: 'Отжимания на трицепс',
     category: ExerciseCategory.arm,
     targetMuscle: 'Трицепс',
     difficulty: DifficultyLevel.intermediate,
@@ -28,7 +28,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_arm_3',
-    name: 'Hammer Curl',
+    name: 'Молотковые сгибания',
     category: ExerciseCategory.arm,
     targetMuscle: 'Бицепс, Предплечье',
     difficulty: DifficultyLevel.beginner,
@@ -40,7 +40,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_leg_1',
-    name: 'Squat',
+    name: 'Приседание',
     category: ExerciseCategory.leg,
     targetMuscle: 'Квадрицепс, Ягодицы',
     difficulty: DifficultyLevel.beginner,
@@ -52,7 +52,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_leg_2',
-    name: 'Lunge',
+    name: 'Выпады',
     category: ExerciseCategory.leg,
     targetMuscle: 'Квадрицепс, Бицепс бедра',
     difficulty: DifficultyLevel.beginner,
@@ -64,7 +64,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_leg_3',
-    name: 'Romanian Deadlift',
+    name: 'Румынская тяга',
     category: ExerciseCategory.leg,
     targetMuscle: 'Бицепс бедра, Ягодицы',
     difficulty: DifficultyLevel.intermediate,
@@ -76,7 +76,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_chest_1',
-    name: 'Push-up',
+    name: 'Отжимания',
     category: ExerciseCategory.chest,
     targetMuscle: 'Грудь, Трицепс',
     difficulty: DifficultyLevel.beginner,
@@ -88,7 +88,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_chest_2',
-    name: 'Dumbbell Bench Press',
+    name: 'Жим гантелей лёжа',
     category: ExerciseCategory.chest,
     targetMuscle: 'Грудь, Трицепс',
     difficulty: DifficultyLevel.intermediate,
@@ -100,7 +100,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_chest_3',
-    name: 'Cable Fly',
+    name: 'Сведения в кроссовере',
     category: ExerciseCategory.chest,
     targetMuscle: 'Грудь',
     difficulty: DifficultyLevel.intermediate,
@@ -112,7 +112,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_back_1',
-    name: 'Pull-up',
+    name: 'Подтягивания',
     category: ExerciseCategory.back,
     targetMuscle: 'Широчайшие, Бицепс',
     difficulty: DifficultyLevel.intermediate,
@@ -124,7 +124,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_back_2',
-    name: 'Bent Over Row',
+    name: 'Тяга в наклоне',
     category: ExerciseCategory.back,
     targetMuscle: 'Спина, Бицепс',
     difficulty: DifficultyLevel.intermediate,
@@ -136,7 +136,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_back_3',
-    name: 'Lat Pulldown',
+    name: 'Тяга верхнего блока',
     category: ExerciseCategory.back,
     targetMuscle: 'Широчайшие',
     difficulty: DifficultyLevel.beginner,
@@ -148,7 +148,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_shoulder_1',
-    name: 'Overhead Press',
+    name: 'Жим стоя',
     category: ExerciseCategory.shoulder,
     targetMuscle: 'Плечи',
     difficulty: DifficultyLevel.intermediate,
@@ -160,7 +160,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_shoulder_2',
-    name: 'Lateral Raise',
+    name: 'Разведения в стороны',
     category: ExerciseCategory.shoulder,
     targetMuscle: 'Средние дельты',
     difficulty: DifficultyLevel.beginner,
@@ -172,7 +172,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_shoulder_3',
-    name: 'Face Pull',
+    name: 'Тяга к лицу',
     category: ExerciseCategory.shoulder,
     targetMuscle: 'Задние дельты',
     difficulty: DifficultyLevel.intermediate,
@@ -184,7 +184,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_abs_1',
-    name: 'Plank',
+    name: 'Планка',
     category: ExerciseCategory.abs,
     targetMuscle: 'Пресс, Кор',
     difficulty: DifficultyLevel.beginner,
@@ -195,7 +195,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_abs_2',
-    name: 'Crunch',
+    name: 'Скручивания',
     category: ExerciseCategory.abs,
     targetMuscle: 'Верхний пресс',
     difficulty: DifficultyLevel.beginner,
@@ -207,7 +207,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_abs_3',
-    name: 'Leg Raise',
+    name: 'Подъём ног',
     category: ExerciseCategory.abs,
     targetMuscle: 'Нижний пресс',
     difficulty: DifficultyLevel.intermediate,
@@ -219,7 +219,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_full_1',
-    name: 'Burpee',
+    name: 'Бёрпи',
     category: ExerciseCategory.fullBody,
     targetMuscle: 'Всё тело',
     difficulty: DifficultyLevel.intermediate,
@@ -231,7 +231,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_full_2',
-    name: 'Kettlebell Swing',
+    name: 'Махи гири',
     category: ExerciseCategory.fullBody,
     targetMuscle: 'Бёдра, Кор, Плечи',
     difficulty: DifficultyLevel.intermediate,
@@ -243,7 +243,7 @@ final mockExercises = <Exercise>[
   ),
   const Exercise(
     id: 'ex_full_3',
-    name: 'Mountain Climber',
+    name: 'Альпинист',
     category: ExerciseCategory.fullBody,
     targetMuscle: 'Кор, Ноги, Плечи',
     difficulty: DifficultyLevel.beginner,

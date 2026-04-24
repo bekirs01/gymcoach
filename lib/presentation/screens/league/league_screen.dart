@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/league.dart';
@@ -19,7 +20,7 @@ class LeagueScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Lig'),
+        title: const Text('Лига'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
@@ -31,10 +32,10 @@ class LeagueScreen extends ConsumerWidget {
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
-        error: (e, _) => Center(
+        error: (_, __) => const Center(
           child: Text(
-            'Hata: $e',
-            style: const TextStyle(color: Colors.white70),
+            AppConstants.loadDataError,
+            style: TextStyle(color: Colors.white70),
           ),
         ),
         data: (rows) => RefreshIndicator(
@@ -51,7 +52,7 @@ class LeagueScreen extends ConsumerWidget {
                   minimumSize: const Size(double.infinity, 52),
                 ),
                 icon: const Icon(Icons.photo_camera_rounded),
-                label: const Text('İki halter · omuz üstü tekrar (kamera)'),
+                label: const Text('Гантели · жим над головой (камера)'),
               ),
               const SizedBox(height: 12),
               Container(
@@ -71,7 +72,7 @@ class LeagueScreen extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'İkinci puan sistemi yakında eklenecek.',
+                        'Вторая система очков скоро.',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.75),
                           fontSize: 13,
@@ -84,7 +85,7 @@ class LeagueScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                'Sıralama',
+                'Рейтинг',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -93,7 +94,7 @@ class LeagueScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Toplam = kamera + (gelecekte) ikinci puan',
+                'Сумма = камера + (скоро) второй зачёт',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.white.withOpacity(0.5),
@@ -135,7 +136,7 @@ class LeagueScreen extends ConsumerWidget {
               ),
               Expanded(
                 child: Text(
-                  row.displayName + (highlight ? ' (sen)' : ''),
+                  row.displayName + (highlight ? ' (вы)' : ''),
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: highlight
@@ -144,9 +145,9 @@ class LeagueScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              _scoreChip('Kamera', row.cameraScore, const Color(0xFF22C55E)),
+              _scoreChip('Кам.', row.cameraScore, const Color(0xFF22C55E)),
               const SizedBox(width: 8),
-              _scoreChip('2.', row.secondaryScore, Colors.white38),
+              _scoreChip('2', row.secondaryScore, Colors.white38),
               const SizedBox(width: 8),
               Text(
                 '${row.totalScore}',

@@ -38,13 +38,13 @@ class _LeagueCameraSetupScreenState
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Kamera Egzersizi'),
+        title: const Text('Камера'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
         children: [
           Text(
-            '1) Egzersizi sec  2) Agirligi sec  3) Olustur ile baslat',
+            '1) Упражнение  2) Вес  3) Запуск',
             style: TextStyle(
               color: Colors.white.withOpacity(0.75),
               fontSize: 13,
@@ -71,7 +71,7 @@ class _LeagueCameraSetupScreenState
               ),
             ),
             icon: const Icon(Icons.play_arrow_rounded),
-            label: const Text('Olustur ve Kamerayi Baslat'),
+            label: const Text('Старт камеры'),
           ),
         ],
       ),
@@ -145,7 +145,7 @@ class _LeagueCameraSetupScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Agirlik Secimi',
+            'Вес',
             style: TextStyle(
               color: Colors.white.withOpacity(0.92),
               fontWeight: FontWeight.w700,
@@ -154,8 +154,8 @@ class _LeagueCameraSetupScreenState
           const SizedBox(height: 6),
           Text(
             profileWeight == null
-                ? 'Telefon ayarlarindan profil kilo bilgisi bulunamadi, varsayilan deger kullaniliyor.'
-                : 'Profil kilon ($profileWeight kg) otomatik alindi, istersen degistirebilirsin.',
+                ? 'Вес из профиля не найден — используется значение по умолчанию.'
+                : 'Вес из профиля: $profileWeight кг. Можно изменить.',
             style: TextStyle(
               color: Colors.white.withOpacity(0.62),
               fontSize: 12,

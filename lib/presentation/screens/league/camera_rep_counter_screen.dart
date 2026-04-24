@@ -2,21 +2,23 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/utils/mlkit_camera_input_image.dart';
 import 'camera_session_config.dart';
-import 'pose_painter.dart';
 
-/// Kamera: tam ekran iPhone kamerası + iskelet çizimi + tekrar sayımı.
-/// `camera` paketi iOS'ta `NSCameraUsageDescription` sayesinde izni kendi sorar.
+/// Kamera önizlemesi + manuel tekrar sayımı.
+///
+/// Google ML Kit kaldırıldı: iOS simülatörü (arm64) ML Kit ikilileriyle link edilemiyordu.
+/// Otomatik iskelet sayımı için ileride güncel ML / cihaz hedefi eklenebilir.
 class CameraRepCounterScreen extends ConsumerStatefulWidget {
   const CameraRepCounterScreen({
     super.key,
@@ -36,64 +38,50 @@ class _State extends ConsumerState<CameraRepCounterScreen>
   List<CameraDescription> _cameras = [];
   CameraController? _controller;
   int _cameraIdx = -1;
-  PoseDetector? _poseDetector;
 
   bool _initializing = true;
-  String? _fatalError;
+  bool _cameraLoadFailed = false;
   bool _permissionChecking = true;
   PermissionStatus? _cameraPermissionStatus;
 
-  List<Pose> _poses = [];
-  Size _imageSize = Size.zero;
-  InputImageRotation _rotation = InputImageRotation.rotation0deg;
-  bool _processing = false;
-  int _poseMissingFrames = 0;
-
   int _reps = 0;
-  int _phase = 0; // 0 = aşağı, 1 = yukarı
-  bool _phaseInit = false;
-  DateTime? _lastPhaseAt;
-  double _marginFrac = 0.045;
-  static const _minLikelihood = 0.30;
-  static const _phaseGap = Duration(milliseconds: 320);
 
   double _weightKg = 10;
   double _bodyWeightKg = 70;
-  double? _filteredLwY;
-  double? _filteredRwY;
-  double? _filteredLsY;
-  double? _filteredRsY;
-  bool _bothHandsUp = false;
 
-  static const _maxPoseHoldFrames = 3;
-
-  static const _orientations = {
-    DeviceOrientation.portraitUp: 0,
-    DeviceOrientation.landscapeLeft: 90,
-    DeviceOrientation.portraitDown: 180,
-    DeviceOrientation.landscapeRight: 270,
-  };
+  /// iOS simülatör / Android emülatörde true (ML yok; manuel mod).
+  bool _virtualDevice = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _weightKg = (widget.initialWeightKg ?? 10).clamp(1, 200).toDouble();
-    _poseDetector = PoseDetector(
-      options: PoseDetectorOptions(
-        model: PoseDetectionModel.base,
-        mode: PoseDetectionMode.stream,
-      ),
-    );
     unawaited(_loadBodyWeightFromProfile());
+    unawaited(_detectVirtualDevice());
     _requestPermissionAndBoot();
+  }
+
+  Future<void> _detectVirtualDevice() async {
+    if (kIsWeb) return;
+    try {
+      final info = DeviceInfoPlugin();
+      if (Platform.isIOS) {
+        final ios = await info.iosInfo;
+        if (!mounted) return;
+        setState(() => _virtualDevice = !ios.isPhysicalDevice);
+      } else if (Platform.isAndroid) {
+        final a = await info.androidInfo;
+        if (!mounted) return;
+        setState(() => _virtualDevice = !a.isPhysicalDevice);
+      }
+    } catch (_) {}
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _kill();
-    _poseDetector?.close();
+    unawaited(_kill());
     super.dispose();
   }
 
@@ -111,7 +99,7 @@ class _State extends ConsumerState<CameraRepCounterScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.inactive) {
-      _kill();
+      unawaited(_kill());
     } else if (state == AppLifecycleState.resumed) {
       _requestPermissionAndBoot();
     }
@@ -141,23 +129,32 @@ class _State extends ConsumerState<CameraRepCounterScreen>
   Future<void> _boot() async {
     setState(() {
       _initializing = true;
-      _fatalError = null;
+      _cameraLoadFailed = false;
     });
     try {
       _cameras = await availableCameras();
-      if (_cameras.isEmpty) throw Exception('Cihazda kamera yok');
+      if (_cameras.isEmpty) {
+        _markCameraFailed();
+        return;
+      }
       _cameraIdx = _cameras.indexWhere(
         (c) => c.lensDirection == CameraLensDirection.front,
       );
       if (_cameraIdx < 0) _cameraIdx = 0;
       await _startCamera();
-    } on CameraException catch (e) {
-      _setFatal(
-        'Kamera erişilemedi: ${e.description}\n\nAyarlar → GymCoach → Kamera iznini aç.',
-      );
-    } catch (e) {
-      _setFatal('$e');
+    } on CameraException catch (_) {
+      _markCameraFailed();
+    } catch (_) {
+      _markCameraFailed();
     }
+  }
+
+  void _markCameraFailed() {
+    if (!mounted) return;
+    setState(() {
+      _cameraLoadFailed = true;
+      _initializing = false;
+    });
   }
 
   Future<void> _startCamera() async {
@@ -176,17 +173,7 @@ class _State extends ConsumerState<CameraRepCounterScreen>
       return;
     }
     _controller = ctrl;
-    await ctrl.startImageStream(_onFrame);
     setState(() => _initializing = false);
-  }
-
-  void _setFatal(String msg) {
-    if (mounted) {
-      setState(() {
-        _fatalError = msg;
-        _initializing = false;
-      });
-    }
   }
 
   Future<void> _kill() async {
@@ -199,100 +186,9 @@ class _State extends ConsumerState<CameraRepCounterScreen>
     await c.dispose();
   }
 
-  InputImageRotation _computeRotation(CameraDescription cam) {
-    final sensor = cam.sensorOrientation;
-    if (Platform.isIOS) {
-      return InputImageRotationValue.fromRawValue(sensor) ??
-          InputImageRotation.rotation0deg;
-    }
-    var comp = _orientations[_controller!.value.deviceOrientation] ?? 0;
-    if (cam.lensDirection == CameraLensDirection.front) {
-      comp = (sensor + comp) % 360;
-    } else {
-      comp = (sensor - comp + 360) % 360;
-    }
-    return InputImageRotationValue.fromRawValue(comp) ??
-        InputImageRotation.rotation0deg;
-  }
-
-  Future<void> _onFrame(CameraImage image) async {
-    if (_processing) return;
-
-    final ctrl = _controller;
-    if (ctrl == null || !ctrl.value.isInitialized) return;
-
-    final input = inputImageFromCameraImage(
-      image: image,
-      controller: ctrl,
-      camera: ctrl.description,
-    );
-    if (input == null) return;
-
-    _processing = true;
-    try {
-      final poses = await _poseDetector!.processImage(input);
-      if (!mounted) return;
-      final rot = _computeRotation(ctrl.description);
-      final sz = Size(image.width.toDouble(), image.height.toDouble());
-      _countReps(poses, sz.height);
-      final stablePoses = _stabilizePoses(poses);
-      setState(() {
-        _poses = stablePoses;
-        _imageSize = sz;
-        _rotation = rot;
-      });
-    } catch (_) {
-    } finally {
-      _processing = false;
-    }
-  }
-
-  void _countReps(List<Pose> poses, double imgH) {
-    if (poses.isEmpty) {
-      _bothHandsUp = false;
-      return;
-    }
-    final p = poses.first;
-    final ls = p.landmarks[PoseLandmarkType.leftShoulder];
-    final rs = p.landmarks[PoseLandmarkType.rightShoulder];
-    final lw = p.landmarks[PoseLandmarkType.leftWrist];
-    final rw = p.landmarks[PoseLandmarkType.rightWrist];
-    if (ls == null || rs == null || lw == null || rw == null) return;
-    if ([ls, rs, lw, rw].any((l) => l.likelihood < _minLikelihood)) return;
-
-    _filteredLwY = _smooth(_filteredLwY, lw.y);
-    _filteredRwY = _smooth(_filteredRwY, rw.y);
-    _filteredLsY = _smooth(_filteredLsY, ls.y);
-    _filteredRsY = _smooth(_filteredRsY, rs.y);
-
-    final m = imgH * _marginFrac;
-    final bothUp =
-        (_filteredLwY! < _filteredLsY! - m) &&
-        (_filteredRwY! < _filteredRsY! - m);
-    final bothDown =
-        (_filteredLwY! > _filteredLsY! + m) &&
-        (_filteredRwY! > _filteredRsY! + m);
-    _bothHandsUp = bothUp;
-
-    if (!_phaseInit) {
-      _phaseInit = true;
-      _phase = bothUp ? 1 : 0;
-      _lastPhaseAt = DateTime.now();
-    }
-
-    final now = DateTime.now();
-    final ok =
-        _lastPhaseAt == null || now.difference(_lastPhaseAt!) >= _phaseGap;
-    if (!ok) return;
-
-    if (_phase == 0 && bothUp) {
-      _phase = 1;
-      _lastPhaseAt = now;
-    } else if (_phase == 1 && bothDown) {
-      _phase = 0;
-      _reps++;
-      _lastPhaseAt = now;
-    }
+  void _addRep() {
+    setState(() => _reps++);
+    HapticFeedback.lightImpact();
   }
 
   double get _caloriesBurned {
@@ -303,25 +199,11 @@ class _State extends ConsumerState<CameraRepCounterScreen>
         bodyWeightFactor;
   }
 
-  double _smooth(double? prev, double next) {
-    if (prev == null) return next;
-    const alpha = 0.38;
-    return prev + (next - prev) * alpha;
-  }
-
-  List<Pose> _stabilizePoses(List<Pose> poses) {
-    if (poses.isNotEmpty) {
-      _poseMissingFrames = 0;
-      return poses;
-    }
-    _poseMissingFrames++;
-    if (_poseMissingFrames <= _maxPoseHoldFrames) return _poses;
-    return const <Pose>[];
-  }
-
   Future<void> _finish() async {
     if (_reps > 0) {
-      await ref.read(leagueRepositoryProvider).addCameraScore(_reps);
+      try {
+        await ref.read(leagueRepositoryProvider).addCameraScore(_reps);
+      } catch (_) {}
     }
     if (mounted) {
       ref.invalidate(leagueStandingsProvider);
@@ -334,20 +216,20 @@ class _State extends ConsumerState<CameraRepCounterScreen>
     final pad = MediaQuery.paddingOf(context);
 
     if (_permissionChecking) {
-      return _loadingView(text: 'Kamera izni isteniyor…');
+      return _loadingView(text: 'Запрос доступа к камере…');
     }
     final status = _cameraPermissionStatus;
     if (status != null && !status.isGranted) {
       return _permissionView(status);
     }
-    if (_fatalError != null) return _errorView(pad);
+    if (_cameraLoadFailed) return _errorView(pad);
     if (_initializing || _controller == null) {
-      return _loadingView(text: 'Kamera açılıyor…');
+      return _loadingView(text: 'Запуск камеры…');
     }
 
     final ctrl = _controller!;
     if (!ctrl.value.isInitialized) {
-      return _loadingView(text: 'Kamera hazırlanıyor…');
+      return _loadingView(text: 'Подготовка камеры…');
     }
 
     return Scaffold(
@@ -356,11 +238,36 @@ class _State extends ConsumerState<CameraRepCounterScreen>
         fit: StackFit.expand,
         children: [
           _cameraLayer(ctrl),
-          _skeletonOverlay(ctrl),
+          if (_virtualDevice) _virtualDeviceBanner(pad),
           _topBar(pad),
           _statsBar(pad),
+          _manualAddButton(pad),
           _bottomSheet(pad),
         ],
+      ),
+    );
+  }
+
+  Widget _virtualDeviceBanner(EdgeInsets pad) {
+    return Positioned(
+      top: pad.top + 56,
+      left: 12,
+      right: 12,
+      child: Material(
+        color: Colors.amber.shade800.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(10),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Text(
+            'Симулятор: скелет не отслеживается. Нажимай «+» для повтора. '
+            'На устройстве — тот же ручной режим.',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              height: 1.35,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -378,19 +285,20 @@ class _State extends ConsumerState<CameraRepCounterScreen>
     );
   }
 
-  Widget _skeletonOverlay(CameraController ctrl) {
-    if (_imageSize == Size.zero || _poses.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Positioned.fill(
-      child: RepaintBoundary(
-        child: CustomPaint(
-          painter: PosePainter(
-            poses: _poses,
-            bothHandsUp: _bothHandsUp,
-            imageSize: _imageSize,
-            rotation: _rotation,
-            cameraLensDirection: ctrl.description.lensDirection,
+  Widget _manualAddButton(EdgeInsets pad) {
+    return Positioned(
+      right: 16,
+      bottom: pad.bottom + 200,
+      child: Material(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(40),
+        elevation: 6,
+        child: InkWell(
+          onTap: _addRep,
+          borderRadius: BorderRadius.circular(40),
+          child: const Padding(
+            padding: EdgeInsets.all(20),
+            child: Icon(Icons.add_rounded, color: Colors.white, size: 36),
           ),
         ),
       ),
@@ -409,9 +317,9 @@ class _State extends ConsumerState<CameraRepCounterScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.65),
+              color: Colors.black.withValues(alpha: 0.65),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.primary.withOpacity(0.6)),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.6)),
             ),
             child: Text(
               '$_reps',
@@ -435,19 +343,19 @@ class _State extends ConsumerState<CameraRepCounterScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.55),
+          color: Colors.black.withValues(alpha: 0.55),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            _miniStat('Ağırlık', '${_weightKg.toStringAsFixed(0)} kg'),
+            _miniStat('Вес', '${_weightKg.toStringAsFixed(0)} кг'),
             const SizedBox(height: 4),
-            _miniStat('Vucut', '${_bodyWeightKg.toStringAsFixed(0)} kg'),
+            _miniStat('Тело', '${_bodyWeightKg.toStringAsFixed(0)} кг'),
             const SizedBox(height: 4),
-            _miniStat('Kalori', '${_caloriesBurned.toStringAsFixed(1)} kcal'),
+            _miniStat('ккал', _caloriesBurned.toStringAsFixed(1)),
             const SizedBox(height: 4),
-            _miniStat('Faz', _phase == 0 ? 'Asagi' : 'Yukari'),
+            _miniStat('Режим', 'вручную'),
           ],
         ),
       ),
@@ -460,7 +368,10 @@ class _State extends ConsumerState<CameraRepCounterScreen>
       children: [
         Text(
           label,
-          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.6),
+            fontSize: 11,
+          ),
         ),
         const SizedBox(width: 6),
         Text(
@@ -486,7 +397,10 @@ class _State extends ConsumerState<CameraRepCounterScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.transparent, Colors.black.withOpacity(0.88)],
+            colors: [
+              Colors.transparent,
+              Colors.black.withValues(alpha: 0.88),
+            ],
           ),
         ),
         child: Column(
@@ -495,41 +409,17 @@ class _State extends ConsumerState<CameraRepCounterScreen>
             Text(
               widget.exerciseType.title,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.92),
+                color: Colors.white.withValues(alpha: 0.92),
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Text(
-                  'Hassasiyet',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 12,
-                  ),
-                ),
-                Expanded(
-                  child: Slider(
-                    value: _marginFrac.clamp(0.02, 0.12),
-                    min: 0.02,
-                    max: 0.12,
-                    divisions: 10,
-                    activeColor: AppColors.primary,
-                    onChanged: (v) => setState(() => _marginFrac = v),
-                  ),
-                ),
-              ],
-            ),
             const SizedBox(height: 6),
             Text(
-              _bothHandsUp
-                  ? 'Harika! Iki kol da omuz ustunde — cizgiler yesil.'
-                  : 'Iki kolu birden omuz ustune kaldir -> indir = +1',
+              'После каждого повтора нажимай «+» справа внизу.',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.85),
+                color: Colors.white.withValues(alpha: 0.85),
                 fontSize: 12,
               ),
               textAlign: TextAlign.center,
@@ -546,8 +436,8 @@ class _State extends ConsumerState<CameraRepCounterScreen>
               ),
               child: Text(
                 _reps > 0
-                    ? 'Bitir  ·  $_reps tekrar  ·  ${_caloriesBurned.toStringAsFixed(1)} kcal'
-                    : 'Bitir',
+                    ? 'Готово · $_reps повт. · ${_caloriesBurned.toStringAsFixed(1)} ккал'
+                    : 'Готово',
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
@@ -562,7 +452,7 @@ class _State extends ConsumerState<CameraRepCounterScreen>
 
   Widget _circleBtn(IconData icon, VoidCallback onTap) {
     return Material(
-      color: Colors.black.withOpacity(0.5),
+      color: Colors.black.withValues(alpha: 0.5),
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
@@ -613,8 +503,8 @@ class _State extends ConsumerState<CameraRepCounterScreen>
               const SizedBox(height: 20),
               Text(
                 isPermanent
-                    ? 'Kamera izni kapalı. Ayarlar -> GymCoach -> Kamera kısmından aç.'
-                    : 'Bu ekran için kamera izni gerekiyor. İzin verince kamera otomatik açılacak.',
+                    ? 'Доступ к камере закрыт. Откройте в настройках приложения.'
+                    : 'Нужен доступ к камере. После разрешения она откроется автоматически.',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 15,
@@ -635,12 +525,12 @@ class _State extends ConsumerState<CameraRepCounterScreen>
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                child: Text(isPermanent ? 'Ayarlara git' : 'Kamera izni ver'),
+                child: Text(isPermanent ? 'Настройки' : 'Разрешить камеру'),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: () => context.pop(),
-                child: const Text('Geri'),
+                child: const Text('Назад'),
               ),
             ],
           ),
@@ -665,9 +555,9 @@ class _State extends ConsumerState<CameraRepCounterScreen>
                 color: AppColors.primary,
               ),
               const SizedBox(height: 20),
-              Text(
-                _fatalError ?? 'Bilinmeyen hata',
-                style: const TextStyle(
+              const Text(
+                AppConstants.cameraGenericError,
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 15,
                   height: 1.5,
@@ -677,19 +567,19 @@ class _State extends ConsumerState<CameraRepCounterScreen>
               const SizedBox(height: 28),
               FilledButton(
                 onPressed: () {
-                  _fatalError = null;
+                  _cameraLoadFailed = false;
                   _boot();
                 },
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                child: const Text('Yeniden dene'),
+                child: const Text('Повторить'),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: () => context.pop(),
-                child: const Text('Geri'),
+                child: const Text('Назад'),
               ),
             ],
           ),

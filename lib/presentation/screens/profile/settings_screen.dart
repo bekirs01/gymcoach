@@ -87,7 +87,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           ),
           const ListTile(
             title: Text('О приложении'),
-            subtitle: Text('GymCoach v1.0.0'),
+            subtitle: Text('GymCoach, версия 1.0.0'),
           ),
           ListTile(
             leading: const Icon(Icons.camera_alt_outlined),

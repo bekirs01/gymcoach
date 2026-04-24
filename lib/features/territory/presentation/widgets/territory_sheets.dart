@@ -7,13 +7,13 @@ import '../../domain/territory_models.dart';
 import '../../services/territory_game_notifier.dart';
 import '../../utils/route_capture_logic.dart';
 
-/// Bölge kapandıktan sonra isim + kayıt (B ekranı).
+/// Лист после замыкания зоны — имя и сохранение.
 Future<void> showTerritoryCompletionSheet({
   required BuildContext context,
   required WidgetRef ref,
   required RouteCaptureOutcome success,
 }) async {
-  final nameCtrl = TextEditingController(text: 'Yeni bölgem');
+  final nameCtrl = TextEditingController(text: 'Моя зона');
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -47,7 +47,7 @@ Future<void> showTerritoryCompletionSheet({
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
-                    'Bölge mühürlendi!',
+                    'Территория закрыта!',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -59,7 +59,7 @@ Future<void> showTerritoryCompletionSheet({
             ),
             const SizedBox(height: 8),
             Text(
-              'Bugün haritaya yeni damganı vurdun. İsim ver, skoruna eklensin.',
+              'Дайте название — очки попадут в таблицу.',
               style: TextStyle(color: Colors.white.withOpacity(0.72), height: 1.35),
             ),
             const SizedBox(height: 20),
@@ -67,7 +67,7 @@ Future<void> showTerritoryCompletionSheet({
               controller: nameCtrl,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                labelText: 'Bölge adı',
+                labelText: 'Название',
                 labelStyle: TextStyle(color: Colors.white.withOpacity(0.65)),
                 filled: true,
                 fillColor: const Color(0xFF1C2632),
@@ -75,11 +75,11 @@ Future<void> showTerritoryCompletionSheet({
               ),
             ),
             const SizedBox(height: 16),
-            _metricRow(Icons.shape_line_outlined, 'Tahmini alan',
-                '${success.areaSqM.toStringAsFixed(0)} m²'),
+            _metricRow(Icons.shape_line_outlined, 'Площадь',
+                '${success.areaSqM.toStringAsFixed(0)} м²'),
             const SizedBox(height: 8),
-            _metricRow(Icons.route_rounded, 'Rota uzunluğu',
-                '${success.pathLengthM.toStringAsFixed(0)} m'),
+            _metricRow(Icons.route_rounded, 'Длина маршрута',
+                '${success.pathLengthM.toStringAsFixed(0)} м'),
             const SizedBox(height: 24),
             FilledButton(
               style: FilledButton.styleFrom(
@@ -100,20 +100,20 @@ Future<void> showTerritoryCompletionSheet({
                 Navigator.of(ctx).pop();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Bölge kaydedildi — lig tablosuna bak!'),
+                    const SnackBar(
+                      content: Text('Сохранено. Смотрите рейтинг лиги.'),
                       behavior: SnackBarBehavior.floating,
-                      backgroundColor: const Color(0xFF0F766E),
+                      backgroundColor: Color(0xFF0F766E),
                     ),
                   );
                 }
               },
-              child: const Text('Kaydet ve fethet'),
+              child: const Text('Сохранить'),
             ),
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('İptal', style: TextStyle(color: Colors.white.withOpacity(0.6))),
+              child: Text('Отмена', style: TextStyle(color: Colors.white.withOpacity(0.6))),
             ),
           ],
         ),
@@ -144,7 +144,7 @@ Widget _metricRow(IconData icon, String label, String value) {
   );
 }
 
-/// C — Bölge detay bottom sheet.
+/// Детали зоны — нижний лист.
 Future<void> showTerritoryDetailSheet(
   BuildContext context,
   TerritoryZone zone,
@@ -175,16 +175,15 @@ Future<void> showTerritoryDetailSheet(
             ),
           ),
           const SizedBox(height: 16),
-          _detailLine('Sahip', owner?.displayName ?? zone.ownerId),
-          _detailLine('Fetih / güncelleme', df.format(zone.claimedAt)),
-          _detailLine('Alan', '${zone.areaSqM.toStringAsFixed(0)} m²'),
-          _detailLine('El değiştirme', '${zone.captureCount} kez'),
+          _detailLine('Владелец', owner?.displayName ?? zone.ownerId),
+          _detailLine('Захват / обновление', df.format(zone.claimedAt)),
+          _detailLine('Площадь', '${zone.areaSqM.toStringAsFixed(0)} м²'),
+          _detailLine('Смен владельца', '${zone.captureCount}'),
           if (last != null)
-            _detailLine('Son ele geçiren', last.displayName),
+            _detailLine('Последний захват', last.displayName),
           const SizedBox(height: 12),
           Text(
-            // TODO: Gerçek sunucuda işlem geçmişi (audit log) bağlanacak.
-            'Demo veri: sahiplik kuralları çakışma motorunda.',
+            'Демо-данные: правила в движке пересечений.',
             style: TextStyle(
               fontSize: 12,
               color: Colors.white.withOpacity(0.45),
@@ -203,11 +202,10 @@ Widget _detailLine(String k, String v) {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 130,
+          width: 140,
           child: Text(
             k,
             style: TextStyle(color: Colors.white.withOpacity(0.55)),
-            
           ),
         ),
         Expanded(

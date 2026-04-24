@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -23,7 +24,8 @@ class GuideScreen extends ConsumerWidget {
       ),
       body: articlesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (_, __) =>
+            const Center(child: Text(AppConstants.loadDataError)),
         data: (articles) => ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: articles.length,

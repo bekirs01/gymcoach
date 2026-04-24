@@ -11,15 +11,15 @@ class LocationPermissionService {
       perm = await Geolocator.requestPermission();
     }
     if (perm == LocationPermission.deniedForever) {
-      return 'Konum izni kalıcı olarak kapalı. Ayarlardan aç.';
+      return 'Доступ к геолокации отключён. Включите в настройках.';
     }
     if (perm == LocationPermission.denied) {
-      return 'Konum izni gerekli.';
+      return 'Нужен доступ к геолокации.';
     }
 
     final enabled = await Geolocator.isLocationServiceEnabled();
     if (!enabled) {
-      return 'Cihazda konum servisini aç.';
+      return 'Включите геолокацию в настройках устройства.';
     }
     return null;
   }

@@ -18,15 +18,15 @@ Map<String, TerritoryProfile> mockTerritoryUsers() {
   return {
     TerritoryModels.currentUserId: TerritoryProfile(
       id: TerritoryModels.currentUserId,
-      displayName: 'Sen',
+      displayName: 'Вы',
       avatarLabel: 'S',
       themeColor: const Color(0xFF14B8A6),
       totalCaptures: 2,
     ),
-    'u_rival_1': TerritoryModels.colorForUser('u_rival_1', 'Atak AI', 'A'),
-    'u_rival_2': TerritoryModels.colorForUser('u_rival_2', 'Rıza Koş', 'R'),
-    'u_rival_3': TerritoryModels.colorForUser('u_rival_3', 'Deniz Step', 'D'),
-    'u_rival_4': TerritoryModels.colorForUser('u_rival_4', 'Ece Power', 'E'),
+    'u_rival_1': TerritoryModels.colorForUser('u_rival_1', 'Алекс Бег', 'А'),
+    'u_rival_2': TerritoryModels.colorForUser('u_rival_2', 'Ринат Ран', 'Р'),
+    'u_rival_3': TerritoryModels.colorForUser('u_rival_3', 'Денис Шаг', 'Д'),
+    'u_rival_4': TerritoryModels.colorForUser('u_rival_4', 'Елена Сила', 'Е'),
   };
 }
 
@@ -61,7 +61,7 @@ List<TerritoryZone> mockTerritoryZones() {
   return [
     zone(
       'z1',
-      'Moda Sahil Hattı',
+      'Набережная «Мода»',
       'u_rival_1',
       _rectAround(o, eastM: 80, northM: 40, w: 100, h: 70),
       t.subtract(const Duration(hours: 5)),
@@ -69,7 +69,7 @@ List<TerritoryZone> mockTerritoryZones() {
     ),
     zone(
       'z2',
-      'Bahariye Sprint',
+      'Спринт Бахарие',
       'u_rival_2',
       _rectAround(GeoUtils.offsetMeters(o, 120, -30), eastM: 0, northM: 0, w: 90, h: 90),
       t.subtract(const Duration(days: 1)),
@@ -77,7 +77,7 @@ List<TerritoryZone> mockTerritoryZones() {
     ),
     zone(
       'z3',
-      'Yoğurtçu Park',
+      'Парк Йогуртчу',
       TerritoryModels.currentUserId,
       _rectAround(GeoUtils.offsetMeters(o, -140, 50), eastM: 0, northM: 0, w: 75, h: 60),
       t.subtract(const Duration(hours: 20)),
@@ -85,7 +85,7 @@ List<TerritoryZone> mockTerritoryZones() {
     ),
     zone(
       'z4',
-      'Fenerbahçe Çemberi',
+      'Кольцо Фенербахче',
       'u_rival_3',
       _rectAround(GeoUtils.offsetMeters(o, 40, -120), eastM: 0, northM: 0, w: 110, h: 55),
       t.subtract(const Duration(hours: 48)),
@@ -93,7 +93,7 @@ List<TerritoryZone> mockTerritoryZones() {
     ),
     zone(
       'z5',
-      'Söğütlüçeşme Intervals',
+      'Интервалы Сёгютлючешме',
       'u_rival_4',
       _rectAround(GeoUtils.offsetMeters(o, -60, -90), eastM: 0, northM: 0, w: 65, h: 95),
       t.subtract(const Duration(hours: 12)),
@@ -101,7 +101,7 @@ List<TerritoryZone> mockTerritoryZones() {
     ),
     zone(
       'z6',
-      'Caferağa Isınma',
+      'Разминка Джаферага',
       'u_rival_1',
       _rectAround(GeoUtils.offsetMeters(o, 200, 20), eastM: 0, northM: 0, w: 50, h: 50),
       t.subtract(const Duration(hours: 3)),
@@ -109,7 +109,7 @@ List<TerritoryZone> mockTerritoryZones() {
     ),
     zone(
       'z7',
-      'Rıhtım Takipte',
+      'Набережный круг',
       'u_rival_2',
       _rectAround(GeoUtils.offsetMeters(o, -200, -40), eastM: 0, northM: 0, w: 85, h: 45),
       t.subtract(const Duration(minutes: 90)),

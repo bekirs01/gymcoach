@@ -19,22 +19,22 @@ extension CameraExerciseTypeX on CameraExerciseType {
   String get title {
     switch (this) {
       case CameraExerciseType.dumbbellShoulderPress:
-        return 'Dumbbell Shoulder Press';
+        return 'Жим гантелей над головой';
       case CameraExerciseType.barbellShoulderPress:
-        return 'Barbell Shoulder Press';
+        return 'Жим штанги стоя';
       case CameraExerciseType.pushPress:
-        return 'Push Press';
+        return 'Толчок';
     }
   }
 
   String get subtitle {
     switch (this) {
       case CameraExerciseType.dumbbellShoulderPress:
-        return 'Iki elde dumbbell ile omuz ustu press.';
+        return 'Две гантели, жим над плечами.';
       case CameraExerciseType.barbellShoulderPress:
-        return 'Barbell ile omuzdan yukariya press.';
+        return 'Штанга, движение вверх от плеч.';
       case CameraExerciseType.pushPress:
-        return 'Bacak destegiyle hizli yukari itis.';
+        return 'Рывок с подскоком — быстрый жим.';
     }
   }
 

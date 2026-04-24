@@ -59,7 +59,7 @@ class RouteCaptureLogic {
   RouteCaptureOutcome evaluate(List<LatLng> route) {
     if (route.length < rules.minRoutePoints) {
       return RouteCaptureOutcome.failure(
-        'Daha uzun dolaş: en az ${rules.minRoutePoints} nokta gerekli.',
+        'Нужно больше точек маршрута (мин. ${rules.minRoutePoints}).',
       );
     }
 
@@ -68,33 +68,33 @@ class RouteCaptureLogic {
     final gap = GeoUtils.distanceMeters(first, last);
     if (gap > rules.closeToleranceM) {
       return RouteCaptureOutcome.failure(
-        'Başlangıca yaklaş (${gap.toStringAsFixed(0)} m — hedef ≤ ${rules.closeToleranceM.toStringAsFixed(0)} m).',
+        'Вернитесь ближе к старту (сейчас ${gap.toStringAsFixed(0)} м, нужно ≤ ${rules.closeToleranceM.toStringAsFixed(0)} м).',
       );
     }
 
     final pathLen = GeoUtils.pathLengthMeters(route);
     if (pathLen < rules.minPathLengthM) {
       return RouteCaptureOutcome.failure(
-        'Rota çok kısa (≥ ${rules.minPathLengthM.toStringAsFixed(0)} m dolaş).',
+        'Маршрут короткий (нужно ≥ ${rules.minPathLengthM.toStringAsFixed(0)} м).',
       );
     }
 
     // Son nokta başa yakınsa kapalı şekil köşeleri = son hariç (veya tümü unique)
     List<LatLng> vertices = route.sublist(0, route.length - 1).toList();
     if (vertices.length < 3) {
-      return RouteCaptureOutcome.failure('Geçersiz alan: yeterli köşe yok.');
+      return RouteCaptureOutcome.failure('Недостаточно углов полигона.');
     }
 
     if (!PolygonUtils.isSimplePolygon(vertices)) {
       return RouteCaptureOutcome.failure(
-        'Rota kendini kesiyor. Daha basit bir kapalı tur çiz.',
+        'Маршрут пересекается. Нарисуйте более простой контур.',
       );
     }
 
     final area = PolygonUtils.polygonAreaSqM(vertices);
     if (area < rules.minAreaSqM) {
       return RouteCaptureOutcome.failure(
-        'Alan çok küçük (≥ ${rules.minAreaSqM.toStringAsFixed(0)} m²).',
+        'Площадь мала (нужно ≥ ${rules.minAreaSqM.toStringAsFixed(0)} м²).',
       );
     }
 

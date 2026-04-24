@@ -148,7 +148,7 @@ class _TerritoryMapScreenState extends ConsumerState<TerritoryMapScreen> {
                       ),
                       const Expanded(
                         child: Text(
-                          'Bölgeni Fethet',
+                          'Территория',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white,
@@ -219,7 +219,7 @@ class _TerritoryMapScreenState extends ConsumerState<TerritoryMapScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Yürü, koş, alanı kapat — spor ile oyun bir arada.',
+            'Пройдите маршрут и замкните область — игра + спорт.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white.withOpacity(0.72),
@@ -243,7 +243,7 @@ class _TerritoryMapScreenState extends ConsumerState<TerritoryMapScreen> {
                     ? null
                     : () => notifier.startRecording(),
                 icon: const Icon(Icons.play_arrow_rounded, size: 22),
-                label: const Text('Başlat'),
+                label: const Text('Старт'),
               ),
               FilledButton.tonalIcon(
                 style: FilledButton.styleFrom(
@@ -254,7 +254,7 @@ class _TerritoryMapScreenState extends ConsumerState<TerritoryMapScreen> {
                 ),
                 onPressed: state.isRecording ? () => notifier.stopRecording() : null,
                 icon: const Icon(Icons.pause_rounded),
-                label: const Text('Durdur'),
+                label: const Text('Пауза'),
               ),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
@@ -269,7 +269,9 @@ class _TerritoryMapScreenState extends ConsumerState<TerritoryMapScreen> {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(outcome.message ?? 'Rota henüz kapalı değil.'),
+                          content: Text(
+                            outcome.message ?? 'Маршрут ещё не готов.',
+                          ),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
@@ -283,7 +285,7 @@ class _TerritoryMapScreenState extends ConsumerState<TerritoryMapScreen> {
                   );
                 },
                 icon: const Icon(Icons.task_alt_rounded, size: 20),
-                label: const Text('Bölgeyi tamamla'),
+                label: const Text('Завершить'),
               ),
             ],
           ),
@@ -298,7 +300,7 @@ class _TerritoryMapScreenState extends ConsumerState<TerritoryMapScreen> {
                   ),
                   onPressed: notifier.startSimulationRun,
                   icon: const Icon(Icons.smart_toy_outlined),
-                  label: const Text('Simülasyon'),
+                  label: const Text('Симуляция'),
                 ),
               ),
               const SizedBox(width: 8),
@@ -310,7 +312,7 @@ class _TerritoryMapScreenState extends ConsumerState<TerritoryMapScreen> {
                   ),
                   onPressed: notifier.recenterMapOnUser,
                   icon: const Icon(Icons.my_location_rounded),
-                  label: const Text('Merkeze al'),
+                  label: const Text('Ко мне'),
                 ),
               ),
             ],
@@ -323,7 +325,7 @@ class _TerritoryMapScreenState extends ConsumerState<TerritoryMapScreen> {
                   onPressed: notifier.useDeviceMode,
                   icon: const Icon(Icons.gps_fixed_rounded,
                       color: Color(0xFF38BDF8), size: 20),
-                  label: const Text('Cihaz modu', style: TextStyle(color: Colors.white)),
+                  label: const Text('GPS', style: TextStyle(color: Colors.white)),
                 ),
               ),
               Expanded(
@@ -332,7 +334,7 @@ class _TerritoryMapScreenState extends ConsumerState<TerritoryMapScreen> {
                   icon: const Icon(Icons.videogame_asset_outlined,
                       color: Color(0xFFFBBF24), size: 20),
                   label:
-                      const Text('Simülasyon modu', style: TextStyle(color: Colors.white)),
+                      const Text('Симуляция', style: TextStyle(color: Colors.white)),
                 ),
               ),
             ],
@@ -340,7 +342,7 @@ class _TerritoryMapScreenState extends ConsumerState<TerritoryMapScreen> {
           TextButton(
             onPressed: notifier.clearRoute,
             child: Text(
-              'Rotayı temizle',
+              'Очистить маршрут',
               style: TextStyle(color: Colors.white.withOpacity(0.55)),
             ),
           ),
@@ -348,7 +350,7 @@ class _TerritoryMapScreenState extends ConsumerState<TerritoryMapScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
-                'İzin verilmezse demo için simülasyonu kullan.',
+                'Без доступа к геолокации используйте режим симуляции.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.amber.shade200,

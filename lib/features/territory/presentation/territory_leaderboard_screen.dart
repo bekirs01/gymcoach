@@ -17,16 +17,16 @@ class TerritoryLeaderboardScreen extends ConsumerWidget {
       child: Scaffold(
         backgroundColor: const Color(0xFF0B1220),
         appBar: AppBar(
-          title: const Text('Liderlik'),
+          title: const Text('Рейтинг'),
           backgroundColor: const Color(0xFF121A24),
           foregroundColor: Colors.white,
           bottom: const TabBar(
             labelColor: Color(0xFF2DD4BF),
             unselectedLabelColor: Colors.white54,
             tabs: [
-              Tab(text: 'Bölge'),
-              Tab(text: 'Alan'),
-              Tab(text: 'Fetih'),
+              Tab(text: 'Зоны'),
+              Tab(text: 'Площадь'),
+              Tab(text: 'Захваты'),
             ],
           ),
         ),

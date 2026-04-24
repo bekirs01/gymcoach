@@ -1,4 +1,4 @@
-# ML Kit (google_mlkit_*) en az iOS 15.5 gerektirir
+# Kamera ve harita; Google ML Kit kaldırıldı (iOS simülatör arm64 + ML link uyumsuzluğu).
 platform :ios, '15.5'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.

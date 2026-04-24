@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/mock/mock_meals.dart';
@@ -19,7 +20,8 @@ class NutritionScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Питание')),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (_, __) =>
+            const Center(child: Text(AppConstants.loadDataError)),
         data: (profile) {
           final goalKey = _goalToKey(profile?.goal ?? FitnessGoal.stayFit);
           final meals = getMockMealsForGoal(goalKey);

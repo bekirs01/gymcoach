@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/providers.dart';
 import '../../../domain/models/workout_plan.dart';
 
@@ -13,79 +14,114 @@ class PlansScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final plansAsync = ref.watch(_plansProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Мой план')),
-      body: plansAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
-        data: (plans) {
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(_plansProvider),
-            child: plans.isEmpty
-                ? _buildEmptyState(context)
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: plans.length + 1,
-                    itemBuilder: (context, i) {
-                      if (i == 0) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: ElevatedButton.icon(
-                            onPressed: () => context.push('/plan/create'),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Создать новый план'),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                          ),
-                        );
-                      }
-                      final plan = plans[i - 1];
-                      return _PlanCard(plan: plan);
-                    },
-                  ),
-          );
-        },
+    return plansAsync.when(
+      loading: () => Scaffold(
+        appBar: AppBar(title: const Text('Мой план')),
+        body: const Center(child: CircularProgressIndicator()),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/plan/create'),
-        icon: const Icon(Icons.add),
-        label: const Text('Новый план'),
+      error: (_, _) => Scaffold(
+        appBar: AppBar(title: const Text('Мой план')),
+        body: const Center(child: Text(AppConstants.loadDataError)),
+      ),
+      data: (plans) => Scaffold(
+        appBar: AppBar(
+          title: const Text('Мой план'),
+          centerTitle: true,
+        ),
+        floatingActionButton: plans.isEmpty
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: () => context.push('/plan/create'),
+                icon: const Icon(Icons.add),
+                label: const Text('Новый план'),
+              ),
+        body: RefreshIndicator(
+          onRefresh: () async => ref.invalidate(_plansProvider),
+          child: plans.isEmpty
+              ? _buildEmptyState(context)
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: plans.length + 1,
+                  itemBuilder: (context, i) {
+                    if (i == 0) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: ElevatedButton.icon(
+                          onPressed: () => context.push('/plan/create'),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Создать новый план'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      );
+                    }
+                    final plan = plans[i - 1];
+                    return _PlanCard(plan: plan);
+                  },
+                ),
+        ),
       ),
     );
   }
 
+  /// Boş liste: tüm yüksekliği doldurup içeriği ortalar; altta boşluk kalmaz.
   Widget _buildEmptyState(BuildContext context) {
-    return SingleChildScrollView(
+    final scheme = Theme.of(context).colorScheme;
+    return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 48),
-          Icon(Icons.calendar_month, size: 80, color: Colors.grey.shade400),
-          const SizedBox(height: 24),
-          Text(
-            'Вы ещё не создали план',
-            style: Theme.of(context).textTheme.titleLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Начните создавать свой план тренировок.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.calendar_month_rounded,
+                  size: 72,
+                  color: scheme.primary.withValues(alpha: 0.65),
                 ),
-            textAlign: TextAlign.center,
+                const SizedBox(height: 28),
+                Text(
+                  'Вы ещё не создали план',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        height: 1.25,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Начните создавать свой план тренировок.',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        height: 1.45,
+                        fontSize: 16,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 36),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () => context.push('/plan/create'),
+                    icon: const Icon(Icons.add_rounded, size: 22),
+                    label: const Text('Создать план'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: () => context.push('/plan/create'),
-            icon: const Icon(Icons.add),
-            label: const Text('Yeni Plan Oluştur'),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

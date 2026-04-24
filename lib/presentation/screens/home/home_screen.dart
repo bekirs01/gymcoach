@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/main_nav_provider.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/theme/app_theme.dart';
@@ -51,7 +52,8 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Ошибка: $e')),
+        error: (_, __) =>
+            const Center(child: Text(AppConstants.loadDataError)),
         data: (profile) {
           if (profile == null) return const SizedBox.shrink();
           return RefreshIndicator(
@@ -239,7 +241,7 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(width: 12),
                 _statChip(context, Icons.directions_walk_rounded, '${stats['steps'] ?? 0}', 'Шаги', const Color(0xFF22C55E)),
                 const SizedBox(width: 12),
-                _statChip(context, Icons.local_fire_department_rounded, '${stats['calories'] ?? 0}', 'Калор', const Color(0xFFF97316)),
+                _statChip(context, Icons.local_fire_department_rounded, '${stats['calories'] ?? 0}', 'ккал', const Color(0xFFF97316)),
               ],
             ),
           ],
@@ -448,7 +450,7 @@ class HomeScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Bölgeni Fethet',
+                  'Территория',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
@@ -457,7 +459,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Haritada alan kap — yürüdükçe puan topla (demo).',
+                  'Закрой маршрут на карте — демо-очки (прогулка).',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.white.withOpacity(0.65),

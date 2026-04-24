@@ -45,7 +45,7 @@ class TerritoryGameNotifier extends StateNotifier<TerritoryGameState> {
     state = state.copyWith(
       mode: TerritoryRouteMode.device,
       permissionDenied: false,
-      statusMessage: 'Cihaz modu: yürüdükçe rota çizilir.',
+      statusMessage: 'GPS: маршрут рисуется по ходьбе.',
     );
     await _posSub?.cancel();
     _posSub = Geolocator.getPositionStream(
@@ -73,7 +73,7 @@ class TerritoryGameNotifier extends StateNotifier<TerritoryGameState> {
       mode: TerritoryRouteMode.simulation,
       permissionDenied: false,
       liveUserPosition: state.mapCenter,
-      statusMessage: 'Simülasyon: demo kare tur kullanılabilir.',
+      statusMessage: 'Симуляция: доступен демо-маршрут.',
     );
   }
 
@@ -96,7 +96,7 @@ class TerritoryGameNotifier extends StateNotifier<TerritoryGameState> {
     _simTimer?.cancel();
     state = state.copyWith(
       isRecording: false,
-      statusMessage: 'Kayıt durdu. Devam etmek için yeniden başlat.',
+      statusMessage: 'Запись остановлена. Нажмите «Старт» снова.',
     );
   }
 
@@ -137,7 +137,7 @@ class TerritoryGameNotifier extends StateNotifier<TerritoryGameState> {
       if (i >= full.length) {
         _simTimer?.cancel();
         state = state.copyWith(
-          statusMessage: 'Simülasyon bitti — «Bölgeyi tamamla».',
+          statusMessage: 'Симуляция готова — нажмите «Завершить».',
         );
         return;
       }
@@ -170,7 +170,7 @@ class TerritoryGameNotifier extends StateNotifier<TerritoryGameState> {
     final id = 'z_${DateTime.now().millisecondsSinceEpoch}';
     final incoming = TerritoryZone(
       id: id,
-      name: name.trim().isEmpty ? 'Adsız bölge' : name.trim(),
+      name: name.trim().isEmpty ? 'Без названия' : name.trim(),
       ownerId: state.currentUserId,
       ring: closedRing,
       claimedAt: DateTime.now(),
@@ -211,8 +211,8 @@ class TerritoryGameNotifier extends StateNotifier<TerritoryGameState> {
       clearRoute: true,
       isRecording: false,
       statusMessage: tookRival
-          ? 'Rakip alanlara el koydun — skorların güncellendi!'
-          : 'Yeni bölgen kayıtlı. Bugün bir tur daha?',
+          ? 'Захвачены зоны соперников — очки обновлены!'
+          : 'Территория сохранена. Ещё круг?',
     );
   }
 }
