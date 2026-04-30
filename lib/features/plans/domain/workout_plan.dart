@@ -55,6 +55,28 @@ class WorkoutPlan {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
+  WorkoutPlan copyWith({
+    String? id,
+    String? name,
+    DateTime? scheduledDate,
+    TimeOfDay? scheduledTime,
+    int? durationMinutes,
+    PlanDifficulty? difficulty,
+    List<String>? exerciseNames,
+    PlanStatus? status,
+  }) {
+    return WorkoutPlan(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      scheduledDate: scheduledDate ?? this.scheduledDate,
+      scheduledTime: scheduledTime ?? this.scheduledTime,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
+      difficulty: difficulty ?? this.difficulty,
+      exerciseNames: exerciseNames ?? List<String>.from(this.exerciseNames),
+      status: status ?? this.status,
+    );
+  }
+
   static List<WorkoutPlan> samplePlans() {
     final now = DateTime.now();
     final today = dateOnly(now);
