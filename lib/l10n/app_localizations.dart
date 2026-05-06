@@ -725,7 +725,7 @@ abstract class AppLocalizations {
   /// No description provided for @progressMonthlyHint.
   ///
   /// In en, this message translates to:
-  /// **'Rolling training adherence (mock)'**
+  /// **'Completed sessions vs plans scheduled this month'**
   String get progressMonthlyHint;
 
   /// No description provided for @progressWeeklyVolume.
@@ -740,11 +740,35 @@ abstract class AppLocalizations {
   /// **'Achievements'**
   String get progressAchievements;
 
-  /// No description provided for @progressPersonalRecords.
+  /// No description provided for @progressSessionHighlights.
   ///
   /// In en, this message translates to:
-  /// **'Personal records'**
-  String get progressPersonalRecords;
+  /// **'Session highlights'**
+  String get progressSessionHighlights;
+
+  /// No description provided for @progressHighlightLongest.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest session'**
+  String get progressHighlightLongest;
+
+  /// No description provided for @progressHighlightCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Peak calories'**
+  String get progressHighlightCalories;
+
+  /// No description provided for @progressHighlightMoves.
+  ///
+  /// In en, this message translates to:
+  /// **'Most exercises'**
+  String get progressHighlightMoves;
+
+  /// No description provided for @progressHighlightsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Log workouts to see your best sessions here.'**
+  String get progressHighlightsEmpty;
 
   /// No description provided for @progressWorkoutHistory.
   ///
@@ -980,6 +1004,36 @@ abstract class AppLocalizations {
   /// **'Active Session'**
   String get sessionActiveTitle;
 
+  /// No description provided for @sessionStartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to train?'**
+  String get sessionStartTitle;
+
+  /// No description provided for @sessionStartBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Start the session when you begin your workout. Duration and calories will be calculated from that moment.'**
+  String get sessionStartBody;
+
+  /// No description provided for @sessionStartButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Start session'**
+  String get sessionStartButton;
+
+  /// No description provided for @sessionStartFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Start the session before logging exercises.'**
+  String get sessionStartFirst;
+
+  /// No description provided for @sessionTimerRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Timer running'**
+  String get sessionTimerRunning;
+
   /// No description provided for @sessionCurrentExercise.
   ///
   /// In en, this message translates to:
@@ -1045,6 +1099,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} kcal'**
   String sessionCaloriesUnit(int count);
+
+  /// No description provided for @sessionCaloriesEstimateNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories shown are an estimate based on your profile weight, exercise type, and logged sets and reps.'**
+  String get sessionCaloriesEstimateNote;
+
+  /// No description provided for @sessionValidationSetsReps.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a positive number of sets and reps to log this exercise.'**
+  String get sessionValidationSetsReps;
+
+  /// No description provided for @sessionExerciseAlreadyLogged.
+  ///
+  /// In en, this message translates to:
+  /// **'This exercise is already logged. Select another from the list.'**
+  String get sessionExerciseAlreadyLogged;
+
+  /// No description provided for @sessionCameraTrackingComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera tracking (coming soon)'**
+  String get sessionCameraTrackingComingSoon;
 
   /// No description provided for @sessionCompletedExercises.
   ///
@@ -1123,6 +1201,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Exercises completed'**
   String get historyExercisesCompleted;
+
+  /// No description provided for @historySetsRepsDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'{sets} sets · {reps} reps'**
+  String historySetsRepsDetail(int sets, int reps);
+
+  /// No description provided for @historyCaloriesEstimateNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated calories (based on your logged session).'**
+  String get historyCaloriesEstimateNote;
 
   /// No description provided for @snackbarWorkoutSavedHistory.
   ///
@@ -1585,60 +1675,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Consistency'**
   String get badgeConsistency;
-
-  /// No description provided for @prBackSquat.
-  ///
-  /// In en, this message translates to:
-  /// **'Back Squat'**
-  String get prBackSquat;
-
-  /// No description provided for @pr5kRun.
-  ///
-  /// In en, this message translates to:
-  /// **'5K Run'**
-  String get pr5kRun;
-
-  /// No description provided for @prPullUps.
-  ///
-  /// In en, this message translates to:
-  /// **'Pull-ups'**
-  String get prPullUps;
-
-  /// No description provided for @prMockSquatValue.
-  ///
-  /// In en, this message translates to:
-  /// **'110 kg'**
-  String get prMockSquatValue;
-
-  /// No description provided for @prMock5kValue.
-  ///
-  /// In en, this message translates to:
-  /// **'22:40'**
-  String get prMock5kValue;
-
-  /// No description provided for @prMockPullValue.
-  ///
-  /// In en, this message translates to:
-  /// **'12 reps'**
-  String get prMockPullValue;
-
-  /// No description provided for @prMockSquatDate.
-  ///
-  /// In en, this message translates to:
-  /// **'Apr 2026'**
-  String get prMockSquatDate;
-
-  /// No description provided for @prMock5kDate.
-  ///
-  /// In en, this message translates to:
-  /// **'Mar 2026'**
-  String get prMock5kDate;
-
-  /// No description provided for @prMockPullDate.
-  ///
-  /// In en, this message translates to:
-  /// **'Feb 2026'**
-  String get prMockPullDate;
 
   /// No description provided for @weekdayMon.
   ///

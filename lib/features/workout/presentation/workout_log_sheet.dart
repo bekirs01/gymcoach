@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/app_colors.dart';
+import 'package:gym/core/session_calorie_estimator.dart';
+import '../../profile/domain/user_profile.dart';
 import '../domain/workout_completion.dart';
 
 Future<void> showWorkoutLogSheet({
   required BuildContext context,
+  required UserProfile profile,
   required ValueChanged<WorkoutCompletion> onSaved,
 }) {
   return showModalBottomSheet<void>(
@@ -19,15 +22,16 @@ Future<void> showWorkoutLogSheet({
         padding: EdgeInsets.only(
           bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
         ),
-        child: _WorkoutLogSheet(onSaved: onSaved),
+        child: _WorkoutLogSheet(profile: profile, onSaved: onSaved),
       );
     },
   );
 }
 
 class _WorkoutLogSheet extends StatefulWidget {
-  const _WorkoutLogSheet({required this.onSaved});
+  const _WorkoutLogSheet({required this.profile, required this.onSaved});
 
+  final UserProfile profile;
   final ValueChanged<WorkoutCompletion> onSaved;
 
   @override
@@ -56,7 +60,10 @@ class _WorkoutLogSheetState extends State<_WorkoutLogSheet> {
     }
     final type =
         _typeController.text.trim().isEmpty ? l10n.logWorkoutTypeDefault : _typeController.text.trim();
-    final calories = (_durationMinutes * 8).round();
+    final calories = SessionCalorieEstimator.fallbackAdHocLog(
+      weightKg: widget.profile.weightKg,
+      durationMinutes: _durationMinutes,
+    );
     final completion = WorkoutCompletion(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       title: name,
@@ -65,6 +72,7 @@ class _WorkoutLogSheetState extends State<_WorkoutLogSheet> {
       durationMinutes: _durationMinutes,
       calories: calories,
       exerciseNames: [l10n.sampleTypeCustomLog],
+      caloriesAreEstimated: true,
     );
     Navigator.of(context).pop();
     widget.onSaved(completion);

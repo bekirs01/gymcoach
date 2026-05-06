@@ -1,59 +1,191 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../core/session_calorie_estimator.dart';
 import '../../plans/domain/workout_plan.dart';
 import '../../plans/presentation/plans_widgets.dart';
+import '../../profile/domain/user_profile.dart';
+import '../domain/completed_exercise_log.dart';
 import '../domain/workout_completion.dart';
+import '../domain/workout_session_analytics.dart';
 
 class WorkoutSessionPage extends StatefulWidget {
   const WorkoutSessionPage({
     super.key,
     required this.plan,
+    required this.profile,
     required this.onFinished,
+    this.analytics = const NoOpWorkoutSessionAnalytics(),
   });
 
   final WorkoutPlan plan;
+  final UserProfile profile;
   final ValueChanged<WorkoutCompletion> onFinished;
+  final WorkoutSessionAnalytics analytics;
 
   @override
   State<WorkoutSessionPage> createState() => _WorkoutSessionPageState();
 }
 
 class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
-  late DateTime _startedAt;
+  DateTime? _startedAt;
   var _index = 0;
-  final _done = <int>{};
+  final _saved = <int, ({int sets, int reps})>{};
+  final _logsByIndex = <int, CompletedExerciseLog>{};
+  var _isStarted = false;
   var _showSummary = false;
   late WorkoutCompletion _summary;
+  late TextEditingController _setsController;
+  late TextEditingController _repsController;
 
   @override
   void initState() {
     super.initState();
-    _startedAt = DateTime.now();
+    _setsController = TextEditingController();
+    _repsController = TextEditingController();
+    _fillControllersFromSaved();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final names = widget.plan.exerciseNames;
+      if (names.isNotEmpty) {
+        widget.analytics.onExerciseBecameActive(0, names[0]);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _setsController.dispose();
+    _repsController.dispose();
+    super.dispose();
+  }
+
+  void _flushInputsToSaved() {
+    final s = int.tryParse(_setsController.text.trim());
+    final r = int.tryParse(_repsController.text.trim());
+    if (s != null && r != null && s > 0 && r > 0) {
+      _saved[_index] = (sets: s, reps: r);
+    }
+  }
+
+  void _fillControllersFromSaved() {
+    final e = _saved[_index];
+    if (e != null) {
+      _setsController.text = '${e.sets}';
+      _repsController.text = '${e.reps}';
+    } else {
+      _setsController.text = '';
+      _repsController.text = '';
+    }
+  }
+
+  void _goToExercise(int i) {
+    if (i == _index) return;
+    setState(() {
+      _flushInputsToSaved();
+      _index = i;
+      _fillControllersFromSaved();
+    });
+    widget.analytics.onExerciseBecameActive(i, widget.plan.exerciseNames[i]);
+  }
+
+  void _startSession() {
+    setState(() {
+      _startedAt = DateTime.now();
+      _isStarted = true;
+    });
   }
 
   void _completeCurrent() {
+    final l10n = AppLocalizations.of(context)!;
+    if (!_isStarted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(behavior: SnackBarBehavior.floating, content: Text(l10n.sessionStartFirst)),
+      );
+      return;
+    }
+    final names = widget.plan.exerciseNames;
+    if (_logsByIndex.containsKey(_index)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(behavior: SnackBarBehavior.floating, content: Text(l10n.sessionExerciseAlreadyLogged)),
+      );
+      return;
+    }
+    final s = int.tryParse(_setsController.text.trim()) ?? 0;
+    final r = int.tryParse(_repsController.text.trim()) ?? 0;
+    if (s <= 0 || r <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(behavior: SnackBarBehavior.floating, content: Text(l10n.sessionValidationSetsReps)),
+      );
+      return;
+    }
+    final name = names[_index];
+    final id = '${widget.plan.id}_$_index';
+    final cat = SessionCalorieEstimator.categoryKeyForName(name);
+    final kcal = SessionCalorieEstimator.kcalForExercise(
+      weightKg: widget.profile.weightKg,
+      categoryKey: cat,
+      sets: s,
+      reps: r,
+    );
+    final log = CompletedExerciseLog(
+      exerciseId: id,
+      exerciseName: name,
+      setsCompleted: s,
+      repsCompleted: r,
+      estimatedCalories: kcal,
+      completedAt: DateTime.now(),
+      categoryKey: cat,
+    );
+    widget.analytics.onExerciseLogged(index: _index, sets: s, reps: r);
     setState(() {
-      _done.add(_index);
-      if (_index < widget.plan.exerciseNames.length - 1) {
+      _saved[_index] = (sets: s, reps: r);
+      _logsByIndex[_index] = log;
+      if (_index < names.length - 1) {
         _index++;
+        _fillControllersFromSaved();
+        widget.analytics.onExerciseBecameActive(_index, names[_index]);
       }
     });
   }
 
   void _finishWorkout() {
     final l10n = AppLocalizations.of(context)!;
-    final elapsed = DateTime.now().difference(_startedAt).inMinutes.clamp(1, 999);
-    final calories = (elapsed * 9 + widget.plan.exerciseNames.length * 12).round();
+    if (!_isStarted || _startedAt == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(behavior: SnackBarBehavior.floating, content: Text(l10n.sessionStartFirst)),
+      );
+      return;
+    }
+    _flushInputsToSaved();
+    final names = widget.plan.exerciseNames;
+    final finishedAt = DateTime.now();
+    final elapsed = finishedAt.difference(_startedAt!).inMinutes.clamp(1, 999);
+    final ordered = <CompletedExerciseLog>[];
+    for (var i = 0; i < names.length; i++) {
+      final log = _logsByIndex[i];
+      if (log != null) ordered.add(log);
+    }
+    final totalKcal = SessionCalorieEstimator.sessionKcalFromLogs(
+      weightKg: widget.profile.weightKg,
+      difficulty: widget.plan.difficulty,
+      durationMinutes: elapsed,
+      exerciseCount: names.length,
+      logs: ordered,
+    );
+    widget.analytics.onSessionFinished(finishedAt.difference(_startedAt!));
     _summary = WorkoutCompletion(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: finishedAt.microsecondsSinceEpoch.toString(),
       title: widget.plan.name,
       workoutType: l10n.workoutTypePlannedSession,
-      completedAt: DateTime.now(),
+      completedAt: finishedAt,
       durationMinutes: elapsed,
-      calories: calories,
-      exerciseNames: List<String>.from(widget.plan.exerciseNames),
+      calories: totalKcal,
+      exerciseNames: List<String>.from(names),
+      exerciseLogs: ordered,
+      caloriesAreEstimated: true,
     );
     setState(() => _showSummary = true);
   }
@@ -76,6 +208,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     final current = names[_index];
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(l10n.sessionActiveTitle),
@@ -86,132 +219,134 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                widget.plan.name,
-                style: theme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  DifficultyBadge(difficulty: widget.plan.difficulty),
-                  _ChipMeta(
-                    icon: Icons.timer_outlined,
-                    label: l10n.minutesPlanShort(widget.plan.durationMinutes),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text(
-                l10n.sessionCurrentExercise,
-                style: theme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textMuted,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Material(
-                color: AppColors.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: AppColors.borderSubtle),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        current,
-                        style: theme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              decoration: InputDecoration(
-                                labelText: l10n.labelSets,
-                                hintText: '0',
-                                filled: true,
-                                fillColor: AppColors.background,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              keyboardType: TextInputType.number,
-                              enabled: false,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              decoration: InputDecoration(
-                                labelText: l10n.labelReps,
-                                hintText: '0',
-                                filled: true,
-                                fillColor: AppColors.background,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              keyboardType: TextInputType.number,
-                              enabled: false,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                l10n.sessionAllExercises,
-                style: theme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textMuted,
-                ),
-              ),
-              const SizedBox(height: 8),
               Expanded(
-                child: ListView.separated(
-                  itemCount: names.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 8),
-                  itemBuilder: (context, i) {
-                    final done = _done.contains(i);
-                    final active = i == _index;
-                    return Material(
+                child: ListView(
+                  physics: const BouncingScrollPhysics(),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  children: [
+                    Text(
+                      widget.plan.name,
+                      style: theme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        DifficultyBadge(difficulty: widget.plan.difficulty),
+                        _ChipMeta(
+                          icon: Icons.timer_outlined,
+                          label: _isStarted
+                              ? l10n.sessionTimerRunning
+                              : l10n.minutesPlanShort(widget.plan.durationMinutes),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (!_isStarted)
+                      _StartSessionCard(
+                        title: l10n.sessionStartTitle,
+                        body: l10n.sessionStartBody,
+                        buttonLabel: l10n.sessionStartButton,
+                        onStart: _startSession,
+                      ),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.sessionCurrentExercise,
+                      style: theme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Material(
                       color: AppColors.surface,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: active ? AppColors.primary : AppColors.borderSubtle,
-                          width: active ? 1.4 : 1,
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(color: AppColors.borderSubtle),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              current,
+                              style: theme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _setsController,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.labelSets,
+                                      filled: true,
+                                      fillColor: AppColors.background,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                    onChanged: (_) => setState(() {}),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _repsController,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.labelReps,
+                                      filled: true,
+                                      fillColor: AppColors.background,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                    onChanged: (_) => setState(() {}),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              onPressed: null,
+                              icon: const Icon(Icons.videocam_outlined),
+                              label: Text(l10n.sessionCameraTrackingComingSoon),
+                            ),
+                          ],
                         ),
                       ),
-                      child: ListTile(
-                        title: Text(
-                          names[i],
-                          style: theme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        trailing: Icon(
-                          done || i < _index ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                          color: done || i < _index ? AppColors.primary : AppColors.textMuted,
-                        ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      l10n.sessionAllExercises,
+                      style: theme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMuted,
                       ),
-                    );
-                  },
+                    ),
+                    const SizedBox(height: 8),
+                    for (var i = 0; i < names.length; i++) ...[
+                      _ExerciseListTile(
+                        title: names[i],
+                        done: _logsByIndex.containsKey(i),
+                        active: i == _index,
+                        onTap: () => _goToExercise(i),
+                      ),
+                      if (i < names.length - 1) const SizedBox(height: 8),
+                    ],
+                  ],
                 ),
               ),
               const SizedBox(height: 12),
@@ -293,6 +428,111 @@ class _ChipMeta extends StatelessWidget {
   }
 }
 
+class _StartSessionCard extends StatelessWidget {
+  const _StartSessionCard({
+    required this.title,
+    required this.body,
+    required this.buttonLabel,
+    required this.onStart,
+  });
+
+  final String title;
+  final String body;
+  final String buttonLabel;
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    return Material(
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.borderSubtle),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: theme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              body,
+              style: theme.bodyMedium?.copyWith(color: AppColors.textSecondary, height: 1.35),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: onStart,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(buttonLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExerciseListTile extends StatelessWidget {
+  const _ExerciseListTile({
+    required this.title,
+    required this.done,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String title;
+  final bool done;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    return Material(
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: active ? AppColors.primary : AppColors.borderSubtle,
+          width: active ? 1.4 : 1,
+        ),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        title: Text(
+          title,
+          style: theme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        trailing: Icon(
+          done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+          color: done ? AppColors.primary : AppColors.textMuted,
+        ),
+      ),
+    );
+  }
+}
+
 class _SessionSummaryView extends StatelessWidget {
   const _SessionSummaryView({
     required this.completion,
@@ -356,6 +596,13 @@ class _SessionSummaryView extends StatelessWidget {
                           ),
                         ],
                       ),
+                      if (completion.caloriesAreEstimated) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          l10n.sessionCaloriesEstimateNote,
+                          style: theme.bodySmall?.copyWith(color: AppColors.textMuted, height: 1.35),
+                        ),
+                      ],
                       const SizedBox(height: 20),
                       Text(
                         l10n.sessionCompletedExercises,
@@ -365,26 +612,7 @@ class _SessionSummaryView extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      ...completion.exerciseNames.map(
-                        (n) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.check_rounded, color: AppColors.primary, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  n,
-                                  style: theme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      ..._buildExerciseLines(context, l10n),
                     ],
                   ),
                 ),
@@ -413,6 +641,66 @@ class _SessionSummaryView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildExerciseLines(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context).textTheme;
+    if (completion.exerciseLogs.isEmpty) {
+      return completion.exerciseNames
+          .map(
+            (n) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_rounded, color: AppColors.primary, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      n,
+                      style: theme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+          .toList();
+    }
+    return completion.exerciseLogs
+        .map(
+          (log) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.check_rounded, color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        log.exerciseName,
+                        style: theme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        l10n.historySetsRepsDetail(log.setsCompleted, log.repsCompleted),
+                        style: theme.bodySmall?.copyWith(color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        )
+        .toList();
   }
 }
 

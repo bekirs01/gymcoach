@@ -16,6 +16,14 @@ void main() {
     expect(find.text("Today's Focus"), findsOneWidget);
   });
 
+  testWidgets('Home dashboard renders Russian locale from preferences', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'app_locale_code': 'ru'});
+    await tester.pumpWidget(const GymCoachApp());
+    await tester.pumpAndSettle();
+    expect(find.text('С возвращением'), findsOneWidget);
+    expect(find.text('Фокус на сегодня'), findsOneWidget);
+  });
+
   testWidgets('Profile edit accepts comma decimals and closes without crash', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     UserProfile? saved;
@@ -26,7 +34,14 @@ void main() {
         locale: const Locale('en'),
         home: Scaffold(
           body: ProfilePage(
-            profile: UserProfile.initial(),
+            profile: const UserProfile(
+              displayName: 'Alex Morgan',
+              weightKg: 78.5,
+              heightCm: 178,
+              fitnessGoal: 'Strength and conditioning',
+              membershipLevel: 'Premium',
+              notificationsEnabled: true,
+            ),
             onProfileChanged: (p) => saved = p,
             onLocaleChanged: (_) {},
           ),

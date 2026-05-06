@@ -358,7 +358,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progressMonthlyConsistency => 'Monthly consistency';
 
   @override
-  String get progressMonthlyHint => 'Rolling training adherence (mock)';
+  String get progressMonthlyHint =>
+      'Completed sessions vs plans scheduled this month';
 
   @override
   String get progressWeeklyVolume => 'Weekly volume';
@@ -367,7 +368,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progressAchievements => 'Achievements';
 
   @override
-  String get progressPersonalRecords => 'Personal records';
+  String get progressSessionHighlights => 'Session highlights';
+
+  @override
+  String get progressHighlightLongest => 'Longest session';
+
+  @override
+  String get progressHighlightCalories => 'Peak calories';
+
+  @override
+  String get progressHighlightMoves => 'Most exercises';
+
+  @override
+  String get progressHighlightsEmpty =>
+      'Log workouts to see your best sessions here.';
 
   @override
   String get progressWorkoutHistory => 'Workout history';
@@ -495,6 +509,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sessionActiveTitle => 'Active Session';
 
   @override
+  String get sessionStartTitle => 'Ready to train?';
+
+  @override
+  String get sessionStartBody =>
+      'Start the session when you begin your workout. Duration and calories will be calculated from that moment.';
+
+  @override
+  String get sessionStartButton => 'Start session';
+
+  @override
+  String get sessionStartFirst => 'Start the session before logging exercises.';
+
+  @override
+  String get sessionTimerRunning => 'Timer running';
+
+  @override
   String get sessionCurrentExercise => 'Current exercise';
 
   @override
@@ -528,6 +558,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String sessionCaloriesUnit(int count) {
     return '$count kcal';
   }
+
+  @override
+  String get sessionCaloriesEstimateNote =>
+      'Calories shown are an estimate based on your profile weight, exercise type, and logged sets and reps.';
+
+  @override
+  String get sessionValidationSetsReps =>
+      'Enter a positive number of sets and reps to log this exercise.';
+
+  @override
+  String get sessionExerciseAlreadyLogged =>
+      'This exercise is already logged. Select another from the list.';
+
+  @override
+  String get sessionCameraTrackingComingSoon => 'Camera tracking (coming soon)';
 
   @override
   String get sessionCompletedExercises => 'Completed exercises';
@@ -567,6 +612,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get historyExercisesCompleted => 'Exercises completed';
+
+  @override
+  String historySetsRepsDetail(int sets, int reps) {
+    return '$sets sets · $reps reps';
+  }
+
+  @override
+  String get historyCaloriesEstimateNote =>
+      'Estimated calories (based on your logged session).';
 
   @override
   String get snackbarWorkoutSavedHistory => 'Workout saved to your history';
@@ -805,33 +859,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get badgeConsistency => 'Consistency';
-
-  @override
-  String get prBackSquat => 'Back Squat';
-
-  @override
-  String get pr5kRun => '5K Run';
-
-  @override
-  String get prPullUps => 'Pull-ups';
-
-  @override
-  String get prMockSquatValue => '110 kg';
-
-  @override
-  String get prMock5kValue => '22:40';
-
-  @override
-  String get prMockPullValue => '12 reps';
-
-  @override
-  String get prMockSquatDate => 'Apr 2026';
-
-  @override
-  String get prMock5kDate => 'Mar 2026';
-
-  @override
-  String get prMockPullDate => 'Feb 2026';
 
   @override
   String get weekdayMon => 'Mon';

@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
 import '../../app/theme/app_colors.dart';
-import '../../core/seed_data.dart';
+import '../../app/training_app_state.dart';
 import '../../core/training_stats.dart';
 import '../calendar/presentation/calendar_page.dart';
 import '../categories/presentation/category_detail_page.dart';
@@ -12,7 +14,6 @@ import '../plans/domain/workout_plan.dart';
 import '../plans/presentation/create_plan_sheet.dart';
 import '../plans/presentation/plan_detail_page.dart';
 import '../plans/presentation/plans_page.dart';
-import '../profile/domain/user_profile.dart';
 import '../profile/presentation/profile_page.dart';
 import '../progress/presentation/progress_page.dart';
 import '../progress/presentation/streak_detail_page.dart';
@@ -21,8 +22,13 @@ import '../workout/presentation/workout_log_sheet.dart';
 import '../workout/presentation/workout_session_page.dart';
 
 class MainShell extends StatefulWidget {
-  const MainShell({super.key, required this.onLocaleChanged});
+  const MainShell({
+    super.key,
+    required this.training,
+    required this.onLocaleChanged,
+  });
 
+  final TrainingAppState training;
   final ValueChanged<Locale> onLocaleChanged;
 
   @override
@@ -32,57 +38,14 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   var _selectedIndex = 0;
   var _plansCreateSignal = 0;
-  List<WorkoutPlan> _plans = [];
-  List<WorkoutCompletion> _completions = [];
-  late UserProfile _profile;
-  Locale? _syncedLocale;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final l10n = AppLocalizations.of(context)!;
-    final loc = Localizations.localeOf(context);
-    if (_syncedLocale == null) {
-      _syncedLocale = loc;
-      _plans = mergeSeedPlans([], seedPlans(l10n));
-      _completions = mergeSeedCompletions([], seedCompletions(l10n));
-      _profile = UserProfile(
-        displayName: 'Alex Morgan',
-        weightKg: 78.5,
-        heightCm: 178,
-        fitnessGoal: l10n.profileDefaultGoal,
-        membershipLevel: l10n.membershipPremium,
-        notificationsEnabled: true,
-      );
-      return;
-    }
-    if (_syncedLocale != loc) {
-      _syncedLocale = loc;
-      setState(() {
-        _plans = mergeSeedPlans(_plans, seedPlans(l10n));
-        _completions = mergeSeedCompletions(_completions, seedCompletions(l10n));
-      });
-    }
-  }
+  TrainingAppState get _t => widget.training;
 
-  void _addPlan(WorkoutPlan plan) {
-    setState(() => _plans.insert(0, plan));
-  }
+  Future<void> _addPlan(WorkoutPlan plan) => _t.addPlan(plan);
 
-  void _upsertPlan(WorkoutPlan plan) {
-    setState(() {
-      final i = _plans.indexWhere((p) => p.id == plan.id);
-      if (i >= 0) {
-        _plans[i] = plan;
-      } else {
-        _plans.insert(0, plan);
-      }
-    });
-  }
+  Future<void> _upsertPlan(WorkoutPlan plan) => _t.upsertPlan(plan);
 
-  void _removePlan(WorkoutPlan plan) {
-    setState(() => _plans.removeWhere((p) => p.id == plan.id));
-  }
+  Future<void> _removePlan(WorkoutPlan plan) => _t.removePlan(plan);
 
   void _goToPlansTab({bool openCreateSheet = false}) {
     setState(() {
@@ -101,15 +64,8 @@ class _MainShellState extends State<MainShell> {
     setState(() => _selectedIndex = 4);
   }
 
-  void _handleSessionComplete(WorkoutPlan plan, WorkoutCompletion completion) {
-    setState(() {
-      final i = _plans.indexWhere((p) => p.id == plan.id);
-      if (i >= 0) {
-        _plans[i] = _plans[i].copyWith(status: PlanStatus.completed);
-      }
-      _completions.insert(0, completion);
-    });
-  }
+  Future<void> _handleSessionComplete(WorkoutPlan plan, WorkoutCompletion completion) =>
+      _t.completePlanSession(plan, completion);
 
   void _pushSession(BuildContext messengerContext, WorkoutPlan plan) {
     final messenger = ScaffoldMessenger.of(messengerContext);
@@ -118,8 +74,9 @@ class _MainShellState extends State<MainShell> {
       MaterialPageRoute<void>(
         builder: (sctx) => WorkoutSessionPage(
           plan: plan,
+          profile: _t.profile,
           onFinished: (c) {
-            _handleSessionComplete(plan, c);
+            unawaited(_handleSessionComplete(plan, c));
             messenger.showSnackBar(
               SnackBar(
                 behavior: SnackBarBehavior.floating,
@@ -145,7 +102,7 @@ class _MainShellState extends State<MainShell> {
               context: ctx,
               existingPlan: plan,
               onSaved: (updated) {
-                _upsertPlan(updated);
+                unawaited(_upsertPlan(updated));
                 Navigator.of(ctx).pop();
                 messenger.showSnackBar(
                   SnackBar(
@@ -157,7 +114,7 @@ class _MainShellState extends State<MainShell> {
             );
           },
           onDeleted: () {
-            _removePlan(plan);
+            unawaited(_removePlan(plan));
             messenger.showSnackBar(
               SnackBar(
                 behavior: SnackBarBehavior.floating,
@@ -170,7 +127,7 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  Set<DateTime> get _completedDays => TrainingStats.completedDays(_plans, _completions);
+  Set<DateTime> get _completedDays => TrainingStats.completedDays(_t.plans, _t.completions);
 
   List<bool> _weekFlags() {
     final mon = WorkoutPlan.mondayContaining(DateTime.now());
@@ -196,8 +153,8 @@ class _MainShellState extends State<MainShell> {
     Navigator.of(navContext).push<void>(
       MaterialPageRoute<void>(
         builder: (ctx) => StreakDetailPage(
-          plans: _plans,
-          completions: _completions,
+          plans: _t.plans,
+          completions: _t.completions,
           onOpenProgress: () {
             Navigator.of(ctx).pop();
             _goToProgressTab();
@@ -211,8 +168,9 @@ class _MainShellState extends State<MainShell> {
     final l10n = AppLocalizations.of(messengerContext)!;
     showWorkoutLogSheet(
       context: messengerContext,
+      profile: _t.profile,
       onSaved: (c) {
-        setState(() => _completions.insert(0, c));
+        unawaited(_t.insertCompletionOnly(c));
         ScaffoldMessenger.of(messengerContext).showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
@@ -231,6 +189,9 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final weekFlags = _weekFlags();
     final l10n = AppLocalizations.of(context)!;
+    final plans = _t.plans;
+    final completions = _t.completions;
+    final profile = _t.profile;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -238,9 +199,9 @@ class _MainShellState extends State<MainShell> {
         index: _selectedIndex,
         children: [
           HomePage(
-            plans: _plans,
-            completions: _completions,
-            profile: _profile,
+            plans: plans,
+            completions: completions,
+            profile: profile,
             weekCompleted: weekFlags,
             onNavigateToPlans: () => setState(() => _selectedIndex = 1),
             onNavigateToPlansCreate: () => _goToPlansTab(openCreateSheet: true),
@@ -253,17 +214,19 @@ class _MainShellState extends State<MainShell> {
             onLogWorkout: () => _logWorkout(context),
           ),
           PlansPage(
-            plans: _plans,
-            onAddPlan: _addPlan,
+            plans: plans,
+            onAddPlan: (p) {
+              unawaited(_addPlan(p));
+            },
             createSheetSignal: _plansCreateSignal,
             onOpenPlanDetail: (p) => _openPlanDetail(context, p),
             onStartSession: (p) => _pushSession(context, p),
           ),
           CalendarPage(
-            plans: _plans,
-            completions: _completions,
+            plans: plans,
+            completions: completions,
             onAddPlan: (plan) {
-              _addPlan(plan);
+              unawaited(_addPlan(plan));
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   behavior: SnackBarBehavior.floating,
@@ -274,13 +237,15 @@ class _MainShellState extends State<MainShell> {
             onOpenPlan: (p) => _openPlanDetail(context, p),
           ),
           ProgressPage(
-            plans: _plans,
-            completions: _completions,
+            plans: plans,
+            completions: completions,
             onOpenStreak: () => _openStreak(context),
           ),
           ProfilePage(
-            profile: _profile,
-            onProfileChanged: (p) => setState(() => _profile = p),
+            profile: profile,
+            onProfileChanged: (p) {
+              unawaited(_t.updateProfile(p));
+            },
             onLocaleChanged: widget.onLocaleChanged,
           ),
         ],

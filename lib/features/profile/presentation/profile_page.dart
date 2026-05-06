@@ -89,24 +89,20 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
               ),
-              RadioListTile<String>(
+              ListTile(
                 title: Text(l10n.languageEnglish),
-                value: 'en',
-                groupValue: code,
-                onChanged: (v) {
-                  if (v == null) return;
+                trailing: code == 'en' ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
+                onTap: () {
                   Navigator.pop(sheetContext);
-                  widget.onLocaleChanged(Locale(v));
+                  widget.onLocaleChanged(const Locale('en'));
                 },
               ),
-              RadioListTile<String>(
+              ListTile(
                 title: Text(l10n.languageRussian),
-                value: 'ru',
-                groupValue: code,
-                onChanged: (v) {
-                  if (v == null) return;
+                trailing: code == 'ru' ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
+                onTap: () {
                   Navigator.pop(sheetContext);
-                  widget.onLocaleChanged(Locale(v));
+                  widget.onLocaleChanged(const Locale('ru'));
                 },
               ),
             ],
@@ -257,6 +253,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const Divider(height: 1, color: AppColors.borderSubtle),
                   ListTile(
+                    leading: const Icon(Icons.tune_rounded, color: AppColors.primary),
+                    title: Text(l10n.profileAppPreferences),
+                    trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+                    onTap: _preferences,
+                  ),
+                  const Divider(height: 1, color: AppColors.borderSubtle),
+                  ListTile(
                     leading: const Icon(Icons.language_rounded, color: AppColors.primary),
                     title: Text(l10n.languageTitle),
                     subtitle: Text(l10n.languageSubtitle),
@@ -268,13 +271,6 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
                     onTap: _pickLanguage,
-                  ),
-                  const Divider(height: 1, color: AppColors.borderSubtle),
-                  ListTile(
-                    leading: const Icon(Icons.tune_rounded, color: AppColors.primary),
-                    title: Text(l10n.profileAppPreferences),
-                    trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-                    onTap: _preferences,
                   ),
                 ],
               ),
