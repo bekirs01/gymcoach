@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../domain/workout_plan.dart';
@@ -8,20 +9,63 @@ class PlanDetailPage extends StatelessWidget {
   const PlanDetailPage({
     super.key,
     required this.plan,
-    required this.onStartWorkout,
+    required this.onBeginSession,
+    required this.onEdit,
+    required this.onDeleted,
   });
 
   final WorkoutPlan plan;
-  final VoidCallback onStartWorkout;
+  final VoidCallback onBeginSession;
+  final VoidCallback onEdit;
+  final VoidCallback onDeleted;
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(l10n.deletePlanTitle),
+          content: Text(l10n.deletePlanConfirm(plan.name)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: FilledButton.styleFrom(backgroundColor: Theme.of(dialogContext).colorScheme.error),
+              child: Text(l10n.delete),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok == true && context.mounted) {
+      onDeleted();
+      Navigator.of(context).pop();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Plan Details'),
+        title: Text(l10n.planDetailTitle),
+        actions: [
+          IconButton(
+            onPressed: onEdit,
+            icon: const Icon(Icons.edit_rounded),
+          ),
+          IconButton(
+            onPressed: () => _confirmDelete(context),
+            icon: const Icon(Icons.delete_outline_rounded),
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -46,13 +90,17 @@ class PlanDetailPage extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              const PlansSectionHeader(title: 'Schedule'),
+              PlansSectionHeader(title: l10n.planDetailSchedule),
               const SizedBox(height: 12),
-              _DetailRow(icon: Icons.calendar_today_outlined, label: 'Date', value: plan.formattedDate),
-              _DetailRow(icon: Icons.schedule_rounded, label: 'Time', value: plan.formattedTime),
-              _DetailRow(icon: Icons.timer_outlined, label: 'Duration', value: '${plan.durationMinutes} minutes'),
+              _DetailRow(icon: Icons.calendar_today_outlined, label: l10n.labelDate, value: plan.formattedDate),
+              _DetailRow(icon: Icons.schedule_rounded, label: l10n.labelTime, value: plan.formattedTime),
+              _DetailRow(
+                icon: Icons.timer_outlined,
+                label: l10n.labelDuration,
+                value: l10n.durationMinutesLabel(plan.durationMinutes),
+              ),
               const SizedBox(height: 24),
-              const PlansSectionHeader(title: 'Exercises'),
+              PlansSectionHeader(title: l10n.planDetailExercises),
               const SizedBox(height: 12),
               ...plan.exerciseNames.map(
                 (name) => Padding(
@@ -80,7 +128,7 @@ class PlanDetailPage extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: onStartWorkout,
+                  onPressed: plan.status == PlanStatus.planned ? onBeginSession : null,
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -89,29 +137,35 @@ class PlanDetailPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Start Workout',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                  child: Text(
+                    l10n.beginSession,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
+              if (plan.status != PlanStatus.planned) ...[
+                const SizedBox(height: 8),
+                Text(
+                  l10n.planSessionOnlyPlanned,
+                  style: theme.bodySmall?.copyWith(color: AppColors.textMuted),
+                ),
+              ],
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: null,
+                  onPressed: onEdit,
                   style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: Text(
-                    'Edit Plan',
-                    style: theme.titleSmall?.copyWith(
-                      color: AppColors.textMuted,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    l10n.editPlan,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../domain/workout_plan.dart';
@@ -100,6 +101,7 @@ class DifficultyBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     late final String label;
     late final Color bg;
@@ -107,15 +109,15 @@ class DifficultyBadge extends StatelessWidget {
 
     switch (difficulty) {
       case PlanDifficulty.beginner:
-        label = 'Beginner';
+        label = l10n.difficultyBeginner;
         bg = AppColors.successTint;
         fg = AppColors.successForeground;
       case PlanDifficulty.intermediate:
-        label = 'Intermediate';
+        label = l10n.difficultyIntermediate;
         bg = const Color(0xFFE0F2FE);
         fg = const Color(0xFF0369A1);
       case PlanDifficulty.advanced:
-        label = 'Advanced';
+        label = l10n.difficultyAdvanced;
         bg = const Color(0xFFF3E8FF);
         fg = const Color(0xFF7C3AED);
     }
@@ -145,6 +147,7 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     late final String label;
     late final Color bg;
@@ -152,15 +155,15 @@ class StatusBadge extends StatelessWidget {
 
     switch (status) {
       case PlanStatus.planned:
-        label = 'Planned';
+        label = l10n.statusPlanned;
         bg = AppColors.successTint;
         fg = AppColors.successForeground;
       case PlanStatus.completed:
-        label = 'Completed';
+        label = l10n.statusCompleted;
         bg = const Color(0xFFDCFCE7);
         fg = const Color(0xFF15803D);
       case PlanStatus.missed:
-        label = 'Missed';
+        label = l10n.statusMissed;
         bg = const Color(0xFFFEE2E2);
         fg = const Color(0xFFB91C1C);
     }
@@ -197,6 +200,7 @@ class WorkoutPlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Material(
       color: AppColors.surface,
@@ -232,10 +236,10 @@ class WorkoutPlanCard extends StatelessWidget {
               children: [
                 _PlanMeta(icon: Icons.calendar_today_outlined, text: plan.formattedDate),
                 _PlanMeta(icon: Icons.schedule_rounded, text: plan.formattedTime),
-                _PlanMeta(icon: Icons.timer_outlined, text: '${plan.durationMinutes} min'),
+                _PlanMeta(icon: Icons.timer_outlined, text: l10n.minutesShort(plan.durationMinutes)),
                 _PlanMeta(
                   icon: Icons.list_alt_rounded,
-                  text: '${plan.exerciseNames.length} exercises',
+                  text: l10n.exercisesCount(plan.exerciseNames.length),
                 ),
               ],
             ),
@@ -256,16 +260,16 @@ class WorkoutPlanCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Open',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                    child: Text(
+                      l10n.planCardDetails,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: onStart,
+                    onPressed: plan.status == PlanStatus.planned ? onStart : null,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
                       side: const BorderSide(color: AppColors.primary),
@@ -274,9 +278,9 @@ class WorkoutPlanCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Start',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                    child: Text(
+                      l10n.planCardStart,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),

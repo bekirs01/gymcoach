@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../domain/workout_plan.dart';
@@ -12,12 +13,14 @@ class PlansPage extends StatefulWidget {
     required this.onAddPlan,
     required this.createSheetSignal,
     required this.onOpenPlanDetail,
+    required this.onStartSession,
   });
 
   final List<WorkoutPlan> plans;
   final ValueChanged<WorkoutPlan> onAddPlan;
   final int createSheetSignal;
   final ValueChanged<WorkoutPlan> onOpenPlanDetail;
+  final ValueChanged<WorkoutPlan> onStartSession;
 
   @override
   State<PlansPage> createState() => _PlansPageState();
@@ -76,9 +79,9 @@ class _PlansPageState extends State<PlansPage> {
       onSaved: (plan) {
         widget.onAddPlan(plan);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             behavior: SnackBarBehavior.floating,
-            content: Text('Workout plan created'),
+            content: Text(AppLocalizations.of(context)!.plansSnackbarCreated),
           ),
         );
       },
@@ -90,18 +93,23 @@ class _PlansPageState extends State<PlansPage> {
   }
 
   void _quickStart(WorkoutPlan plan) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text('Starting "${plan.name}" will be available soon.'),
-      ),
-    );
+    if (plan.status != PlanStatus.planned) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(AppLocalizations.of(context)!.plansSnackbarOnlyPlanned),
+        ),
+      );
+      return;
+    }
+    widget.onStartSession(plan);
   }
 
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
     final plans = _sortedPlans;
+    final l10n = AppLocalizations.of(context)!;
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -117,7 +125,7 @@ class _PlansPageState extends State<PlansPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Workout Plans',
+                        l10n.plansPageTitle,
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary,
@@ -125,7 +133,7 @@ class _PlansPageState extends State<PlansPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Plan your training and stay consistent.',
+                        l10n.plansPageSubtitle,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppColors.textMuted,
                               height: 1.35,
@@ -138,7 +146,7 @@ class _PlansPageState extends State<PlansPage> {
                 FilledButton.icon(
                   onPressed: _openCreateSheet,
                   icon: const Icon(Icons.add_rounded, size: 20),
-                  label: const Text('Create Plan'),
+                  label: Text(l10n.plansCreate),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -159,7 +167,7 @@ class _PlansPageState extends State<PlansPage> {
               children: [
                 Expanded(
                   child: PlansMetricTile(
-                    label: 'Planned workouts',
+                    label: l10n.homeMetricPlanned,
                     value: '$_plannedCount',
                     icon: Icons.event_note_rounded,
                   ),
@@ -167,7 +175,7 @@ class _PlansPageState extends State<PlansPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: PlansMetricTile(
-                    label: 'Completed workouts',
+                    label: l10n.homeMetricCompleted,
                     value: '$_completedCount',
                     icon: Icons.task_alt_rounded,
                   ),
@@ -175,7 +183,7 @@ class _PlansPageState extends State<PlansPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: PlansMetricTile(
-                    label: 'This week',
+                    label: l10n.homeMetricThisWeek,
                     value: '$_weekCount',
                     icon: Icons.date_range_rounded,
                   ),
@@ -188,8 +196,8 @@ class _PlansPageState extends State<PlansPage> {
           padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
           sliver: SliverToBoxAdapter(
             child: PlansSectionHeader(
-              title: 'Your plans',
-              subtitle: plans.isEmpty ? null : '${plans.length} total',
+              title: l10n.plansSectionYourPlans,
+              subtitle: plans.isEmpty ? null : l10n.plansTotalCount(plans.length),
             ),
           ),
         ),
@@ -232,6 +240,7 @@ class _PlansEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Material(
       color: AppColors.surface,
@@ -257,7 +266,7 @@ class _PlansEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'No workout plans yet',
+              l10n.plansEmptyTitle,
               style: theme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -266,7 +275,7 @@ class _PlansEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Create your first plan and start building consistency.',
+              l10n.plansEmptyBody,
               style: theme.bodyMedium?.copyWith(
                 color: AppColors.textSecondary,
                 height: 1.4,
@@ -277,7 +286,7 @@ class _PlansEmptyState extends StatelessWidget {
             FilledButton.icon(
               onPressed: onCreate,
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Create Plan'),
+              label: Text(l10n.plansCreate),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
