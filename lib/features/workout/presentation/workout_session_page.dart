@@ -7,6 +7,10 @@ import '../../../core/session_calorie_estimator.dart';
 import '../../plans/domain/workout_plan.dart';
 import '../../plans/presentation/plans_widgets.dart';
 import '../../profile/domain/user_profile.dart';
+import '../../camera_validation/data/exercise_name_resolver.dart';
+import '../../camera_validation/exercise_tracker_registry.dart';
+import '../../camera_validation/domain/exercise_tracking_mode.dart';
+import '../../camera_validation/presentation/camera_tracking_page.dart';
 import '../domain/completed_exercise_log.dart';
 import '../domain/workout_completion.dart';
 import '../domain/workout_session_analytics.dart';
@@ -96,6 +100,47 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
       _startedAt = DateTime.now();
       _isStarted = true;
     });
+  }
+
+  bool _isCameraSupportedFor(String exerciseName) {
+    final l10n = AppLocalizations.of(context)!;
+    final canonical = ExerciseNameResolver.canonicalIdForName(exerciseName, l10n);
+    if (canonical == null) return false;
+    return ExerciseTrackerRegistry.isCameraSupported(canonical);
+  }
+
+  Future<void> _openCameraTracking(String exerciseName) async {
+    final l10n = AppLocalizations.of(context)!;
+    if (!_isStarted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(behavior: SnackBarBehavior.floating, content: Text(l10n.sessionStartFirst)),
+      );
+      return;
+    }
+    final result = await Navigator.of(context).push<CameraTrackingResult>(
+      MaterialPageRoute(
+        builder: (_) => CameraTrackingPage(exerciseName: exerciseName),
+      ),
+    );
+    if (!mounted || result == null || !result.usedCamera) return;
+    final count = result.primaryCount;
+    if (count <= 0) return;
+    setState(() {
+      _repsController.text = '$count';
+      if (_setsController.text.trim().isEmpty) {
+        _setsController.text = '1';
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(
+          result.mode == ExerciseTrackingMode.holdBased
+              ? l10n.cameraAppliedHold(count)
+              : l10n.cameraAppliedReps(count),
+        ),
+      ),
+    );
   }
 
   void _completeCurrent() {
@@ -320,9 +365,11 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                             ),
                             const SizedBox(height: 12),
                             OutlinedButton.icon(
-                              onPressed: null,
+                              onPressed: _isStarted && _isCameraSupportedFor(current)
+                                  ? () => _openCameraTracking(current)
+                                  : null,
                               icon: const Icon(Icons.videocam_outlined),
-                              label: Text(l10n.sessionCameraTrackingComingSoon),
+                              label: Text(l10n.sessionCameraTracking),
                             ),
                           ],
                         ),

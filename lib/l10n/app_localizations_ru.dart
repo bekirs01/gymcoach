@@ -579,6 +579,101 @@ class AppLocalizationsRu extends AppLocalizations {
   String get sessionCameraTrackingComingSoon => 'Отслеживание камерой (скоро)';
 
   @override
+  String get sessionCameraTracking => 'Отслеживать камерой';
+
+  @override
+  String get cameraTrackingTitle => 'Отслеживание камерой';
+
+  @override
+  String get cameraStartTracking => 'Начать отслеживание';
+
+  @override
+  String get cameraApplyCount => 'Применить счёт';
+
+  @override
+  String get cameraRepCount => 'Повторения';
+
+  @override
+  String get cameraHoldSeconds => 'Удержание (сек)';
+
+  @override
+  String get cameraBodyNotVisible =>
+      'Встаньте в кадр так, чтобы тело было видно';
+
+  @override
+  String get cameraSafetyDisclaimer =>
+      'Это не заменяет тренера. Остановитесь при боли.';
+
+  @override
+  String get cameraPermissionDenied =>
+      'Для отслеживания нужен доступ к камере.';
+
+  @override
+  String get cameraPlatformUnsupported =>
+      'Отслеживание камерой работает на Android и iOS.';
+
+  @override
+  String get cameraManualFallback =>
+      'Можно считать повторения вручную на экране тренировки.';
+
+  @override
+  String get cameraUseManual => 'Считать вручную';
+
+  @override
+  String get cameraOpenSettings => 'Открыть настройки';
+
+  @override
+  String get cameraRetry => 'Попробовать снова';
+
+  @override
+  String get cameraPreviewLoading => 'Запуск камеры…';
+
+  @override
+  String get cameraTrackingLive => 'Live';
+
+  @override
+  String get cameraInvalidAttempts => 'Ошибки';
+
+  @override
+  String get cameraUnsupportedExercise =>
+      'Отслеживание камерой для этого упражнения пока недоступно.';
+
+  @override
+  String get cameraInitFailed =>
+      'Не удалось запустить камеру. Попробуйте снова или считайте вручную.';
+
+  @override
+  String get cameraFeedbackSaggingHips =>
+      'Держите бёдра на линии — не провисайте';
+
+  @override
+  String get cameraFeedbackRaiseHigher => 'Поднимите руки выше до уровня плеч';
+
+  @override
+  String get cameraFeedbackIncompletePress =>
+      'Нужно полное разгибание над головой';
+
+  @override
+  String get cameraFeedbackPullHigher => 'Тяните выше — подбородок над кистями';
+
+  @override
+  String get cameraFeedbackHipsSagging =>
+      'Поднимите бёдра — держите тело прямо';
+
+  @override
+  String get cameraFeedbackAdjustForm => 'Скорректируйте технику и повторите';
+
+  @override
+  String cameraAppliedReps(int count) {
+    return 'Применено $count повторений с камеры';
+  }
+
+  @override
+  String cameraAppliedHold(int count) {
+    return 'Применено $count сек удержания с камеры';
+  }
+
+  @override
   String get sessionCompletedExercises => 'Завершенные упражнения';
 
   @override
