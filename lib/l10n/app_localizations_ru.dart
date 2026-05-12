@@ -77,31 +77,32 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeWelcomeBack => 'С возвращением';
 
   @override
-  String get homeStayConsistent => 'Тренируйся регулярно и двигайся вперёд.';
+  String get homeStayConsistent =>
+      'Сохраняйте регулярность и продолжайте двигаться.';
 
   @override
   String get homeTodaysFocus => 'Фокус на сегодня';
 
   @override
-  String get homeTrainingFocus => 'Фокус тренировок';
+  String get homeTrainingFocus => 'Тренировочный фокус';
 
   @override
   String get homeSchedulePlanPrompt =>
-      'Запланируй тренировку для стабильности.';
+      'Запланируйте тренировку, чтобы сохранять регулярность.';
 
   @override
-  String get homeOneWorkoutToday => 'На сегодня запланирована 1 тренировка';
+  String get homeOneWorkoutToday => 'Сегодня запланирована 1 тренировка';
 
   @override
   String homeNWorkoutsToday(int count) {
-    return 'На сегодня запланировано тренировок: $count';
+    return 'Сегодня запланировано тренировок: $count';
   }
 
   @override
-  String get homeMetricPlanned => 'Запланировано';
+  String get homeMetricPlanned => 'Запланированные тренировки';
 
   @override
-  String get homeMetricCompleted => 'Завершено';
+  String get homeMetricCompleted => 'Завершенные тренировки';
 
   @override
   String get homeMetricThisWeek => 'На этой неделе';
@@ -110,26 +111,26 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeNextWorkout => 'Следующая тренировка';
 
   @override
-  String get homeNoneScheduled => 'Не запланировано';
+  String get homeNoneScheduled => 'Ничего не запланировано';
 
   @override
-  String get homeAddWorkoutPlan => 'Добавить план';
+  String get homeAddWorkoutPlan => 'Добавить план тренировки';
 
   @override
   String get homeNextWorkoutEmptyHint =>
-      'Создай план, чтобы увидеть следующую сессию.';
+      'Создайте план, чтобы увидеть здесь следующую тренировку.';
 
   @override
-  String get homeOpenDetails => 'Подробности';
+  String get homeOpenDetails => 'Открыть детали';
 
   @override
-  String get homeViewPlans => 'К планам';
+  String get homeViewPlans => 'Посмотреть планы';
 
   @override
   String get homeQuickActions => 'Быстрые действия';
 
   @override
-  String get homeWeeklyActivity => 'Неделя';
+  String get homeWeeklyActivity => 'Активность за неделю';
 
   @override
   String get homeExerciseCategories => 'Категории упражнений';
@@ -139,20 +140,20 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get homeRecentEmpty =>
-      'Пока нет сессий. Завершите тренировку — она появится здесь.';
+      'Пока нет завершенных тренировок. Завершите тренировку, чтобы увидеть ее здесь.';
 
   @override
   String get homeStartWorkout => 'Начать тренировку';
 
   @override
-  String get homeViewPlanLink => 'Смотреть план';
+  String get homeViewPlanLink => 'Открыть план';
 
   @override
-  String get homeStreakTitle => 'Поддержи серию';
+  String get homeStreakTitle => 'Сохраните серию';
 
   @override
   String get homeStreakSubtitle =>
-      'Сделай тренировку сегодня, чтобы не сбиться.';
+      'Завершите одну тренировку сегодня, чтобы не сбить темп.';
 
   @override
   String get homeQuickCreatePlan => 'Создать план';
@@ -161,16 +162,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeQuickLogWorkout => 'Записать тренировку';
 
   @override
-  String get homeQuickStatistics => 'Статистика';
+  String get homeQuickStatistics => 'Посмотреть статистику';
 
   @override
-  String get homeNoWorkoutToday => 'На сегодня нет запланированной тренировки.';
+  String get homeNoWorkoutToday => 'На сегодня тренировка не запланирована.';
 
   @override
   String get plansPageTitle => 'Планы тренировок';
 
   @override
-  String get plansPageSubtitle => 'Планируй нагрузку и будь стабильнее.';
+  String get plansPageSubtitle =>
+      'Планируйте тренировки и сохраняйте регулярность.';
 
   @override
   String get plansCreate => 'Создать план';
@@ -184,17 +186,18 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get plansEmptyTitle => 'Пока нет планов';
+  String get plansEmptyTitle => 'Планов тренировок пока нет';
 
   @override
-  String get plansEmptyBody => 'Создай первый план и задай темп.';
+  String get plansEmptyBody =>
+      'Создайте первый план и начните формировать регулярность.';
 
   @override
-  String get plansSnackbarCreated => 'План создан';
+  String get plansSnackbarCreated => 'План тренировки создан';
 
   @override
   String get plansSnackbarOnlyPlanned =>
-      'Запустить можно только запланированную тренировку.';
+      'Начать живую сессию можно только для запланированных тренировок.';
 
   @override
   String minutesShort(int count) {
@@ -203,7 +206,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String minutesPlanShort(int count) {
-    return 'План $count мин';
+    return 'План на $count мин';
   }
 
   @override
@@ -213,7 +216,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String exercisesCount(int count) {
-    return '$count упражнений';
+    return 'Упражнений: $count';
   }
 
   @override
@@ -229,7 +232,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get statusPlanned => 'Запланировано';
 
   @override
-  String get statusCompleted => 'Выполнено';
+  String get statusCompleted => 'Завершено';
 
   @override
   String get statusMissed => 'Пропущено';
@@ -241,7 +244,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get planCardStart => 'Старт';
 
   @override
-  String get planDetailTitle => 'План';
+  String get planDetailTitle => 'Детали плана';
 
   @override
   String get planDetailSchedule => 'Расписание';
@@ -266,7 +269,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get planSessionOnlyPlanned =>
-      'Новую сессию можно начать только из запланированной тренировки.';
+      'Новую сессию можно начать только для запланированной тренировки.';
 
   @override
   String get deletePlanTitle => 'Удалить план';
@@ -289,10 +292,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get updatePlan => 'Обновить план';
 
   @override
-  String get workoutNameLabel => 'Название';
+  String get workoutNameLabel => 'Название тренировки';
 
   @override
-  String get workoutNameHint => 'Например: Верх силовой';
+  String get workoutNameHint => 'Например: силовая на верх';
 
   @override
   String get dateLabel => 'Дата';
@@ -330,23 +333,24 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String calendarWorkoutsOn(String date) {
-    return 'Тренировки $date';
+    return 'Тренировки на $date';
   }
 
   @override
-  String get calendarEmptyDay => 'В этот день нет тренировок. Добавьте сессию.';
+  String get calendarEmptyDay =>
+      'В этот день нет тренировок. Добавьте сессию, чтобы держать график.';
 
   @override
   String get progressTitle => 'Прогресс';
 
   @override
-  String get progressSubtitle => 'Обзор и история';
+  String get progressSubtitle => 'Обзор результатов и история';
 
   @override
-  String get progressWeeklySessions => 'Сессий за неделю';
+  String get progressWeeklySessions => 'Сессии за неделю';
 
   @override
-  String get progressActiveStreak => 'Серия дней';
+  String get progressActiveStreak => 'Активная серия';
 
   @override
   String progressStreakDays(int count) {
@@ -354,28 +358,43 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get progressMonthlyConsistency => 'Стабильность за месяц';
+  String get progressMonthlyConsistency => 'Регулярность за месяц';
 
   @override
-  String get progressMonthlyHint => 'Условная метрика (демо)';
+  String get progressMonthlyHint =>
+      'Завершенные сессии относительно планов на месяц';
 
   @override
-  String get progressWeeklyVolume => 'Нагрузка по неделям';
+  String get progressWeeklyVolume => 'Объем за неделю';
 
   @override
   String get progressAchievements => 'Достижения';
 
   @override
-  String get progressPersonalRecords => 'Личные рекорды';
+  String get progressSessionHighlights => 'Лучшие сессии';
+
+  @override
+  String get progressHighlightLongest => 'Самая длинная сессия';
+
+  @override
+  String get progressHighlightCalories => 'Максимум калорий';
+
+  @override
+  String get progressHighlightMoves => 'Больше всего упражнений';
+
+  @override
+  String get progressHighlightsEmpty =>
+      'Записывайте тренировки, чтобы увидеть здесь лучшие сессии.';
 
   @override
   String get progressWorkoutHistory => 'История тренировок';
 
   @override
-  String get progressHistoryEmpty => 'Завершённых сессий пока нет.';
+  String get progressHistoryEmpty =>
+      'Завершенных сессий пока нет. Завершите тренировку, чтобы увидеть ее здесь.';
 
   @override
-  String get streakDetailsTitle => 'Серия';
+  String get streakDetailsTitle => 'Детали серии';
 
   @override
   String streakDayStreak(int count) {
@@ -383,10 +402,10 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get streakMomentum => 'Потренируйся сегодня, чтобы не потерять темп.';
+  String get streakMomentum => 'Тренируйтесь сегодня, чтобы сохранить темп.';
 
   @override
-  String get streakRecentDays => 'Недавние дни с тренировками';
+  String get streakRecentDays => 'Последние тренировочные дни';
 
   @override
   String get streakEmpty => 'Завершите тренировку, чтобы начать серию.';
@@ -407,7 +426,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get profileAccount => 'Аккаунт';
 
   @override
-  String get profileEditProfile => 'Редактировать профиль';
+  String get profileEditProfile => 'Изменить профиль';
 
   @override
   String get profileAppPreferences => 'Настройки приложения';
@@ -420,13 +439,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get profileRemindersSubtitle =>
-      'Получайте напоминания о предстоящих сессиях';
+      'Получайте уведомления о предстоящих сессиях';
 
   @override
   String get profileLogOut => 'Выйти';
 
   @override
-  String get profileEditSheetTitle => 'Редактирование';
+  String get profileEditSheetTitle => 'Изменить профиль';
 
   @override
   String get labelName => 'Имя';
@@ -438,39 +457,39 @@ class AppLocalizationsRu extends AppLocalizations {
   String get labelHeightCm => 'Рост (см)';
 
   @override
-  String get labelFitnessGoal => 'Цель';
+  String get labelFitnessGoal => 'Цель тренировок';
 
   @override
   String get labelMembership => 'Подписка';
 
   @override
-  String get validationProfileName => 'Укажите имя.';
+  String get validationProfileName => 'Введите имя.';
 
   @override
   String get validationProfileWeight =>
-      'Укажите корректный вес (точка или запятая).';
+      'Введите корректный вес (точка или запятая для дробной части).';
 
   @override
   String get validationProfileHeight =>
-      'Укажите корректный рост (точка или запятая).';
+      'Введите корректный рост (точка или запятая для дробной части).';
 
   @override
-  String get membershipFree => 'Free';
+  String get membershipFree => 'Базовый';
 
   @override
-  String get membershipPlus => 'Plus';
+  String get membershipPlus => 'Плюс';
 
   @override
-  String get membershipPremium => 'Premium';
+  String get membershipPremium => 'Премиум';
 
   @override
   String get languageTitle => 'Язык';
 
   @override
-  String get languageSubtitle => 'Язык интерфейса';
+  String get languageSubtitle => 'Язык интерфейса приложения';
 
   @override
-  String get languageEnglish => 'English';
+  String get languageEnglish => 'Английский';
 
   @override
   String get languageRussian => 'Русский';
@@ -480,16 +499,34 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get profilePreferencesSnack =>
-      'Настройки появятся в будущем обновлении.';
+      'Настройки будут подключены в будущей версии.';
 
   @override
-  String get profileLogoutSnack => 'Выход появится после запуска аккаунтов.';
+  String get profileLogoutSnack =>
+      'Выход будет доступен после запуска аккаунтов.';
 
   @override
-  String get profileDefaultGoal => 'Сила и функциональная подготовка';
+  String get profileDefaultGoal => 'Сила и общая подготовка';
 
   @override
-  String get sessionActiveTitle => 'Текущая сессия';
+  String get sessionActiveTitle => 'Активная сессия';
+
+  @override
+  String get sessionStartTitle => 'Готовы тренироваться?';
+
+  @override
+  String get sessionStartBody =>
+      'Начните сессию, когда приступите к тренировке. Длительность и калории будут считаться с этого момента.';
+
+  @override
+  String get sessionStartButton => 'Начать сессию';
+
+  @override
+  String get sessionStartFirst =>
+      'Сначала начните сессию, затем записывайте упражнения.';
+
+  @override
+  String get sessionTimerRunning => 'Таймер идет';
 
   @override
   String get sessionCurrentExercise => 'Текущее упражнение';
@@ -498,28 +535,28 @@ class AppLocalizationsRu extends AppLocalizations {
   String get labelSets => 'Подходы';
 
   @override
-  String get labelReps => 'Повторы';
+  String get labelReps => 'Повторения';
 
   @override
   String get sessionAllExercises => 'Все упражнения';
 
   @override
-  String get sessionCompleteExercise => 'Упражнение выполнено';
+  String get sessionCompleteExercise => 'Завершить упражнение';
 
   @override
-  String get sessionCompleteFinal => 'Завершить последнее';
+  String get sessionCompleteFinal => 'Завершить последнее упражнение';
 
   @override
   String get sessionFinishWorkout => 'Завершить тренировку';
 
   @override
-  String get sessionSummaryTitle => 'Итог сессии';
+  String get sessionSummaryTitle => 'Итоги сессии';
 
   @override
   String get sessionSummaryDuration => 'Длительность';
 
   @override
-  String get sessionSummaryCalories => 'Ккал';
+  String get sessionSummaryCalories => 'Калории';
 
   @override
   String sessionCaloriesUnit(int count) {
@@ -527,25 +564,40 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get sessionCompletedExercises => 'Выполнено упражнений';
+  String get sessionCaloriesEstimateNote =>
+      'Калории рассчитаны примерно на основе веса в профиле, типа упражнения, подходов, повторений и длительности сессии.';
+
+  @override
+  String get sessionValidationSetsReps =>
+      'Введите положительное число подходов и повторений.';
+
+  @override
+  String get sessionExerciseAlreadyLogged =>
+      'Это упражнение уже записано. Выберите другое из списка.';
+
+  @override
+  String get sessionCameraTrackingComingSoon => 'Отслеживание камерой (скоро)';
+
+  @override
+  String get sessionCompletedExercises => 'Завершенные упражнения';
 
   @override
   String get sessionDone => 'Готово';
 
   @override
-  String get workoutTypePlannedSession => 'По плану';
+  String get workoutTypePlannedSession => 'Запланированная сессия';
 
   @override
   String get logWorkoutTitle => 'Записать тренировку';
 
   @override
-  String get logWorkoutName => 'Название';
+  String get logWorkoutName => 'Название тренировки';
 
   @override
-  String get logWorkoutType => 'Тип';
+  String get logWorkoutType => 'Тип тренировки';
 
   @override
-  String get logWorkoutTypeDefault => 'Свой';
+  String get logWorkoutTypeDefault => 'Своя тренировка';
 
   @override
   String get logDuration => 'Длительность';
@@ -554,35 +606,44 @@ class AppLocalizationsRu extends AppLocalizations {
   String get logSave => 'Сохранить запись';
 
   @override
-  String get validationLogName => 'Введите название.';
+  String get validationLogName => 'Введите название тренировки.';
 
   @override
-  String get historyWorkoutSummary => 'Итог тренировки';
+  String get historyWorkoutSummary => 'Итоги тренировки';
 
   @override
   String get historyCompletedOn => 'Завершено';
 
   @override
-  String get historyExercisesCompleted => 'Упражнения';
+  String get historyExercisesCompleted => 'Завершенные упражнения';
+
+  @override
+  String historySetsRepsDetail(int sets, int reps) {
+    return '$sets подходов · $reps повторений';
+  }
+
+  @override
+  String get historyCaloriesEstimateNote =>
+      'Калории рассчитаны примерно на основе записанной сессии.';
 
   @override
   String get snackbarWorkoutSavedHistory => 'Тренировка сохранена в историю';
 
   @override
-  String get snackbarPlanUpdated => 'План обновлён';
+  String get snackbarPlanUpdated => 'План обновлен';
 
   @override
-  String get snackbarPlanDeleted => 'План удалён';
+  String get snackbarPlanDeleted => 'План удален';
 
   @override
-  String get snackbarWorkoutLogged => 'Запись добавлена';
+  String get snackbarWorkoutLogged => 'Тренировка записана';
 
   @override
   String get snackbarCalendarAdded => 'Тренировка добавлена в календарь';
 
   @override
   String categorySubtitle(int count) {
-    return '$count упражнений';
+    return 'Упражнений: $count';
   }
 
   @override
@@ -590,34 +651,37 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get catStrengthDesc =>
-      'Базовые движения и аксессуарная работа для силы.';
+      'Тяжелые базовые и вспомогательные упражнения для развития силы.';
 
   @override
   String get catCardioTitle => 'Кардио';
 
   @override
-  String get catCardioDesc => 'Интервалы и длительные сессии для выносливости.';
+  String get catCardioDesc =>
+      'Интервалы и ровные сессии для развития выносливости.';
 
   @override
   String get catMobilityTitle => 'Мобильность';
 
   @override
-  String get catMobilityDesc => 'Мягкие связки для амплитуды движений.';
+  String get catMobilityDesc => 'Мягкие движения для улучшения амплитуды.';
 
   @override
   String get catCoreTitle => 'Кор';
 
   @override
-  String get catCoreDesc => 'Стабилизация и антивращение для кора.';
+  String get catCoreDesc =>
+      'Упражнения на стабилизацию и сопротивление вращению для крепкого корпуса.';
 
   @override
   String get catRecoveryTitle => 'Восстановление';
 
   @override
-  String get catRecoveryDesc => 'Лёгкие сессии для восстановления.';
+  String get catRecoveryDesc =>
+      'Низкоинтенсивные сессии для восстановления качества движений.';
 
   @override
-  String get catSectionExercises => 'Упражнения';
+  String get catSectionExercises => 'Доступные упражнения';
 
   @override
   String get catSectionExamplePlans => 'Примеры планов';
@@ -635,13 +699,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get exLunges => 'Выпады';
 
   @override
-  String get exJumpingJacks => 'Прыжки с разведением рук';
+  String get exJumpingJacks => 'Прыжки Jumping Jack';
 
   @override
   String get exPullUps => 'Подтягивания';
 
   @override
-  String get exShoulderPress => 'Жим стоя';
+  String get exShoulderPress => 'Жим плечами';
 
   @override
   String get exRunning => 'Бег';
@@ -650,7 +714,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get exBackSquat => 'Присед со штангой';
 
   @override
-  String get exBenchPress => 'Жим лёжа';
+  String get exBenchPress => 'Жим лежа';
 
   @override
   String get exDeadlift => 'Становая тяга';
@@ -665,7 +729,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get exCycleIntervals => 'Велоинтервалы';
 
   @override
-  String get exRowingSprint => 'Гребной спринт';
+  String get exRowingSprint => 'Спринт на гребле';
 
   @override
   String get exJumpRope => 'Скакалка';
@@ -674,43 +738,43 @@ class AppLocalizationsRu extends AppLocalizations {
   String get exThoracicRotation => 'Ротация грудного отдела';
 
   @override
-  String get exHipCars => 'HIP CARs';
+  String get exHipCars => 'Hip CARs';
 
   @override
   String get exAnkleMobility => 'Мобильность голеностопа';
 
   @override
-  String get exShoulderDislocates => 'Разведения для плеч';
+  String get exShoulderDislocates => 'Плечевая мобилизация';
 
   @override
-  String get exPlankVariations => 'Варианты планки';
+  String get exPlankVariations => 'Вариации планки';
 
   @override
   String get exPallofPress => 'Жим Паллофа';
 
   @override
-  String get exHangingLegRaise => 'Подъём ног в висе';
+  String get exHangingLegRaise => 'Подъем ног в висе';
 
   @override
-  String get exDeadBug => 'Мёртвый жук';
+  String get exDeadBug => 'Dead Bug';
 
   @override
-  String get exLightWalk => 'Лёгкая прогулка';
+  String get exLightWalk => 'Легкая прогулка';
 
   @override
-  String get exBreathwork => 'Дыхательные практики';
+  String get exBreathwork => 'Дыхательная практика';
 
   @override
-  String get exFoamRolling => 'Массаж роллом';
+  String get exFoamRolling => 'Миофасциальный ролл';
 
   @override
   String get exLegPress => 'Жим ногами';
 
   @override
-  String get exCalfRaises => 'Подъёмы на носки';
+  String get exCalfRaises => 'Подъемы на носки';
 
   @override
-  String get exBicycleCrunches => 'Велосипед';
+  String get exBicycleCrunches => 'Велосипедные скручивания';
 
   @override
   String get exRussianTwists => 'Русские скручивания';
@@ -719,7 +783,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get exDynamicWarmUp => 'Динамическая разминка';
 
   @override
-  String get seedPlanPushDay => 'День отжиманий/жима';
+  String get seedPlanPushDay => 'Жимовой день';
 
   @override
   String get seedPlanLowerBody => 'Нижняя часть тела';
@@ -728,64 +792,64 @@ class AppLocalizationsRu extends AppLocalizations {
   String get seedPlanCardio => 'Кардио-сессия';
 
   @override
-  String get seedPlanCore => 'Стабильность кора';
+  String get seedPlanCore => 'Стабилизация корпуса';
 
   @override
   String get sampleCompletionLegDay => 'День ног';
 
   @override
-  String get sampleCompletionCore => 'Кор';
+  String get sampleCompletionCore => 'Сессия на кор';
 
   @override
   String get sampleCompletionRun => 'Утренний бег';
 
   @override
-  String get sampleTypeLowerBody => 'Ноги';
+  String get sampleTypeLowerBody => 'Нижняя часть тела';
 
   @override
   String get sampleTypeCore => 'Кор';
 
   @override
-  String get sampleTypeOutdoorCardio => 'Бег на улице';
+  String get sampleTypeOutdoorCardio => 'Кардио на улице';
 
   @override
-  String get sampleTypeCustomLog => 'Ручная запись';
+  String get sampleTypeCustomLog => 'Записанная сессия';
 
   @override
-  String get planUpperPower => 'Верх: сила';
+  String get planUpperPower => 'Сила верха';
 
   @override
-  String get planLowerStrength => 'Низ: сила';
+  String get planLowerStrength => 'Сила низа';
 
   @override
-  String get planFullBodyA => 'Все тело А';
+  String get planFullBodyA => 'Все тело A';
 
   @override
-  String get planHiit20 => 'ВИИТ 20';
+  String get planHiit20 => 'HIIT 20';
 
   @override
-  String get planSteadyZone2 => 'Зона 2 ровно';
+  String get planSteadyZone2 => 'Ровная зона 2';
 
   @override
-  String get planSprintLadder => 'Спринт-лестница';
+  String get planSprintLadder => 'Спринтовая лестница';
 
   @override
-  String get planMorningReset => 'Утренний сброс';
+  String get planMorningReset => 'Утренний рестарт';
 
   @override
-  String get planPreTrainingPrep => 'Разминка перед тренировкой';
+  String get planPreTrainingPrep => 'Подготовка к тренировке';
 
   @override
-  String get planAbsFinishers => 'Финиш на пресс';
+  String get planAbsFinishers => 'Финишеры на пресс';
 
   @override
-  String get planAntiRotation => 'Антивращение';
+  String get planAntiRotation => 'Антиротационный блок';
 
   @override
-  String get planDeloadWeek => 'Неделя разгрузки';
+  String get planDeloadWeek => 'Разгрузочная неделя';
 
   @override
-  String get planSundayReset => 'Воскресный ресет';
+  String get planSundayReset => 'Воскресное восстановление';
 
   @override
   String get badgeFirstSession => 'Первая сессия';
@@ -794,37 +858,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get badgeWeekWarrior => 'Воин недели';
 
   @override
-  String get badgeStreakStarter => 'Старт серии';
+  String get badgeStreakStarter => 'Начало серии';
 
   @override
-  String get badgeConsistency => 'Стабильность';
-
-  @override
-  String get prBackSquat => 'Присед со штангой';
-
-  @override
-  String get pr5kRun => '5 км';
-
-  @override
-  String get prPullUps => 'Подтягивания';
-
-  @override
-  String get prMockSquatValue => '110 кг';
-
-  @override
-  String get prMock5kValue => '22:40';
-
-  @override
-  String get prMockPullValue => '12 повторений';
-
-  @override
-  String get prMockSquatDate => 'апр. 2026';
-
-  @override
-  String get prMock5kDate => 'мар. 2026';
-
-  @override
-  String get prMockPullDate => 'фев. 2026';
+  String get badgeConsistency => 'Регулярность';
 
   @override
   String get weekdayMon => 'Пн';

@@ -32,15 +32,4 @@ class UserProfile {
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     );
   }
-
-  static UserProfile initial() {
-    return const UserProfile(
-      displayName: 'Alex Morgan',
-      weightKg: 78.5,
-      heightCm: 178,
-      fitnessGoal: 'Strength and conditioning',
-      membershipLevel: 'Premium',
-      notificationsEnabled: true,
-    );
-  }
 }

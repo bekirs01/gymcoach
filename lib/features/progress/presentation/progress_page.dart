@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gym/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/training_stats.dart';
@@ -25,8 +26,8 @@ class ProgressPage extends StatelessWidget {
     final now = DateTime.now();
     final days = TrainingStats.completedDays(plans, completions);
     final streak = TrainingStats.currentStreak(days, now);
-    final weekly = TrainingStats.weeklyWorkoutsCompleted(completions, now);
-    final monthTotal = _monthlyCompletionRatio(plans, completions, now);
+    final weekly = TrainingStats.weeklySessionsCompleted(plans, completions, now);
+    final monthTotal = TrainingStats.monthlyConsistencyPercent(plans, completions, now);
     final theme = Theme.of(context).textTheme;
     final topPadding = MediaQuery.of(context).padding.top;
 
@@ -132,7 +133,7 @@ class ProgressPage extends StatelessWidget {
           sliver: SliverToBoxAdapter(
             child: _BadgesRow(
               l10n: l10n,
-              completedWorkouts: plans.where((p) => p.status == PlanStatus.completed).length + completions.length,
+              completedWorkouts: TrainingStats.totalCompletedSessions(plans, completions),
               streak: streak,
             ),
           ),
@@ -141,7 +142,7 @@ class ProgressPage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
           sliver: SliverToBoxAdapter(
             child: Text(
-              l10n.progressPersonalRecords,
+              l10n.progressSessionHighlights,
               style: theme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -152,15 +153,7 @@ class ProgressPage extends StatelessWidget {
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
           sliver: SliverToBoxAdapter(
-            child: Column(
-              children: [
-                _PersonalRecordTile(lift: l10n.prBackSquat, value: l10n.prMockSquatValue, dateLabel: l10n.prMockSquatDate),
-                const SizedBox(height: 10),
-                _PersonalRecordTile(lift: l10n.pr5kRun, value: l10n.prMock5kValue, dateLabel: l10n.prMock5kDate),
-                const SizedBox(height: 10),
-                _PersonalRecordTile(lift: l10n.prPullUps, value: l10n.prMockPullValue, dateLabel: l10n.prMockPullDate),
-              ],
-            ),
+            child: _SessionHighlightsSection(completions: completions, l10n: l10n),
           ),
         ),
         SliverPadding(
@@ -187,28 +180,64 @@ class ProgressPage extends StatelessWidget {
       ],
     );
   }
+}
 
-  static double _monthlyCompletionRatio(
-    List<WorkoutPlan> plans,
-    List<WorkoutCompletion> completions,
-    DateTime now,
-  ) {
-    final start = DateTime(now.year, now.month, 1);
-    final end = DateTime(now.year, now.month + 1, 1);
-    var planned = 0;
-    var done = 0;
-    for (final p in plans) {
-      final d = WorkoutPlan.dateOnly(p.scheduledDate);
-      if (d.isBefore(start) || !d.isBefore(end)) continue;
-      planned++;
-      if (p.status == PlanStatus.completed) done++;
+class _SessionHighlightsSection extends StatelessWidget {
+  const _SessionHighlightsSection({required this.completions, required this.l10n});
+
+  final List<WorkoutCompletion> completions;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    if (completions.isEmpty) {
+      return Material(
+        color: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.borderSubtle),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            l10n.progressHighlightsEmpty,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+          ),
+        ),
+      );
     }
-    done += completions.where((c) {
-      final d = WorkoutPlan.dateOnly(c.completedAt);
-      return !d.isBefore(start) && d.isBefore(end);
-    }).length;
-    if (planned == 0) return 72;
-    return (done / planned * 100).clamp(20, 100);
+
+    WorkoutCompletion? longest;
+    WorkoutCompletion? peakCal;
+    WorkoutCompletion? mostMoves;
+    for (final c in completions) {
+      if (longest == null || c.durationMinutes > longest.durationMinutes) longest = c;
+      if (peakCal == null || c.calories > peakCal.calories) peakCal = c;
+      if (mostMoves == null || c.exerciseNames.length > mostMoves.exerciseNames.length) mostMoves = c;
+    }
+
+    final fmt = DateFormat.yMMMd(l10n.localeName);
+    return Column(
+      children: [
+        _PersonalRecordTile(
+          lift: l10n.progressHighlightLongest,
+          value: l10n.minutesShort(longest!.durationMinutes),
+          dateLabel: fmt.format(longest.completedAt),
+        ),
+        const SizedBox(height: 10),
+        _PersonalRecordTile(
+          lift: l10n.progressHighlightCalories,
+          value: l10n.sessionCaloriesUnit(peakCal!.calories),
+          dateLabel: fmt.format(peakCal.completedAt),
+        ),
+        const SizedBox(height: 10),
+        _PersonalRecordTile(
+          lift: l10n.progressHighlightMoves,
+          value: l10n.exercisesCount(mostMoves!.exerciseNames.length),
+          dateLabel: fmt.format(mostMoves.completedAt),
+        ),
+      ],
+    );
   }
 }
 
