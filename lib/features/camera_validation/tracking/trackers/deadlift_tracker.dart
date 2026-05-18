@@ -15,5 +15,5 @@ class DeadliftTracker extends RepExerciseTracker {
   final AdaptiveRepEngine engine = AdaptiveRepEngine(ExerciseProfiles.deadlift.repConfig!);
 
   @override
-  double? extractMetric(SmoothedPoseObservation obs) => MetricExtractors.hipHingeAngle(obs);
+  double? extractMetric(SmoothedPoseObservation obs) => MetricExtractors.deadliftMetric(obs);
 }

@@ -17,10 +17,4 @@ class ShoulderPressTracker extends RepExerciseTracker {
   @override
   double? extractMetric(SmoothedPoseObservation obs) =>
       MetricExtractors.shoulderPressMetric(obs);
-
-  @override
-  String? validateRep(SmoothedPoseObservation obs) {
-    if (MetricExtractors.validShoulderPressLockout(obs)) return null;
-    return MetricExtractors.shoulderPressMetric(obs)! > 140 ? 'incomplete_press' : 'raise_higher';
-  }
 }

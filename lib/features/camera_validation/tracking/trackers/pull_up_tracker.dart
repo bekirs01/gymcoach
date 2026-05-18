@@ -14,12 +14,28 @@ class PullUpTracker extends RepExerciseTracker {
   @override
   final AdaptiveRepEngine engine = AdaptiveRepEngine(ExerciseProfiles.pullUps.repConfig!);
 
+  double _minElbowThisRep = 180;
+
   @override
-  double? extractMetric(SmoothedPoseObservation obs) => MetricExtractors.pullUpMetric(obs);
+  void reset() {
+    super.reset();
+    _minElbowThisRep = 180;
+  }
+
+  @override
+  double? extractMetric(SmoothedPoseObservation obs) {
+    final elbow = MetricExtractors.pullUpMetric(obs);
+    if (elbow != null && elbow < _minElbowThisRep) {
+      _minElbowThisRep = elbow;
+    }
+    return elbow;
+  }
 
   @override
   String? validateRep(SmoothedPoseObservation obs) {
-    if (!MetricExtractors.chinAboveBar(obs)) return 'pull_higher';
+    final ok = _minElbowThisRep <= 105;
+    _minElbowThisRep = 180;
+    if (!ok) return 'pull_higher';
     return null;
   }
 }

@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'theme/app_theme.dart';
 import 'training_app_state.dart';
-import '../data/local/shared_prefs_training_persistence.dart';
+import '../data/remote/supabase_training_persistence.dart';
 import '../features/shell/main_shell.dart';
 
 const _localePrefKey = 'app_locale_code';
@@ -33,7 +33,7 @@ class _GymCoachAppState extends State<GymCoachApp> {
     final prefs = await SharedPreferences.getInstance();
     final code = prefs.getString(_localePrefKey);
     final training = TrainingAppState(
-      persistence: SharedPrefsTrainingPersistence(prefs),
+      persistence: SupabaseTrainingPersistence(prefs: prefs),
     );
     if (!mounted) return;
     setState(() {

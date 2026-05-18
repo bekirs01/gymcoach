@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
-import '../core/seed_data.dart';
 import '../data/local/training_snapshot_codec.dart';
 import '../features/plans/domain/workout_plan.dart';
 import '../features/profile/domain/user_profile.dart';
@@ -31,35 +30,50 @@ final class TrainingAppState extends ChangeNotifier {
     if (_bootstrapped) {
       if (_localeName == l10n.localeName) return;
       _localeName = l10n.localeName;
-      _plans = mergeSeedPlans(_plans, seedPlans(l10n));
-      _completions = mergeSeedCompletions(_completions, seedCompletions(l10n));
       _profile = _localizedProfile(_profile, l10n);
       notifyListeners();
-      await _persist();
       return;
     }
     _bootstrapped = true;
     _localeName = l10n.localeName;
-    final existing = await _persistence.load();
-    if (existing != null) {
-      _plans = List<WorkoutPlan>.from(existing.plans);
-      _completions = List<WorkoutCompletion>.from(existing.completions);
-      _profile = existing.profile;
-    } else {
-      _plans = mergeSeedPlans([], seedPlans(l10n));
-      _completions = mergeSeedCompletions([], seedCompletions(l10n));
-      _profile = UserProfile(
-        displayName: 'Alex Morgan',
-        weightKg: 78.5,
-        heightCm: 178,
-        fitnessGoal: l10n.profileDefaultGoal,
-        membershipLevel: l10n.membershipPremium,
-        notificationsEnabled: true,
-      );
-      await _persist();
+
+    try {
+      final existing = await _persistence.load();
+      if (existing != null) {
+        _plans = List<WorkoutPlan>.from(existing.plans);
+        _completions = List<WorkoutCompletion>.from(existing.completions);
+        if (existing.profile.displayName.trim().isEmpty) {
+          _profile = _defaultProfile(l10n);
+          await _persist();
+        } else {
+          _profile = existing.profile;
+        }
+      } else {
+        _plans = [];
+        _completions = [];
+        _profile = _defaultProfile(l10n);
+        await _persist();
+      }
+    } catch (e, st) {
+      debugPrint('Training bootstrap failed: $e\n$st');
+      _plans = [];
+      _completions = [];
+      _profile = _defaultProfile(l10n);
     }
+
     _ready = true;
     notifyListeners();
+  }
+
+  UserProfile _defaultProfile(AppLocalizations l10n) {
+    return UserProfile(
+      displayName: 'Alex Morgan',
+      weightKg: 78.5,
+      heightCm: 178,
+      fitnessGoal: l10n.profileDefaultGoal,
+      membershipLevel: l10n.membershipPremium,
+      notificationsEnabled: true,
+    );
   }
 
   UserProfile _localizedProfile(UserProfile profile, AppLocalizations l10n) {
@@ -80,13 +94,17 @@ final class TrainingAppState extends ChangeNotifier {
   }
 
   Future<void> _persist() async {
-    await _persistence.save(
-      TrainingSnapshot(
-        plans: _plans,
-        completions: _completions,
-        profile: _profile,
-      ),
-    );
+    try {
+      await _persistence.save(
+        TrainingSnapshot(
+          plans: _plans,
+          completions: _completions,
+          profile: _profile,
+        ),
+      );
+    } catch (e, st) {
+      debugPrint('Training persist failed: $e\n$st');
+    }
   }
 
   Future<void> addPlan(WorkoutPlan plan) async {

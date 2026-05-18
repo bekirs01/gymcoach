@@ -43,7 +43,7 @@ class PlankTracker extends ExerciseTracker {
     }
     _graceFrames = 0;
 
-    final bodyLine = MetricExtractors.bodyLineAngle(obs);
+    final bodyLine = MetricExtractors.plankBodyLine(obs);
     if (bodyLine == null) {
       return TrackingUpdate(
         state: state.copyWith(bodyDetected: false, phaseLabel: 'no_body'),
@@ -70,7 +70,7 @@ class PlankTracker extends ExerciseTracker {
         _lastTick = obs.timestamp;
       }
     } else {
-      if (_validHold && bodyLine < 145) {
+      if (_validHold && MetricExtractors.plankHipsSagging(obs)) {
         event = TrackingEventKind.invalidAttempt;
         feedback = 'hips_sagging';
       }
