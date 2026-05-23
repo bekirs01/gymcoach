@@ -1124,6 +1124,168 @@ abstract class AppLocalizations {
   /// **'Camera tracking (coming soon)'**
   String get sessionCameraTrackingComingSoon;
 
+  /// No description provided for @sessionCameraTracking.
+  ///
+  /// In en, this message translates to:
+  /// **'Track with camera'**
+  String get sessionCameraTracking;
+
+  /// No description provided for @cameraTrackingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera tracking'**
+  String get cameraTrackingTitle;
+
+  /// No description provided for @cameraStartTracking.
+  ///
+  /// In en, this message translates to:
+  /// **'Start tracking'**
+  String get cameraStartTracking;
+
+  /// No description provided for @cameraApplyCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply count'**
+  String get cameraApplyCount;
+
+  /// No description provided for @cameraRepCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Reps'**
+  String get cameraRepCount;
+
+  /// No description provided for @cameraHoldSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold (sec)'**
+  String get cameraHoldSeconds;
+
+  /// No description provided for @cameraBodyNotVisible.
+  ///
+  /// In en, this message translates to:
+  /// **'Step into frame so your body is visible'**
+  String get cameraBodyNotVisible;
+
+  /// No description provided for @cameraSafetyDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'This tool does not replace a qualified trainer. Stop if you feel pain.'**
+  String get cameraSafetyDisclaimer;
+
+  /// No description provided for @cameraPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera permission is required for tracking.'**
+  String get cameraPermissionDenied;
+
+  /// No description provided for @cameraPlatformUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera tracking works on Android and iOS devices.'**
+  String get cameraPlatformUnsupported;
+
+  /// No description provided for @cameraManualFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'You can count reps manually on the workout screen.'**
+  String get cameraManualFallback;
+
+  /// No description provided for @cameraUseManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Use manual counting'**
+  String get cameraUseManual;
+
+  /// No description provided for @cameraOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get cameraOpenSettings;
+
+  /// No description provided for @cameraRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get cameraRetry;
+
+  /// No description provided for @cameraPreviewLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting camera…'**
+  String get cameraPreviewLoading;
+
+  /// No description provided for @cameraTrackingLive.
+  ///
+  /// In en, this message translates to:
+  /// **'Live'**
+  String get cameraTrackingLive;
+
+  /// No description provided for @cameraInvalidAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust'**
+  String get cameraInvalidAttempts;
+
+  /// No description provided for @cameraUnsupportedExercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera tracking is not available for this exercise yet.'**
+  String get cameraUnsupportedExercise;
+
+  /// No description provided for @cameraInitFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start the camera. Try again or use manual counting.'**
+  String get cameraInitFailed;
+
+  /// No description provided for @cameraFeedbackSaggingHips.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep hips aligned — avoid sagging'**
+  String get cameraFeedbackSaggingHips;
+
+  /// No description provided for @cameraFeedbackRaiseHigher.
+  ///
+  /// In en, this message translates to:
+  /// **'Raise arms higher to shoulder level'**
+  String get cameraFeedbackRaiseHigher;
+
+  /// No description provided for @cameraFeedbackIncompletePress.
+  ///
+  /// In en, this message translates to:
+  /// **'Full overhead extension required'**
+  String get cameraFeedbackIncompletePress;
+
+  /// No description provided for @cameraFeedbackPullHigher.
+  ///
+  /// In en, this message translates to:
+  /// **'Pull higher — chin above hands'**
+  String get cameraFeedbackPullHigher;
+
+  /// No description provided for @cameraFeedbackHipsSagging.
+  ///
+  /// In en, this message translates to:
+  /// **'Lift hips — keep body straight'**
+  String get cameraFeedbackHipsSagging;
+
+  /// No description provided for @cameraFeedbackAdjustForm.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust form and try again'**
+  String get cameraFeedbackAdjustForm;
+
+  /// No description provided for @cameraAppliedReps.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied {count} reps from camera'**
+  String cameraAppliedReps(int count);
+
+  /// No description provided for @cameraAppliedHold.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied {count}s hold from camera'**
+  String cameraAppliedHold(int count);
+
   /// No description provided for @sessionCompletedExercises.
   ///
   /// In en, this message translates to:

@@ -575,6 +575,98 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sessionCameraTrackingComingSoon => 'Camera tracking (coming soon)';
 
   @override
+  String get sessionCameraTracking => 'Track with camera';
+
+  @override
+  String get cameraTrackingTitle => 'Camera tracking';
+
+  @override
+  String get cameraStartTracking => 'Start tracking';
+
+  @override
+  String get cameraApplyCount => 'Apply count';
+
+  @override
+  String get cameraRepCount => 'Reps';
+
+  @override
+  String get cameraHoldSeconds => 'Hold (sec)';
+
+  @override
+  String get cameraBodyNotVisible => 'Step into frame so your body is visible';
+
+  @override
+  String get cameraSafetyDisclaimer =>
+      'This tool does not replace a qualified trainer. Stop if you feel pain.';
+
+  @override
+  String get cameraPermissionDenied =>
+      'Camera permission is required for tracking.';
+
+  @override
+  String get cameraPlatformUnsupported =>
+      'Camera tracking works on Android and iOS devices.';
+
+  @override
+  String get cameraManualFallback =>
+      'You can count reps manually on the workout screen.';
+
+  @override
+  String get cameraUseManual => 'Use manual counting';
+
+  @override
+  String get cameraOpenSettings => 'Open settings';
+
+  @override
+  String get cameraRetry => 'Try again';
+
+  @override
+  String get cameraPreviewLoading => 'Starting camera…';
+
+  @override
+  String get cameraTrackingLive => 'Live';
+
+  @override
+  String get cameraInvalidAttempts => 'Adjust';
+
+  @override
+  String get cameraUnsupportedExercise =>
+      'Camera tracking is not available for this exercise yet.';
+
+  @override
+  String get cameraInitFailed =>
+      'Could not start the camera. Try again or use manual counting.';
+
+  @override
+  String get cameraFeedbackSaggingHips => 'Keep hips aligned — avoid sagging';
+
+  @override
+  String get cameraFeedbackRaiseHigher => 'Raise arms higher to shoulder level';
+
+  @override
+  String get cameraFeedbackIncompletePress =>
+      'Full overhead extension required';
+
+  @override
+  String get cameraFeedbackPullHigher => 'Pull higher — chin above hands';
+
+  @override
+  String get cameraFeedbackHipsSagging => 'Lift hips — keep body straight';
+
+  @override
+  String get cameraFeedbackAdjustForm => 'Adjust form and try again';
+
+  @override
+  String cameraAppliedReps(int count) {
+    return 'Applied $count reps from camera';
+  }
+
+  @override
+  String cameraAppliedHold(int count) {
+    return 'Applied ${count}s hold from camera';
+  }
+
+  @override
   String get sessionCompletedExercises => 'Completed exercises';
 
   @override
