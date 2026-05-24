@@ -50,6 +50,44 @@ post_install do |installer|
       ]
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386'
+
+      # Google ML Kit's iOS pods do not ship arm64 simulator binaries for
+      # current Apple Silicon simulators. Keep ML Kit enabled on real devices,
+      # but avoid compiling native ML Kit bridge sources for simulator builds.
+      if target.name == 'google_mlkit_pose_detection'
+        config.build_settings['EXCLUDED_SOURCE_FILE_NAMES[sdk=iphonesimulator*]'] = 'GoogleMlKitPoseDetectionPlugin.m'
+      end
+      if target.name == 'google_mlkit_commons'
+        config.build_settings['EXCLUDED_SOURCE_FILE_NAMES[sdk=iphonesimulator*]'] = 'GenericModelManager.m MLKVisionImage+FlutterPlugin.m'
+      end
+    end
+  end
+
+  registrant_path = File.join(__dir__, 'Runner', 'GeneratedPluginRegistrant.m')
+  if File.exist?(registrant_path)
+    registrant = File.read(registrant_path)
+    unless registrant.include?('TARGET_OS_SIMULATOR')
+      registrant = registrant.sub(
+        '#import "GeneratedPluginRegistrant.h"',
+        "#import \"GeneratedPluginRegistrant.h\"\n#import <TargetConditionals.h>"
+      )
+      registrant = registrant.sub(
+        '#if __has_include(<google_mlkit_commons/GoogleMlKitCommonsPlugin.h>)',
+        "#if !TARGET_OS_SIMULATOR\n#if __has_include(<google_mlkit_commons/GoogleMlKitCommonsPlugin.h>)"
+      )
+      registrant = registrant.sub(
+        "#endif\n\n#if __has_include(<permission_handler_apple/PermissionHandlerPlugin.h>)",
+        "#endif\n#endif\n\n#if __has_include(<permission_handler_apple/PermissionHandlerPlugin.h>)"
+      )
+      registrant = registrant.sub(
+        '  [GoogleMlKitCommonsPlugin registerWithRegistrar:[registry registrarForPlugin:@"GoogleMlKitCommonsPlugin"]];',
+        "#if !TARGET_OS_SIMULATOR\n  [GoogleMlKitCommonsPlugin registerWithRegistrar:[registry registrarForPlugin:@\"GoogleMlKitCommonsPlugin\"]];"
+      )
+      registrant = registrant.sub(
+        '  [GoogleMlKitPoseDetectionPlugin registerWithRegistrar:[registry registrarForPlugin:@"GoogleMlKitPoseDetectionPlugin"]];',
+        "  [GoogleMlKitPoseDetectionPlugin registerWithRegistrar:[registry registrarForPlugin:@\"GoogleMlKitPoseDetectionPlugin\"]];\n#endif"
+      )
+      File.write(registrant_path, registrant)
     end
   end
 end
