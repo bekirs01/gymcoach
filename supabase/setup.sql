@@ -187,3 +187,5 @@ create policy "workout_completion_exercises: device access" on public.workout_co
 
 create policy "camera_tracking_sessions: device access" on public.camera_tracking_sessions
   for all to anon, authenticated using (true) with check (true);
+
+-- Territory capture is included in supabase/full_database.sql
