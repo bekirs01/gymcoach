@@ -21,6 +21,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get navCalendar => 'Календарь';
 
   @override
+  String get navMap => 'Map';
+
+  @override
   String get navProgress => 'Прогресс';
 
   @override
@@ -1020,4 +1023,133 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get calendarDow7 => 'В';
+
+  @override
+  String get mapTitle => 'Territory Map';
+
+  @override
+  String get mapLocateMe => 'Locate me';
+
+  @override
+  String get mapModeMap => 'Map view';
+
+  @override
+  String get mapModeSatellite => 'Satellite view';
+
+  @override
+  String get mapLeaderboard => 'Leaderboard';
+
+  @override
+  String get mapStartCapture => 'Start Capture';
+
+  @override
+  String get mapCaptureActive => 'Capturing route';
+
+  @override
+  String get mapElapsed => 'Elapsed';
+
+  @override
+  String get mapDistance => 'Distance';
+
+  @override
+  String get mapEstimatedArea => 'Est. area';
+
+  @override
+  String get mapGpsAccuracy => 'GPS accuracy';
+
+  @override
+  String get mapFinishCapture => 'Finish';
+
+  @override
+  String get mapPermissionTitle => 'Location access needed';
+
+  @override
+  String get mapPermissionBody =>
+      'GymCoach uses your location while the app is open to show your position and record territory capture routes.';
+
+  @override
+  String get mapPermissionServiceDisabled =>
+      'Turn on location services in system settings to use the territory map.';
+
+  @override
+  String get mapAllowLocation => 'Allow location';
+
+  @override
+  String get mapOpenSettings => 'Open settings';
+
+  @override
+  String get mapPermissionDialogTitle =>
+      'Enable location for territory capture';
+
+  @override
+  String get mapPermissionDialogBody =>
+      'We only use your GPS while you actively capture a route. Your path is sent to the server when you finish a capture.';
+
+  @override
+  String get mapContinue => 'Continue';
+
+  @override
+  String get mapSatelliteUnavailable =>
+      'Satellite view requires an external paid map provider. Standard OpenFreeMap is available for free.';
+
+  @override
+  String get mapEmptyTerritories => 'No territories captured yet';
+
+  @override
+  String get mapGpsAccuracyWarning =>
+      'GPS accuracy is lower than ideal. You can continue, but try moving to open sky for a cleaner capture.';
+
+  @override
+  String get mapNameTerritoryTitle => 'Name your territory';
+
+  @override
+  String get mapTerritoryNameLabel => 'Territory name';
+
+  @override
+  String get mapCaptureSuccessTitle => 'Territory captured';
+
+  @override
+  String mapCaptureSuccessBody(String name, String area) {
+    return '$name is now yours at $area.';
+  }
+
+  @override
+  String get mapDone => 'Done';
+
+  @override
+  String get mapValidationMinPoints =>
+      'Capture at least 4 valid GPS points before finishing.';
+
+  @override
+  String get mapValidationMinArea =>
+      'The captured area is too small. Walk a larger loop and try again.';
+
+  @override
+  String get mapCaptureFailed => 'Could not finish the capture. Try again.';
+
+  @override
+  String get mapOwner => 'Owner';
+
+  @override
+  String get mapArea => 'Area';
+
+  @override
+  String get mapCapturedOn => 'Captured';
+
+  @override
+  String get mapZoomToTerritory => 'Zoom to territory';
+
+  @override
+  String get mapMyTerritory => 'My territory';
+
+  @override
+  String get mapLeaderboardTitle => 'Territory leaderboard';
+
+  @override
+  String get mapLeaderboardEmpty => 'No leaderboard data yet.';
+
+  @override
+  String mapLeaderboardMeta(String area, int count) {
+    return '$area · $count territories';
+  }
 }

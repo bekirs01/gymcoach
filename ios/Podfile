@@ -47,6 +47,7 @@ post_install do |installer|
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
         'PERMISSION_CAMERA=1',
+        'PERMISSION_LOCATION=1',
       ]
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386'
@@ -66,7 +67,19 @@ post_install do |installer|
   registrant_path = File.join(__dir__, 'Runner', 'GeneratedPluginRegistrant.m')
   if File.exist?(registrant_path)
     registrant = File.read(registrant_path)
-    unless registrant.include?('TARGET_OS_SIMULATOR')
+    needs_patch = !registrant.include?('#if !TARGET_OS_SIMULATOR') ||
+                  registrant.include?('[GoogleMlKitPoseDetectionPlugin registerWithRegistrar') &&
+                    !registrant.include?("#if !TARGET_OS_SIMULATOR\n  [GoogleMlKitPoseDetectionPlugin")
+
+    if needs_patch
+      registrant = registrant.gsub("#import \"GeneratedPluginRegistrant.h\"\n#import <TargetConditionals.h>\n", "#import \"GeneratedPluginRegistrant.h\"\n")
+      registrant = registrant.gsub("#import <TargetConditionals.h>\n", '')
+      registrant = registrant.gsub("#if !TARGET_OS_SIMULATOR\n", '')
+      registrant = registrant.gsub(
+        "  [GoogleMlKitPoseDetectionPlugin registerWithRegistrar:[registry registrarForPlugin:@\"GoogleMlKitPoseDetectionPlugin\"]];\n#endif\n",
+        "  [GoogleMlKitPoseDetectionPlugin registerWithRegistrar:[registry registrarForPlugin:@\"GoogleMlKitPoseDetectionPlugin\"]];\n"
+      )
+
       registrant = registrant.sub(
         '#import "GeneratedPluginRegistrant.h"',
         "#import \"GeneratedPluginRegistrant.h\"\n#import <TargetConditionals.h>"
@@ -76,9 +89,15 @@ post_install do |installer|
         "#if !TARGET_OS_SIMULATOR\n#if __has_include(<google_mlkit_commons/GoogleMlKitCommonsPlugin.h>)"
       )
       registrant = registrant.sub(
-        "#endif\n\n#if __has_include(<permission_handler_apple/PermissionHandlerPlugin.h>)",
-        "#endif\n#endif\n\n#if __has_include(<permission_handler_apple/PermissionHandlerPlugin.h>)"
+        "#endif\n\n#if __has_include(<maplibre_gl/MapLibreMapsPlugin.h>)",
+        "#endif\n#endif\n\n#if __has_include(<maplibre_gl/MapLibreMapsPlugin.h>)"
       )
+      if !registrant.include?("#endif\n#endif\n\n#if __has_include(<maplibre_gl/MapLibreMapsPlugin.h>)")
+        registrant = registrant.sub(
+          "#endif\n\n#if __has_include(<permission_handler_apple/PermissionHandlerPlugin.h>)",
+          "#endif\n#endif\n\n#if __has_include(<permission_handler_apple/PermissionHandlerPlugin.h>)"
+        )
+      end
       registrant = registrant.sub(
         '  [GoogleMlKitCommonsPlugin registerWithRegistrar:[registry registrarForPlugin:@"GoogleMlKitCommonsPlugin"]];',
         "#if !TARGET_OS_SIMULATOR\n  [GoogleMlKitCommonsPlugin registerWithRegistrar:[registry registrarForPlugin:@\"GoogleMlKitCommonsPlugin\"]];"

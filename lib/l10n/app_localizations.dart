@@ -122,6 +122,12 @@ abstract class AppLocalizations {
   /// **'Calendar'**
   String get navCalendar;
 
+  /// No description provided for @navMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Map'**
+  String get navMap;
+
   /// No description provided for @navProgress.
   ///
   /// In en, this message translates to:
@@ -1963,6 +1969,240 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'S'**
   String get calendarDow7;
+
+  /// No description provided for @mapTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Territory Map'**
+  String get mapTitle;
+
+  /// No description provided for @mapLocateMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Locate me'**
+  String get mapLocateMe;
+
+  /// No description provided for @mapModeMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Map view'**
+  String get mapModeMap;
+
+  /// No description provided for @mapModeSatellite.
+  ///
+  /// In en, this message translates to:
+  /// **'Satellite view'**
+  String get mapModeSatellite;
+
+  /// No description provided for @mapLeaderboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaderboard'**
+  String get mapLeaderboard;
+
+  /// No description provided for @mapStartCapture.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Capture'**
+  String get mapStartCapture;
+
+  /// No description provided for @mapCaptureActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Capturing route'**
+  String get mapCaptureActive;
+
+  /// No description provided for @mapElapsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Elapsed'**
+  String get mapElapsed;
+
+  /// No description provided for @mapDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance'**
+  String get mapDistance;
+
+  /// No description provided for @mapEstimatedArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Est. area'**
+  String get mapEstimatedArea;
+
+  /// No description provided for @mapGpsAccuracy.
+  ///
+  /// In en, this message translates to:
+  /// **'GPS accuracy'**
+  String get mapGpsAccuracy;
+
+  /// No description provided for @mapFinishCapture.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get mapFinishCapture;
+
+  /// No description provided for @mapPermissionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Location access needed'**
+  String get mapPermissionTitle;
+
+  /// No description provided for @mapPermissionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'GymCoach uses your location while the app is open to show your position and record territory capture routes.'**
+  String get mapPermissionBody;
+
+  /// No description provided for @mapPermissionServiceDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on location services in system settings to use the territory map.'**
+  String get mapPermissionServiceDisabled;
+
+  /// No description provided for @mapAllowLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location'**
+  String get mapAllowLocation;
+
+  /// No description provided for @mapOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get mapOpenSettings;
+
+  /// No description provided for @mapPermissionDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable location for territory capture'**
+  String get mapPermissionDialogTitle;
+
+  /// No description provided for @mapPermissionDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We only use your GPS while you actively capture a route. Your path is sent to the server when you finish a capture.'**
+  String get mapPermissionDialogBody;
+
+  /// No description provided for @mapContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get mapContinue;
+
+  /// No description provided for @mapSatelliteUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Satellite view requires an external paid map provider. Standard OpenFreeMap is available for free.'**
+  String get mapSatelliteUnavailable;
+
+  /// No description provided for @mapEmptyTerritories.
+  ///
+  /// In en, this message translates to:
+  /// **'No territories captured yet'**
+  String get mapEmptyTerritories;
+
+  /// No description provided for @mapGpsAccuracyWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'GPS accuracy is lower than ideal. You can continue, but try moving to open sky for a cleaner capture.'**
+  String get mapGpsAccuracyWarning;
+
+  /// No description provided for @mapNameTerritoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Name your territory'**
+  String get mapNameTerritoryTitle;
+
+  /// No description provided for @mapTerritoryNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Territory name'**
+  String get mapTerritoryNameLabel;
+
+  /// No description provided for @mapCaptureSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Territory captured'**
+  String get mapCaptureSuccessTitle;
+
+  /// No description provided for @mapCaptureSuccessBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is now yours at {area}.'**
+  String mapCaptureSuccessBody(String name, String area);
+
+  /// No description provided for @mapDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get mapDone;
+
+  /// No description provided for @mapValidationMinPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture at least 4 valid GPS points before finishing.'**
+  String get mapValidationMinPoints;
+
+  /// No description provided for @mapValidationMinArea.
+  ///
+  /// In en, this message translates to:
+  /// **'The captured area is too small. Walk a larger loop and try again.'**
+  String get mapValidationMinArea;
+
+  /// No description provided for @mapCaptureFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not finish the capture. Try again.'**
+  String get mapCaptureFailed;
+
+  /// No description provided for @mapOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner'**
+  String get mapOwner;
+
+  /// No description provided for @mapArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Area'**
+  String get mapArea;
+
+  /// No description provided for @mapCapturedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Captured'**
+  String get mapCapturedOn;
+
+  /// No description provided for @mapZoomToTerritory.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom to territory'**
+  String get mapZoomToTerritory;
+
+  /// No description provided for @mapMyTerritory.
+  ///
+  /// In en, this message translates to:
+  /// **'My territory'**
+  String get mapMyTerritory;
+
+  /// No description provided for @mapLeaderboardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Territory leaderboard'**
+  String get mapLeaderboardTitle;
+
+  /// No description provided for @mapLeaderboardEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No leaderboard data yet.'**
+  String get mapLeaderboardEmpty;
+
+  /// No description provided for @mapLeaderboardMeta.
+  ///
+  /// In en, this message translates to:
+  /// **'{area} · {count} territories'**
+  String mapLeaderboardMeta(String area, int count);
 }
 
 class _AppLocalizationsDelegate

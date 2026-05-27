@@ -17,6 +17,7 @@ import '../plans/presentation/plans_page.dart';
 import '../profile/presentation/profile_page.dart';
 import '../progress/presentation/progress_page.dart';
 import '../progress/presentation/streak_detail_page.dart';
+import '../territory_map/presentation/territory_map_page.dart';
 import '../workout/domain/workout_completion.dart';
 import '../workout/presentation/workout_log_sheet.dart';
 import '../workout/presentation/workout_session_page.dart';
@@ -57,11 +58,11 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _goToProgressTab() {
-    setState(() => _selectedIndex = 3);
+    setState(() => _selectedIndex = 4);
   }
 
   void _goToProfileTab() {
-    setState(() => _selectedIndex = 4);
+    setState(() => _selectedIndex = 5);
   }
 
   Future<void> _handleSessionComplete(WorkoutPlan plan, WorkoutCompletion completion) =>
@@ -222,6 +223,7 @@ class _MainShellState extends State<MainShell> {
             onOpenPlanDetail: (p) => _openPlanDetail(context, p),
             onStartSession: (p) => _pushSession(context, p),
           ),
+          TerritoryMapPage(displayName: profile.displayName),
           CalendarPage(
             plans: plans,
             completions: completions,
@@ -263,6 +265,11 @@ class _MainShellState extends State<MainShell> {
             icon: const Icon(Icons.fitness_center_outlined),
             selectedIcon: const Icon(Icons.fitness_center_rounded),
             label: l10n.navPlans,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.map_outlined),
+            selectedIcon: const Icon(Icons.map_rounded),
+            label: l10n.navMap,
           ),
           NavigationDestination(
             icon: const Icon(Icons.calendar_month_outlined),
