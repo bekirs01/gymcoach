@@ -1979,8 +1979,44 @@ abstract class AppLocalizations {
   /// No description provided for @mapLocateMe.
   ///
   /// In en, this message translates to:
-  /// **'Locate me'**
+  /// **'My location'**
   String get mapLocateMe;
+
+  /// No description provided for @mapLocating.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding your location...'**
+  String get mapLocating;
+
+  /// No description provided for @mapLocationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not find your location. Turn on GPS and try again.'**
+  String get mapLocationUnavailable;
+
+  /// No description provided for @mapLocationServiceDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Location services are turned off. Enable GPS to see your position on the map.'**
+  String get mapLocationServiceDisabled;
+
+  /// No description provided for @mapLocationPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission is required to show your position on the map.'**
+  String get mapLocationPermissionDenied;
+
+  /// No description provided for @mapLocationTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'GPS is taking too long. Move to open sky and tap My location again.'**
+  String get mapLocationTimeout;
+
+  /// No description provided for @mapOpenLocationSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get mapOpenLocationSettings;
 
   /// No description provided for @mapModeMap.
   ///

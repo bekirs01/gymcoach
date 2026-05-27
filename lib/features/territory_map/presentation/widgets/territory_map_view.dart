@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart' as geo;
+import 'package:gym/l10n/app_localizations.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../config/territory_config.dart';
 import '../../domain/territory.dart';
+import '../../services/user_location_service.dart';
 import '../territory_map_controller.dart';
 
 class TerritoryMapView extends StatefulWidget {
@@ -14,24 +17,59 @@ class TerritoryMapView extends StatefulWidget {
     super.key,
     required this.controller,
     this.onTerritoryTap,
+    this.onLocatingChanged,
   });
 
   final TerritoryMapController controller;
   final ValueChanged<Territory>? onTerritoryTap;
+  final ValueChanged<bool>? onLocatingChanged;
 
   @override
   State<TerritoryMapView> createState() => TerritoryMapViewState();
 }
 
 class TerritoryMapViewState extends State<TerritoryMapView> {
+  final _locationService = UserLocationService();
+
   MapLibreMapController? _mapController;
+  StreamSubscription<geo.Position>? _positionSubscription;
   var _styleReady = false;
+  var _autoLocateAttempted = false;
+  var _isLocating = false;
   String? _loadedStyleUrl;
+  Circle? _userCircle;
+  LatLng? _resolvedInitialTarget;
+  geo.Position? _pendingCenterPosition;
+  double? _pendingCenterZoom;
+  var _pendingCenterAnimate = false;
+  var _hasCenteredOnUser = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_resolveInitialTarget());
+  }
 
   @override
   void didUpdateWidget(covariant TerritoryMapView oldWidget) {
     super.didUpdateWidget(oldWidget);
     unawaited(_syncMap());
+  }
+
+  @override
+  void dispose() {
+    unawaited(_positionSubscription?.cancel());
+    super.dispose();
+  }
+
+  Future<void> _resolveInitialTarget() async {
+    final result = await _locationService.resolveCurrentPosition(forceFresh: true);
+    if (!mounted || !result.isSuccess) return;
+    final position = result.position!;
+    setState(() {
+      _resolvedInitialTarget = LatLng(position.latitude, position.longitude);
+    });
+    await _centerOnPosition(position, zoom: 15, animate: false);
   }
 
   Future<void> _onMapCreated(MapLibreMapController controller) async {
@@ -42,11 +80,27 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
       final territory = widget.controller.territories.where((t) => t.id == territoryId).firstOrNull;
       if (territory != null) widget.onTerritoryTap?.call(territory);
     });
+    _startWatchingPosition();
+  }
+
+  void _startWatchingPosition() {
+    unawaited(_positionSubscription?.cancel());
+    _positionSubscription = _locationService.watchPosition().listen(
+      (position) {
+        unawaited(_updateUserMarker(position));
+      },
+      onError: (_) {},
+    );
   }
 
   Future<void> _onStyleLoaded() async {
     _styleReady = true;
     await _syncMap();
+    await _applyPendingCenter();
+    if (!_autoLocateAttempted) {
+      _autoLocateAttempted = true;
+      await locateUser();
+    }
   }
 
   Future<void> _syncMap() async {
@@ -56,6 +110,7 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     final styleUrl = MapStyleConfig.styleUrlFor(widget.controller.mapMode);
     if (_loadedStyleUrl != styleUrl) {
       _styleReady = false;
+      _userCircle = null;
       await controller.setStyle(styleUrl);
       _loadedStyleUrl = styleUrl;
       return;
@@ -162,35 +217,186 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     );
   }
 
-  Future<void> locateUser() async {
+  Future<UserLocationResult?> locateUser() async {
+    if (_isLocating) return null;
+    _setLocating(true);
+
+    try {
+      final result = await _locationService.resolveCurrentPosition(forceFresh: true);
+      if (!result.isSuccess) {
+        return result;
+      }
+
+      final position = result.position!;
+      _hasCenteredOnUser = true;
+      await _centerOnPosition(position, zoom: 16, animate: true);
+      await _updateUserMarker(position);
+      await _mapController?.updateMyLocationTrackingMode(MyLocationTrackingMode.tracking);
+      return result;
+    } finally {
+      _setLocating(false);
+    }
+  }
+
+  Future<void> _centerOnPosition(
+    geo.Position position, {
+    required double zoom,
+    required bool animate,
+  }) async {
     final controller = _mapController;
-    if (controller == null) return;
-    final position = await geo.Geolocator.getCurrentPosition(
-      locationSettings: const geo.LocationSettings(accuracy: geo.LocationAccuracy.best),
+    if (controller == null || !_styleReady) {
+      _pendingCenterPosition = position;
+      _pendingCenterZoom = zoom;
+      _pendingCenterAnimate = animate;
+      return;
+    }
+
+    final target = LatLng(position.latitude, position.longitude);
+    final update = CameraUpdate.newLatLngZoom(target, zoom);
+    if (animate) {
+      await controller.animateCamera(update);
+    } else {
+      await controller.moveCamera(update);
+    }
+    _hasCenteredOnUser = true;
+    _pendingCenterPosition = null;
+    _pendingCenterZoom = null;
+    _pendingCenterAnimate = false;
+  }
+
+  Future<void> _applyPendingCenter() async {
+    final position = _pendingCenterPosition;
+    final zoom = _pendingCenterZoom;
+    if (position == null || zoom == null) return;
+    await _centerOnPosition(
+      position,
+      zoom: zoom,
+      animate: _pendingCenterAnimate,
     );
-    await controller.animateCamera(
-      CameraUpdate.newLatLngZoom(
-        LatLng(position.latitude, position.longitude),
-        16,
+  }
+
+  Future<void> _updateUserMarker(geo.Position position) async {
+    await _updateUserMarkerAt(LatLng(position.latitude, position.longitude));
+  }
+
+  Future<void> _updateUserMarkerAt(LatLng target) async {
+    final controller = _mapController;
+    if (controller == null || !_styleReady) return;
+
+    final circle = _userCircle;
+    if (circle == null) {
+      _userCircle = await controller.addCircle(
+        CircleOptions(
+          geometry: target,
+          circleRadius: 12,
+          circleColor: _colorHex(AppColors.primary),
+          circleOpacity: 0.25,
+          circleStrokeWidth: 3,
+          circleStrokeColor: '#FFFFFF',
+        ),
+      );
+      return;
+    }
+
+    await controller.updateCircle(
+      circle,
+      CircleOptions(
+        geometry: target,
+        circleRadius: 12,
+        circleColor: _colorHex(AppColors.primary),
+        circleOpacity: 0.25,
+        circleStrokeWidth: 3,
+        circleStrokeColor: '#FFFFFF',
       ),
     );
   }
 
+  void _setLocating(bool value) {
+    if (_isLocating == value) return;
+    _isLocating = value;
+    widget.onLocatingChanged?.call(value);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MapLibreMap(
-      key: ValueKey(MapStyleConfig.styleUrlFor(widget.controller.mapMode)),
-      styleString: MapStyleConfig.styleUrlFor(widget.controller.mapMode),
-      initialCameraPosition: const CameraPosition(
-        target: LatLng(41.015, 28.979),
-        zoom: 12,
+    final initialTarget = _resolvedInitialTarget ?? const LatLng(41.015, 28.979);
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        MapLibreMap(
+          key: ValueKey(MapStyleConfig.styleUrlFor(widget.controller.mapMode)),
+          styleString: MapStyleConfig.styleUrlFor(widget.controller.mapMode),
+          initialCameraPosition: CameraPosition(
+            target: initialTarget,
+            zoom: _resolvedInitialTarget == null ? 4 : 15,
+          ),
+          myLocationEnabled: true,
+          myLocationRenderMode:
+              Platform.isIOS ? MyLocationRenderMode.compass : MyLocationRenderMode.normal,
+          myLocationTrackingMode: MyLocationTrackingMode.tracking,
+          compassEnabled: true,
+          onMapCreated: _onMapCreated,
+          onStyleLoadedCallback: _onStyleLoaded,
+          onUserLocationUpdated: (location) {
+            unawaited(_updateUserMarkerAt(location.position));
+            if (!_hasCenteredOnUser && _mapController != null) {
+              _hasCenteredOnUser = true;
+              unawaited(
+                _mapController!.animateCamera(
+                  CameraUpdate.newLatLngZoom(location.position, 16),
+                ),
+              );
+            }
+          },
+        ),
+        if (_isLocating)
+          Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 56),
+              child: _LocatingBanner(isLocating: _isLocating),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _LocatingBanner extends StatelessWidget {
+  const _LocatingBanner({required this.isLocating});
+
+  final bool isLocating;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isLocating) return const SizedBox.shrink();
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderSubtle),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
       ),
-      myLocationEnabled: true,
-      myLocationRenderMode: MyLocationRenderMode.normal,
-      myLocationTrackingMode: MyLocationTrackingMode.tracking,
-      compassEnabled: true,
-      onMapCreated: _onMapCreated,
-      onStyleLoadedCallback: _onStyleLoaded,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              AppLocalizations.of(context)!.mapLocating,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
