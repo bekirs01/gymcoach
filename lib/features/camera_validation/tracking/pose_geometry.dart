@@ -65,8 +65,6 @@ abstract final class PoseGeometry {
     final pl = frame[left];
     final pr = frame[right];
     if (pl == null || pr == null || !pl.isReliable || !pr.isReliable) return null;
-    final shoulderWidth = frame.midpointX(PoseLandmark.leftShoulder, PoseLandmark.rightShoulder);
-    if (shoulderWidth == null) return null;
     final sw = (frame[PoseLandmark.leftShoulder]!.x - frame[PoseLandmark.rightShoulder]!.x).abs();
     if (sw < 0.01) return null;
     return (pl.x - pr.x).abs() / sw;
@@ -77,5 +75,60 @@ abstract final class PoseGeometry {
     final pl = frame[lower];
     if (pu == null || pl == null || !pu.isReliable || !pl.isReliable) return null;
     return pl.y - pu.y;
+  }
+
+  /// Euclidean distance between two landmarks divided by [scale] (torso length).
+  static double? normalizedDistance(
+    PoseFrame frame,
+    PoseLandmark a,
+    PoseLandmark b,
+    double scale,
+  ) {
+    if (scale < 1e-4) return null;
+    final pa = frame[a];
+    final pb = frame[b];
+    if (pa == null || pb == null || !pa.isReliable || !pb.isReliable) return null;
+    final dx = pa.x - pb.x;
+    final dy = pa.y - pb.y;
+    return math.sqrt(dx * dx + dy * dy) / scale;
+  }
+
+  /// Vertical gap (lower.y - upper.y) between bilateral midpoints, normalized.
+  static double? bilateralVerticalGapNorm(
+    PoseFrame frame,
+    PoseLandmark upperLeft,
+    PoseLandmark upperRight,
+    PoseLandmark lowerLeft,
+    PoseLandmark lowerRight,
+    double scale,
+  ) {
+    if (scale < 1e-4) return null;
+    final uy = frame.midpointY(upperLeft, upperRight);
+    final ly = frame.midpointY(lowerLeft, lowerRight);
+    if (uy == null || ly == null) return null;
+    return (ly - uy) / scale;
+  }
+
+  static double? legKneeAngle(PoseFrame frame, {required bool left}) {
+    if (left) {
+      return angleAt(frame, PoseLandmark.leftHip, PoseLandmark.leftKnee, PoseLandmark.leftAnkle);
+    }
+    return angleAt(frame, PoseLandmark.rightHip, PoseLandmark.rightKnee, PoseLandmark.rightAnkle);
+  }
+
+  static double? hipKneeGapNorm(PoseFrame frame, double scale, {required bool left}) {
+    if (left) {
+      return normalizedDistance(frame, PoseLandmark.leftHip, PoseLandmark.leftKnee, scale);
+    }
+    return normalizedDistance(frame, PoseLandmark.rightHip, PoseLandmark.rightKnee, scale);
+  }
+
+  static double? hipKneeVerticalGapNorm(PoseFrame frame, double scale, {required bool left}) {
+    if (scale < 1e-4) return null;
+    final hip = left ? PoseLandmark.leftHip : PoseLandmark.rightHip;
+    final knee = left ? PoseLandmark.leftKnee : PoseLandmark.rightKnee;
+    final gap = verticalOffset(frame, hip, knee);
+    if (gap == null) return null;
+    return gap / scale;
   }
 }

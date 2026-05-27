@@ -2,10 +2,13 @@ import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym/features/camera_validation/domain/pose_frame.dart';
-import 'package:gym/features/camera_validation/engine/adaptive_rep_engine.dart';
 import 'package:gym/features/camera_validation/domain/pose_quality.dart';
+import 'package:gym/features/camera_validation/domain/smoothed_pose_observation.dart';
+import 'package:gym/features/camera_validation/engine/adaptive_rep_engine.dart';
 import 'package:gym/features/camera_validation/pose_analysis_engine.dart';
+import 'package:gym/features/camera_validation/signal/body_normalizer.dart';
 import 'package:gym/features/camera_validation/signal/one_euro_filter.dart';
+import 'package:gym/features/camera_validation/tracking/biomechanics/metric_extractors.dart';
 import 'package:gym/features/camera_validation/tracking/pose_geometry.dart';
 import 'package:gym/features/camera_validation/tracking/rep_counter.dart';
 import 'package:gym/features/camera_validation/tracking/trackers/push_up_tracker.dart';
@@ -20,7 +23,25 @@ const _quality = PoseQualityScore(
   bodyCompleteness: 1.0,
 );
 
-PoseFrame bilateralKneeFrame(DateTime time, double kneeAngleDeg) {
+SmoothedPoseObservation obsFrom(PoseFrame frame) {
+  final scale = BodyNormalizer.torsoLength(frame.landmarks) ?? 0.15;
+  return SmoothedPoseObservation(
+    timestamp: frame.timestamp,
+    landmarks: frame.landmarks,
+    normalizedLandmarks: BodyNormalizer.normalize(frame.landmarks),
+    velocities: const {},
+    quality: _quality,
+    bodyScale: scale,
+    dtSeconds: 1 / 15,
+    raw: frame,
+  );
+}
+
+PoseFrame bilateralKneeFrame(
+  DateTime time,
+  double kneeAngleDeg, {
+  double hipDrop = 0,
+}) {
   const legLen = 0.12;
   const y = 0.5;
   const leftX = 0.42;
@@ -29,7 +50,7 @@ PoseFrame bilateralKneeFrame(DateTime time, double kneeAngleDeg) {
 
   ({PosePoint hip, PosePoint knee, PosePoint ankle}) leg(double cx) {
     final knee = PosePoint(x: cx, y: y);
-    final hip = PosePoint(x: cx, y: y - legLen);
+    final hip = PosePoint(x: cx, y: y - legLen + hipDrop);
     final ankle = PosePoint(
       x: cx + legLen * math.sin(alpha),
       y: y + legLen * math.cos(alpha),
@@ -59,12 +80,23 @@ PoseFrame pushUpFrame({
   required DateTime time,
   required double elbowAngleDeg,
 }) {
-  final rad = elbowAngleDeg * math.pi / 180;
   const shoulder = PosePoint(x: 0.4, y: 0.4);
   const elbow = PosePoint(x: 0.38, y: 0.48);
+  const forearmLen = 0.08;
+
+  final uaX = shoulder.x - elbow.x;
+  final uaY = shoulder.y - elbow.y;
+  final uaLen = math.sqrt(uaX * uaX + uaY * uaY);
+  final uaNx = uaX / uaLen;
+  final uaNy = uaY / uaLen;
+
+  final rot = (math.pi - elbowAngleDeg * math.pi / 180);
+  final bwX = uaNx * math.cos(rot) - uaNy * math.sin(rot);
+  final bwY = uaNx * math.sin(rot) + uaNy * math.cos(rot);
+
   final wrist = PosePoint(
-    x: 0.36 + 0.08 * math.cos(rad),
-    y: 0.48 + 0.08 * math.sin(rad),
+    x: elbow.x + bwX * forearmLen,
+    y: elbow.y + bwY * forearmLen,
   );
   return PoseFrame(
     timestamp: time,
@@ -94,6 +126,16 @@ void main() {
       y = f.filter(100 + (i.isEven ? 3 : -3), dt);
     }
     expect(y, closeTo(100, 2.5));
+  });
+
+  test('squat metric drops with knee angle and hip-to-knee gap', () {
+    final standing = MetricExtractors.squatMetric(obsFrom(bilateralKneeFrame(DateTime.now(), 165)));
+    final deep = MetricExtractors.squatMetric(
+      obsFrom(bilateralKneeFrame(DateTime.now(), 85, hipDrop: 0.07)),
+    );
+    expect(standing, isNotNull);
+    expect(deep, isNotNull);
+    expect(deep!, lessThan(standing! - 25));
   });
 
   test('adaptive rep engine counts rep after calibration', () {
@@ -163,7 +205,7 @@ void main() {
       t = t.add(const Duration(milliseconds: 120));
     }
     for (var i = 0; i < 10; i++) {
-      engine.process(bilateralKneeFrame(t, 85));
+      engine.process(bilateralKneeFrame(t, 85, hipDrop: 0.07));
       t = t.add(const Duration(milliseconds: 120));
     }
     for (var i = 0; i < 10; i++) {

@@ -48,7 +48,8 @@ app.*.map.json
 /android/local.properties
 /android/key.properties
 .env
-.env.*
+.env.local
+!.env.example
 
 # CocoaPods (generated locally when used)
 /ios/Pods/

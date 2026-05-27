@@ -14,13 +14,28 @@ class PushUpTracker extends RepExerciseTracker {
   @override
   final AdaptiveRepEngine engine = AdaptiveRepEngine(ExerciseProfiles.pushUps.repConfig!);
 
+  double _minElbow = double.infinity;
+
   @override
-  double? extractMetric(SmoothedPoseObservation obs) => MetricExtractors.elbowAngle(obs);
+  void reset() {
+    super.reset();
+    _minElbow = double.infinity;
+  }
+
+  @override
+  double? extractMetric(SmoothedPoseObservation obs) {
+    final elbow = MetricExtractors.pushUpMetric(obs);
+    if (elbow != null && elbow < _minElbow) {
+      _minElbow = elbow;
+    }
+    return elbow;
+  }
 
   @override
   String? validateRep(SmoothedPoseObservation obs) {
-    final bodyLine = MetricExtractors.bodyLineAngle(obs);
-    if (bodyLine != null && bodyLine < 140) return 'sagging_hips';
+    final shallow = _minElbow > 105;
+    _minElbow = double.infinity;
+    if (shallow) return 'partial_rep';
     return null;
   }
 }

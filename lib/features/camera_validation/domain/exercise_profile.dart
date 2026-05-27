@@ -150,9 +150,8 @@ abstract final class ExerciseProfiles {
     safetyNote: 'Controlled motion, no kipping.',
     criticalJoints: [..._upperBody, PoseLandmark.nose],
     repConfig: AdaptiveRepEngineConfig(
-      defaultBottom: 155,
-      defaultTop: 85,
-      higherIsBottom: true,
+      defaultBottom: 95,
+      defaultTop: 150,
       hysteresisBand: 10,
       minEccentricVelocity: 25,
     ),
@@ -174,11 +173,10 @@ abstract final class ExerciseProfiles {
       PoseLandmark.rightKnee,
     ],
     repConfig: AdaptiveRepEngineConfig(
-      defaultBottom: 110,
+      defaultBottom: 105,
       defaultTop: 165,
-      higherIsBottom: true,
       hysteresisBand: 9,
-      minRomSpan: 25,
+      minRomSpan: 22,
     ),
   );
 
