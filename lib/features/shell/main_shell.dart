@@ -6,21 +6,20 @@ import 'package:gym/l10n/app_localizations.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/training_app_state.dart';
 import '../../core/training_stats.dart';
-import '../calendar/presentation/calendar_page.dart';
-import '../categories/presentation/category_detail_page.dart';
 import '../history/presentation/completed_workout_detail_page.dart';
-import '../home/presentation/home_page.dart';
 import '../plans/domain/workout_plan.dart';
 import '../plans/presentation/create_plan_sheet.dart';
-import '../plans/presentation/plan_detail_page.dart';
-import '../plans/presentation/plans_page.dart';
+import '../plans/presentation/plan_preview_sheet.dart';
 import '../profile/presentation/profile_page.dart';
+import '../progress/presentation/progress_history_page.dart';
 import '../progress/presentation/progress_page.dart';
 import '../progress/presentation/streak_detail_page.dart';
 import '../territory_map/presentation/territory_map_page.dart';
+import '../today/presentation/today_page.dart';
 import '../workout/domain/workout_completion.dart';
 import '../workout/presentation/workout_log_sheet.dart';
 import '../workout/presentation/workout_session_page.dart';
+import '../workouts/presentation/workouts_page.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({
@@ -48,7 +47,7 @@ class _MainShellState extends State<MainShell> {
 
   Future<void> _removePlan(WorkoutPlan plan) => _t.removePlan(plan);
 
-  void _goToPlansTab({bool openCreateSheet = false}) {
+  void _goToWorkoutsTab({bool openCreateSheet = false}) {
     setState(() {
       _selectedIndex = 1;
       if (openCreateSheet) {
@@ -58,24 +57,42 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _goToProgressTab() {
-    setState(() => _selectedIndex = 4);
+    setState(() => _selectedIndex = 3);
   }
 
   void _goToProfileTab() {
-    setState(() => _selectedIndex = 5);
+    setState(() => _selectedIndex = 4);
   }
 
   Future<void> _handleSessionComplete(WorkoutPlan plan, WorkoutCompletion completion) =>
       _t.completePlanSession(plan, completion);
+
+  Map<String, double> _lastWeightByExercise() {
+    final out = <String, double>{};
+    final sorted = List<WorkoutCompletion>.from(_t.completions)
+      ..sort((a, b) => b.completedAt.compareTo(a.completedAt));
+    for (final c in sorted) {
+      for (final log in c.exerciseLogs) {
+        final w = log.weightKg;
+        if (w != null && !out.containsKey(log.exerciseName)) {
+          out[log.exerciseName] = w;
+        }
+      }
+    }
+    return out;
+  }
 
   void _pushSession(BuildContext messengerContext, WorkoutPlan plan) {
     final messenger = ScaffoldMessenger.of(messengerContext);
     final l10n = AppLocalizations.of(messengerContext)!;
     Navigator.of(messengerContext).push<void>(
       MaterialPageRoute<void>(
+        fullscreenDialog: true,
         builder: (sctx) => WorkoutSessionPage(
           plan: plan,
           profile: _t.profile,
+          autoStart: true,
+          lastWeightKgByExercise: _lastWeightByExercise(),
           onFinished: (c) {
             unawaited(_handleSessionComplete(plan, c));
             messenger.showSnackBar(
@@ -90,40 +107,48 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  void _openPlanDetail(BuildContext messengerContext, WorkoutPlan plan) {
-    final messenger = ScaffoldMessenger.of(messengerContext);
-    final l10n = AppLocalizations.of(messengerContext)!;
-    Navigator.of(messengerContext).push<void>(
-      MaterialPageRoute<void>(
-        builder: (ctx) => PlanDetailPage(
-          plan: plan,
-          onBeginSession: () => _pushSession(ctx, plan),
-          onEdit: () {
-            showCreatePlanSheet(
-              context: ctx,
-              existingPlan: plan,
-              onSaved: (updated) {
-                unawaited(_upsertPlan(updated));
-                Navigator.of(ctx).pop();
-                messenger.showSnackBar(
-                  SnackBar(
-                    behavior: SnackBarBehavior.floating,
-                    content: Text(l10n.snackbarPlanUpdated),
-                  ),
-                );
-              },
-            );
-          },
-          onDeleted: () {
-            unawaited(_removePlan(plan));
-            messenger.showSnackBar(
-              SnackBar(
-                behavior: SnackBarBehavior.floating,
-                content: Text(l10n.snackbarPlanDeleted),
-              ),
-            );
-          },
-        ),
+  void _openPlanPreview(BuildContext context, WorkoutPlan plan) {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    unawaited(
+      showPlanPreviewSheet(
+        context: context,
+        plan: plan,
+        onStart: () => _pushSession(context, plan),
+        onEdit: () {
+          showCreatePlanSheet(
+            context: context,
+            existingPlan: plan,
+            onSaved: (updated) {
+              unawaited(_upsertPlan(updated));
+              messenger.showSnackBar(
+                SnackBar(
+                  behavior: SnackBarBehavior.floating,
+                  content: Text(l10n.snackbarPlanUpdated),
+                ),
+              );
+            },
+          );
+        },
+        onDuplicate: () {
+          final copy = duplicateWorkoutPlan(plan);
+          unawaited(_addPlan(copy));
+          messenger.showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text(l10n.snackbarPlanDuplicated),
+            ),
+          );
+        },
+        onDeleted: () {
+          unawaited(_removePlan(plan));
+          messenger.showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text(l10n.snackbarPlanDeleted),
+            ),
+          );
+        },
       ),
     );
   }
@@ -136,18 +161,9 @@ class _MainShellState extends State<MainShell> {
     return List.generate(7, (i) => days.contains(WorkoutPlan.dateOnly(mon.add(Duration(days: i)))));
   }
 
-  void _openCategory(BuildContext navContext, String key) {
-    Navigator.of(navContext).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => CategoryDetailPage.forCatalogKey(navContext, key),
-      ),
-    );
-  }
-
-  void _openCompletion(BuildContext navContext, WorkoutCompletion c) {
-    Navigator.of(navContext).push<void>(
-      MaterialPageRoute<void>(builder: (_) => CompletedWorkoutDetailPage(completion: c)),
-    );
+  int _streakDays() {
+    final now = DateTime.now();
+    return TrainingStats.currentStreak(_completedDays, now);
   }
 
   void _openStreak(BuildContext navContext) {
@@ -161,6 +177,14 @@ class _MainShellState extends State<MainShell> {
             _goToProgressTab();
           },
         ),
+      ),
+    );
+  }
+
+  void _openHistory(BuildContext navContext) {
+    Navigator.of(navContext).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => ProgressHistoryPage(completions: _t.completions),
       ),
     );
   }
@@ -193,41 +217,43 @@ class _MainShellState extends State<MainShell> {
     final plans = _t.plans;
     final completions = _t.completions;
     final profile = _t.profile;
+    final streak = _streakDays();
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: IndexedStack(
         index: _selectedIndex,
         children: [
-          HomePage(
+          TodayPage(
             plans: plans,
             completions: completions,
-            profile: profile,
+            profileName: profile.displayName,
             weekCompleted: weekFlags,
-            onNavigateToPlans: () => setState(() => _selectedIndex = 1),
-            onNavigateToPlansCreate: () => _goToPlansTab(openCreateSheet: true),
-            onNavigateToProgress: _goToProgressTab,
-            onNavigateToProfile: _goToProfileTab,
-            onOpenPlanDetail: (p) => _openPlanDetail(context, p),
-            onOpenCategory: (key) => _openCategory(context, key),
-            onOpenCompletion: (c) => _openCompletion(context, c),
-            onOpenStreak: () => _openStreak(context),
-            onLogWorkout: () => _logWorkout(context),
+            streakDays: streak,
+            onStartWorkout: (p) => _pushSession(context, p),
+            onPreviewWorkout: (p) => _openPlanPreview(context, p),
+            onScheduleWorkout: () => _goToWorkoutsTab(openCreateSheet: true),
+            onOpenProfile: _goToProfileTab,
+            onOpenProgress: _goToProgressTab,
+            onNavigateToWorkouts: () => _goToWorkoutsTab(openCreateSheet: true),
+            onOpenCompletion: (c) {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => CompletedWorkoutDetailPage(completion: c),
+                ),
+              );
+            },
           ),
-          PlansPage(
+          WorkoutsPage(
             plans: plans,
+            completions: completions,
             onAddPlan: (p) {
               unawaited(_addPlan(p));
             },
             createSheetSignal: _plansCreateSignal,
-            onOpenPlanDetail: (p) => _openPlanDetail(context, p),
+            onPreviewPlan: (p) => _openPlanPreview(context, p),
             onStartSession: (p) => _pushSession(context, p),
-          ),
-          TerritoryMapPage(displayName: profile.displayName),
-          CalendarPage(
-            plans: plans,
-            completions: completions,
-            onAddPlan: (plan) {
+            onCalendarAddPlan: (plan) {
               unawaited(_addPlan(plan));
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -236,12 +262,14 @@ class _MainShellState extends State<MainShell> {
                 ),
               );
             },
-            onOpenPlan: (p) => _openPlanDetail(context, p),
+            onCalendarOpenPlan: (p) => _openPlanPreview(context, p),
           ),
+          TerritoryMapPage(displayName: profile.displayName),
           ProgressPage(
             plans: plans,
             completions: completions,
             onOpenStreak: () => _openStreak(context),
+            onSeeAllHistory: () => _openHistory(context),
           ),
           ProfilePage(
             profile: profile,
@@ -249,6 +277,7 @@ class _MainShellState extends State<MainShell> {
               unawaited(_t.updateProfile(p));
             },
             onLocaleChanged: widget.onLocaleChanged,
+            onLogWorkout: () => _logWorkout(context),
           ),
         ],
       ),
@@ -257,24 +286,19 @@ class _MainShellState extends State<MainShell> {
         onDestinationSelected: _onDestinationSelected,
         destinations: [
           NavigationDestination(
-            icon: const Icon(Icons.home_outlined),
-            selectedIcon: const Icon(Icons.home_rounded),
-            label: l10n.navHome,
+            icon: const Icon(Icons.today_outlined),
+            selectedIcon: const Icon(Icons.today_rounded),
+            label: l10n.navToday,
           ),
           NavigationDestination(
             icon: const Icon(Icons.fitness_center_outlined),
             selectedIcon: const Icon(Icons.fitness_center_rounded),
-            label: l10n.navPlans,
+            label: l10n.navWorkouts,
           ),
           NavigationDestination(
             icon: const Icon(Icons.map_outlined),
             selectedIcon: const Icon(Icons.map_rounded),
             label: l10n.navMap,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.calendar_month_outlined),
-            selectedIcon: const Icon(Icons.calendar_month_rounded),
-            label: l10n.navCalendar,
           ),
           NavigationDestination(
             icon: const Icon(Icons.insights_outlined),
@@ -284,7 +308,7 @@ class _MainShellState extends State<MainShell> {
           NavigationDestination(
             icon: const Icon(Icons.person_outline_rounded),
             selectedIcon: const Icon(Icons.person_rounded),
-            label: l10n.navProfile,
+            label: l10n.navYou,
           ),
         ],
       ),

@@ -189,12 +189,12 @@ class WorkoutPlanCard extends StatelessWidget {
   const WorkoutPlanCard({
     super.key,
     required this.plan,
-    required this.onOpen,
+    required this.onPreview,
     required this.onStart,
   });
 
   final WorkoutPlan plan;
-  final VoidCallback onOpen;
+  final VoidCallback onPreview;
   final VoidCallback onStart;
 
   @override
@@ -250,8 +250,10 @@ class WorkoutPlanCard extends StatelessWidget {
               children: [
                 Expanded(
                   flex: 2,
-                  child: FilledButton(
-                    onPressed: onOpen,
+                  child: FilledButton.icon(
+                    onPressed: plan.status == PlanStatus.planned ? onStart : null,
+                    icon: const Icon(Icons.play_arrow_rounded, size: 22),
+                    label: Text(l10n.planCardStart),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
@@ -260,16 +262,12 @@ class WorkoutPlanCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(
-                      l10n.planCardDetails,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: plan.status == PlanStatus.planned ? onStart : null,
+                    onPressed: onPreview,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
                       side: const BorderSide(color: AppColors.primary),
@@ -279,7 +277,7 @@ class WorkoutPlanCard extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      l10n.planCardStart,
+                      l10n.todayPreview,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),

@@ -14,12 +14,14 @@ class CalendarPage extends StatefulWidget {
     required this.completions,
     required this.onAddPlan,
     required this.onOpenPlan,
+    this.embedded = false,
   });
 
   final List<WorkoutPlan> plans;
   final List<WorkoutCompletion> completions;
   final ValueChanged<WorkoutPlan> onAddPlan;
   final ValueChanged<WorkoutPlan> onOpenPlan;
+  final bool embedded;
 
   @override
   State<CalendarPage> createState() => _CalendarPageState();
@@ -79,7 +81,7 @@ class _CalendarPageState extends State<CalendarPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context)!;
-    final topPadding = MediaQuery.of(context).padding.top;
+    final topPadding = widget.embedded ? 0.0 : MediaQuery.of(context).padding.top;
     final completedDays = _completedDays();
     final plannedDays = _plannedDays();
     final selectedPlans = _plansForDay(_selected);
@@ -94,19 +96,22 @@ class _CalendarPageState extends State<CalendarPage> {
       physics: const BouncingScrollPhysics(),
       slivers: [
         SliverPadding(
-          padding: EdgeInsets.fromLTRB(20, topPadding + 12, 20, 0),
+          padding: EdgeInsets.fromLTRB(20, topPadding + (widget.embedded ? 0 : 12), 20, 0),
           sliver: SliverToBoxAdapter(
             child: Row(
               children: [
-                Expanded(
-                  child: Text(
-                    l10n.calendarTitle,
-                    style: theme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                if (!widget.embedded)
+                  Expanded(
+                    child: Text(
+                      l10n.calendarTitle,
+                      style: theme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                  ),
-                ),
+                  )
+                else
+                  const Spacer(),
                 IconButton(
                   onPressed: () => _shiftMonth(-1),
                   icon: const Icon(Icons.chevron_left_rounded),

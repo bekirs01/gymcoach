@@ -98,6 +98,7 @@ Map<String, dynamic> _encodeExerciseLog(CompletedExerciseLog e) {
     'estimatedCalories': e.estimatedCalories,
     'completedAt': e.completedAt.toIso8601String(),
     'categoryKey': e.categoryKey,
+    if (e.weightKg != null) 'weightKg': e.weightKg,
   };
 }
 
@@ -110,6 +111,7 @@ CompletedExerciseLog _decodeExerciseLog(Map<String, dynamic> m) {
     estimatedCalories: m['estimatedCalories'] as int,
     completedAt: DateTime.parse(m['completedAt'] as String),
     categoryKey: m['categoryKey'] as String,
+    weightKg: (m['weightKg'] as num?)?.toDouble(),
   );
 }
 

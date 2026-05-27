@@ -12,15 +12,17 @@ class PlansPage extends StatefulWidget {
     required this.plans,
     required this.onAddPlan,
     required this.createSheetSignal,
-    required this.onOpenPlanDetail,
+    required this.onPreviewPlan,
     required this.onStartSession,
+    this.embedded = false,
   });
 
   final List<WorkoutPlan> plans;
   final ValueChanged<WorkoutPlan> onAddPlan;
   final int createSheetSignal;
-  final ValueChanged<WorkoutPlan> onOpenPlanDetail;
+  final ValueChanged<WorkoutPlan> onPreviewPlan;
   final ValueChanged<WorkoutPlan> onStartSession;
+  final bool embedded;
 
   @override
   State<PlansPage> createState() => _PlansPageState();
@@ -63,16 +65,6 @@ class _PlansPageState extends State<PlansPage> {
     return copy;
   }
 
-  int get _plannedCount =>
-      widget.plans.where((p) => p.status == PlanStatus.planned).length;
-
-  int get _completedCount =>
-      widget.plans.where((p) => p.status == PlanStatus.completed).length;
-
-  int get _weekCount => widget.plans
-      .where((p) => WorkoutPlan.isInSameCalendarWeek(p.scheduledDate, DateTime.now()))
-      .length;
-
   void _openCreateSheet() {
     showCreatePlanSheet(
       context: context,
@@ -88,8 +80,8 @@ class _PlansPageState extends State<PlansPage> {
     );
   }
 
-  void _openDetail(WorkoutPlan plan) {
-    widget.onOpenPlanDetail(plan);
+  void _openPreview(WorkoutPlan plan) {
+    widget.onPreviewPlan(plan);
   }
 
   void _quickStart(WorkoutPlan plan) {
@@ -107,7 +99,7 @@ class _PlansPageState extends State<PlansPage> {
 
   @override
   Widget build(BuildContext context) {
-    final topPadding = MediaQuery.of(context).padding.top;
+    final topPadding = widget.embedded ? 0.0 : MediaQuery.of(context).padding.top;
     final plans = _sortedPlans;
     final l10n = AppLocalizations.of(context)!;
 
@@ -115,34 +107,22 @@ class _PlansPageState extends State<PlansPage> {
       physics: const BouncingScrollPhysics(),
       slivers: [
         SliverPadding(
-          padding: EdgeInsets.fromLTRB(20, topPadding + 12, 20, 0),
+          padding: EdgeInsets.fromLTRB(20, topPadding + (widget.embedded ? 0 : 12), 20, 0),
           sliver: SliverToBoxAdapter(
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.plansPageTitle,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.plansPageSubtitle,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textMuted,
-                              height: 1.35,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
+                if (!widget.embedded)
+                  Expanded(
+                    child: Text(
+                      l10n.plansPageTitle,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                    ),
+                  )
+                else
+                  const Spacer(),
                 FilledButton.icon(
                   onPressed: _openCreateSheet,
                   icon: const Icon(Icons.add_rounded, size: 20),
@@ -161,31 +141,23 @@ class _PlansPageState extends State<PlansPage> {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
           sliver: SliverToBoxAdapter(
             child: Row(
               children: [
                 Expanded(
                   child: PlansMetricTile(
                     label: l10n.homeMetricPlanned,
-                    value: '$_plannedCount',
+                    value: '${widget.plans.where((p) => p.status == PlanStatus.planned).length}',
                     icon: Icons.event_note_rounded,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: PlansMetricTile(
                     label: l10n.homeMetricCompleted,
-                    value: '$_completedCount',
+                    value: '${widget.plans.where((p) => p.status == PlanStatus.completed).length}',
                     icon: Icons.task_alt_rounded,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: PlansMetricTile(
-                    label: l10n.homeMetricThisWeek,
-                    value: '$_weekCount',
-                    icon: Icons.date_range_rounded,
                   ),
                 ),
               ],
@@ -193,7 +165,7 @@ class _PlansPageState extends State<PlansPage> {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
           sliver: SliverToBoxAdapter(
             child: PlansSectionHeader(
               title: l10n.plansSectionYourPlans,
@@ -216,7 +188,7 @@ class _PlansPageState extends State<PlansPage> {
                 final plan = plans[index];
                 return WorkoutPlanCard(
                   plan: plan,
-                  onOpen: () => _openDetail(plan),
+                  onPreview: () => _openPreview(plan),
                   onStart: () => _quickStart(plan),
                 );
               },

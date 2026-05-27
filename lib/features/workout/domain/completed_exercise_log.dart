@@ -7,6 +7,7 @@ class CompletedExerciseLog {
     required this.estimatedCalories,
     required this.completedAt,
     required this.categoryKey,
+    this.weightKg,
   });
 
   final String exerciseId;
@@ -16,4 +17,5 @@ class CompletedExerciseLog {
   final int estimatedCalories;
   final DateTime completedAt;
   final String categoryKey;
+  final double? weightKg;
 }

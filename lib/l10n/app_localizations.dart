@@ -1997,7 +1997,7 @@ abstract class AppLocalizations {
   /// No description provided for @mapLocationServiceDisabled.
   ///
   /// In en, this message translates to:
-  /// **'Location services are turned off. Enable GPS to see your position on the map.'**
+  /// **'Location services are off. Turn on GPS to see where you are.'**
   String get mapLocationServiceDisabled;
 
   /// No description provided for @mapLocationPermissionDenied.
@@ -2009,7 +2009,7 @@ abstract class AppLocalizations {
   /// No description provided for @mapLocationTimeout.
   ///
   /// In en, this message translates to:
-  /// **'GPS is taking too long. Move to open sky and tap My location again.'**
+  /// **'GPS is taking too long. Move outdoors and tap My location again.'**
   String get mapLocationTimeout;
 
   /// No description provided for @mapOpenLocationSettings.
@@ -2239,6 +2239,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{area} · {count} territories'**
   String mapLeaderboardMeta(String area, int count);
+
+  /// No description provided for @navToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get navToday;
+
+  /// No description provided for @navWorkouts.
+  ///
+  /// In en, this message translates to:
+  /// **'Workouts'**
+  String get navWorkouts;
+
+  /// No description provided for @navYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get navYou;
+
+  /// No description provided for @todayUpNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Up next'**
+  String get todayUpNext;
+
+  /// No description provided for @todayEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No workout today'**
+  String get todayEmptyTitle;
+
+  /// No description provided for @todayEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule a session to stay on track.'**
+  String get todayEmptyBody;
+
+  /// No description provided for @todayScheduleCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule workout'**
+  String get todayScheduleCta;
+
+  /// No description provided for @todayPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get todayPreview;
+
+  /// No description provided for @todayHeroMeta.
+  ///
+  /// In en, this message translates to:
+  /// **'{exercises} exercises · {minutes} min'**
+  String todayHeroMeta(int exercises, int minutes);
+
+  /// No description provided for @todayMoreToday.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more today'**
+  String todayMoreToday(int count);
+
+  /// No description provided for @workoutsViewList.
+  ///
+  /// In en, this message translates to:
+  /// **'List'**
+  String get workoutsViewList;
+
+  /// No description provided for @workoutsViewCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get workoutsViewCalendar;
+
+  /// No description provided for @progressSeeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get progressSeeAll;
+
+  /// No description provided for @progressRecentSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get progressRecentSessions;
+
+  /// No description provided for @progressLiftProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Lift progress'**
+  String get progressLiftProgress;
+
+  /// No description provided for @progressBestWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'{weight} kg'**
+  String progressBestWeight(double weight);
+
+  /// No description provided for @planDuplicate.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate'**
+  String get planDuplicate;
+
+  /// No description provided for @snackbarPlanDuplicated.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout duplicated'**
+  String get snackbarPlanDuplicated;
+
+  /// No description provided for @labelLoadKg.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight (kg)'**
+  String get labelLoadKg;
+
+  /// No description provided for @sessionRestRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Rest {seconds}s'**
+  String sessionRestRemaining(int seconds);
+
+  /// No description provided for @sessionRestSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get sessionRestSkip;
+
+  /// No description provided for @sessionExitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave workout?'**
+  String get sessionExitTitle;
+
+  /// No description provided for @sessionExitBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your progress in this session will not be saved.'**
+  String get sessionExitBody;
+
+  /// No description provided for @sessionExitConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get sessionExitConfirm;
+
+  /// No description provided for @sessionExerciseProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} of {total}'**
+  String sessionExerciseProgress(int current, int total);
+
+  /// No description provided for @sessionLoggedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} logged'**
+  String sessionLoggedCount(int done, int total);
+
+  /// No description provided for @historySetsRepsWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'{sets} sets × {reps} reps @ {weight} kg'**
+  String historySetsRepsWeight(int sets, int reps, double weight);
 }
 
 class _AppLocalizationsDelegate

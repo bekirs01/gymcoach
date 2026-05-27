@@ -113,7 +113,13 @@ class CompletedWorkoutDetailPage extends StatelessWidget {
                       ),
                       subtitle: log != null
                           ? Text(
-                              l10n.historySetsRepsDetail(log.setsCompleted, log.repsCompleted),
+                              log.weightKg != null
+                                  ? l10n.historySetsRepsWeight(
+                                      log.setsCompleted,
+                                      log.repsCompleted,
+                                      log.weightKg!,
+                                    )
+                                  : l10n.historySetsRepsDetail(log.setsCompleted, log.repsCompleted),
                               style: theme.bodySmall?.copyWith(color: AppColors.textMuted),
                             )
                           : null,

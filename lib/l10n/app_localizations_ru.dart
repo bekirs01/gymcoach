@@ -1039,7 +1039,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mapLocationServiceDisabled =>
-      'Location services are turned off. Enable GPS to see your position on the map.';
+      'Location services are off. Turn on GPS to see where you are.';
 
   @override
   String get mapLocationPermissionDenied =>
@@ -1047,7 +1047,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mapLocationTimeout =>
-      'GPS is taking too long. Move to open sky and tap My location again.';
+      'GPS is taking too long. Move outdoors and tap My location again.';
 
   @override
   String get mapOpenLocationSettings => 'Open settings';
@@ -1173,5 +1173,101 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String mapLeaderboardMeta(String area, int count) {
     return '$area · $count territories';
+  }
+
+  @override
+  String get navToday => 'Сегодня';
+
+  @override
+  String get navWorkouts => 'Тренировки';
+
+  @override
+  String get navYou => 'Профиль';
+
+  @override
+  String get todayUpNext => 'Далее';
+
+  @override
+  String get todayEmptyTitle => 'Сегодня без тренировки';
+
+  @override
+  String get todayEmptyBody =>
+      'Запланируйте сессию, чтобы сохранять регулярность.';
+
+  @override
+  String get todayScheduleCta => 'Запланировать';
+
+  @override
+  String get todayPreview => 'Просмотр';
+
+  @override
+  String todayHeroMeta(int exercises, int minutes) {
+    return '$exercises упр. · $minutes мин';
+  }
+
+  @override
+  String todayMoreToday(int count) {
+    return '+$count ещё сегодня';
+  }
+
+  @override
+  String get workoutsViewList => 'Список';
+
+  @override
+  String get workoutsViewCalendar => 'Календарь';
+
+  @override
+  String get progressSeeAll => 'Вся история';
+
+  @override
+  String get progressRecentSessions => 'Недавние';
+
+  @override
+  String get progressLiftProgress => 'Прогресс весов';
+
+  @override
+  String progressBestWeight(double weight) {
+    return '$weight кг';
+  }
+
+  @override
+  String get planDuplicate => 'Дублировать';
+
+  @override
+  String get snackbarPlanDuplicated => 'План скопирован';
+
+  @override
+  String get labelLoadKg => 'Вес (кг)';
+
+  @override
+  String sessionRestRemaining(int seconds) {
+    return 'Отдых $seconds с';
+  }
+
+  @override
+  String get sessionRestSkip => 'Пропустить';
+
+  @override
+  String get sessionExitTitle => 'Выйти из тренировки?';
+
+  @override
+  String get sessionExitBody => 'Прогресс этой сессии не будет сохранён.';
+
+  @override
+  String get sessionExitConfirm => 'Выйти';
+
+  @override
+  String sessionExerciseProgress(int current, int total) {
+    return '$current из $total';
+  }
+
+  @override
+  String sessionLoggedCount(int done, int total) {
+    return 'Записано $done из $total';
+  }
+
+  @override
+  String historySetsRepsWeight(int sets, int reps, double weight) {
+    return '$sets×$reps @ $weight кг';
   }
 }

@@ -18,11 +18,13 @@ class ProfilePage extends StatefulWidget {
     required this.profile,
     required this.onProfileChanged,
     required this.onLocaleChanged,
+    this.onLogWorkout,
   });
 
   final UserProfile profile;
   final ValueChanged<UserProfile> onProfileChanged;
   final ValueChanged<Locale> onLocaleChanged;
+  final VoidCallback? onLogWorkout;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -54,16 +56,6 @@ class _ProfilePageState extends State<ProfilePage> {
     if (!mounted || result == null) return;
     setState(() => _profile = result);
     widget.onProfileChanged(result);
-  }
-
-  void _preferences() {
-    final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(l10n.profilePreferencesSnack),
-      ),
-    );
   }
 
   void _pickLanguage() {
@@ -109,16 +101,6 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         );
       },
-    );
-  }
-
-  void _logout() {
-    final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(l10n.profileLogoutSnack),
-      ),
     );
   }
 
@@ -179,14 +161,6 @@ class _ProfilePageState extends State<ProfilePage> {
                             style: theme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _profile.membershipLevel,
-                            style: theme.titleSmall?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -252,13 +226,15 @@ class _ProfilePageState extends State<ProfilePage> {
                     onTap: _editProfile,
                   ),
                   const Divider(height: 1, color: AppColors.borderSubtle),
-                  ListTile(
-                    leading: const Icon(Icons.tune_rounded, color: AppColors.primary),
-                    title: Text(l10n.profileAppPreferences),
-                    trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-                    onTap: _preferences,
-                  ),
-                  const Divider(height: 1, color: AppColors.borderSubtle),
+                  if (widget.onLogWorkout != null) ...[
+                    ListTile(
+                      leading: const Icon(Icons.edit_note_rounded, color: AppColors.primary),
+                      title: Text(l10n.homeQuickLogWorkout),
+                      trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+                      onTap: widget.onLogWorkout,
+                    ),
+                    const Divider(height: 1, color: AppColors.borderSubtle),
+                  ],
                   ListTile(
                     leading: const Icon(Icons.language_rounded, color: AppColors.primary),
                     title: Text(l10n.languageTitle),
@@ -312,26 +288,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
         ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-          sliver: SliverToBoxAdapter(
-            child: SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _logout,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primaryDark,
-                  side: const BorderSide(color: AppColors.borderSubtle),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(l10n.profileLogOut, style: const TextStyle(fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ),
-        ),
         SliverToBoxAdapter(
           child: SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
         ),
@@ -355,7 +311,6 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
   late final TextEditingController _weightController;
   late final TextEditingController _heightController;
   late final TextEditingController _goalController;
-  late String _membership;
   String? _error;
 
   @override
@@ -366,7 +321,6 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
     _weightController = TextEditingController(text: p.weightKg.toString());
     _heightController = TextEditingController(text: p.heightCm.toString());
     _goalController = TextEditingController(text: p.fitnessGoal);
-    _membership = p.membershipLevel;
   }
 
   @override
@@ -400,7 +354,6 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
       weightKg: w,
       heightCm: h,
       fitnessGoal: _goalController.text.trim(),
-      membershipLevel: _membership,
     );
     Navigator.of(context).pop(next);
   }
@@ -408,7 +361,6 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = widget.l10n;
-    final tiers = [l10n.membershipFree, l10n.membershipPlus, l10n.membershipPremium];
 
     return AlertDialog(
       title: Text(l10n.profileEditSheetTitle),
@@ -438,38 +390,6 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
               controller: _goalController,
               decoration: InputDecoration(labelText: l10n.labelFitnessGoal),
               textCapitalization: TextCapitalization.sentences,
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.labelMembership,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final m in tiers)
-                  ChoiceChip(
-                    label: Text(m),
-                    selected: _membership == m,
-                    onSelected: (_) => setState(() => _membership = m),
-                    selectedColor: AppColors.successTint,
-                    checkmarkColor: AppColors.primaryDark,
-                    labelStyle: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: _membership == m ? AppColors.primaryDark : AppColors.textSecondary,
-                    ),
-                    side: BorderSide(
-                      color: _membership == m ? AppColors.primary : AppColors.borderSubtle,
-                    ),
-                  ),
-              ],
             ),
             if (_error != null)
               Padding(
