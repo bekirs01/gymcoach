@@ -1,3 +1,4 @@
 #include? "../Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
 EXCLUDED_ARCHS[sdk=iphonesimulator*]=i386
+OTHER_LDFLAGS[sdk=iphonesimulator*]=-ObjC -l"c++" -l"sqlite3" -l"z" -framework "AVFoundation" -framework "CoreGraphics" -framework "CoreMedia" -framework "CoreTelephony" -framework "CoreVideo" -framework "Foundation" -framework "LocalAuthentication" -framework "Security" -framework "SystemConfiguration" -framework "UIKit" -framework "app_links" -framework "camera_avfoundation" -framework "permission_handler_apple" -framework "shared_preferences_foundation" -framework "url_launcher_ios"
