@@ -1028,7 +1028,29 @@ class AppLocalizationsRu extends AppLocalizations {
   String get mapTitle => 'Territory Map';
 
   @override
-  String get mapLocateMe => 'Locate me';
+  String get mapLocateMe => 'My location';
+
+  @override
+  String get mapLocating => 'Finding your location...';
+
+  @override
+  String get mapLocationUnavailable =>
+      'Could not find your location. Turn on GPS and try again.';
+
+  @override
+  String get mapLocationServiceDisabled =>
+      'Location services are turned off. Enable GPS to see your position on the map.';
+
+  @override
+  String get mapLocationPermissionDenied =>
+      'Location permission is required to show your position on the map.';
+
+  @override
+  String get mapLocationTimeout =>
+      'GPS is taking too long. Move to open sky and tap My location again.';
+
+  @override
+  String get mapOpenLocationSettings => 'Open settings';
 
   @override
   String get mapModeMap => 'Map view';

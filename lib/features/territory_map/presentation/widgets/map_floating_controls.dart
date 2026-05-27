@@ -12,6 +12,7 @@ class MapFloatingControls extends StatelessWidget {
     required this.onLeaderboard,
     required this.onStartCapture,
     required this.onSatelliteUnavailable,
+    this.isLocating = false,
   });
 
   final TerritoryMapController controller;
@@ -19,6 +20,7 @@ class MapFloatingControls extends StatelessWidget {
   final VoidCallback onLeaderboard;
   final VoidCallback onStartCapture;
   final VoidCallback onSatelliteUnavailable;
+  final bool isLocating;
 
   @override
   Widget build(BuildContext context) {
@@ -33,9 +35,10 @@ class MapFloatingControls extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           _RoundMapButton(
-            icon: Icons.my_location_rounded,
+            icon: isLocating ? Icons.gps_fixed_rounded : Icons.my_location_rounded,
             tooltip: l10n.mapLocateMe,
-            onPressed: onLocateMe,
+            onPressed: isLocating ? null : onLocateMe,
+            highlighted: true,
           ),
           const SizedBox(height: 10),
           _RoundMapButton(
@@ -74,17 +77,19 @@ class _RoundMapButton extends StatelessWidget {
     required this.tooltip,
     required this.onPressed,
     this.muted = false,
+    this.highlighted = false,
   });
 
   final IconData icon;
   final String tooltip;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool muted;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: highlighted ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surface,
       shape: const CircleBorder(),
       elevation: 2,
       shadowColor: Colors.black26,
@@ -93,7 +98,11 @@ class _RoundMapButton extends StatelessWidget {
         onPressed: onPressed,
         icon: Icon(
           icon,
-          color: muted ? AppColors.textMuted : AppColors.primary,
+          color: muted
+              ? AppColors.textMuted
+              : highlighted
+                  ? AppColors.primaryDark
+                  : AppColors.primary,
         ),
       ),
     );

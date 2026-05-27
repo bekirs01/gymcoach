@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../app/theme/app_colors.dart';
 import '../data/territory_api_factory.dart';
 import '../services/location_permission_service.dart';
+import '../services/user_location_service.dart';
 import 'territory_formatters.dart';
 import 'territory_map_controller.dart';
 import 'widgets/capture_overlay.dart';
@@ -30,9 +31,11 @@ class TerritoryMapPage extends StatefulWidget {
 
 class _TerritoryMapPageState extends State<TerritoryMapPage> {
   final _mapViewKey = GlobalKey<TerritoryMapViewState>();
+  final _locationService = UserLocationService();
   TerritoryMapController? _controller;
   var _leaderboardLoading = false;
   var _namingDialogScheduled = false;
+  var _isLocatingUser = false;
 
   @override
   void initState() {
@@ -183,6 +186,33 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
     controller.dismissCaptureSuccess();
   }
 
+  Future<void> _locateUserWithFeedback() async {
+    final result = await _mapViewKey.currentState?.locateUser();
+    if (!mounted || result == null || result.isSuccess) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    final message = switch (result.failure) {
+      UserLocationFailure.serviceDisabled => l10n.mapLocationServiceDisabled,
+      UserLocationFailure.permissionDenied => l10n.mapLocationPermissionDenied,
+      UserLocationFailure.timeout => l10n.mapLocationTimeout,
+      UserLocationFailure.unavailable => l10n.mapLocationUnavailable,
+      null => l10n.mapLocationUnavailable,
+    };
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(message),
+        action: result.failure == UserLocationFailure.serviceDisabled
+            ? SnackBarAction(
+                label: l10n.mapOpenLocationSettings,
+                onPressed: () => _locationService.openLocationSettings(),
+              )
+            : null,
+      ),
+    );
+  }
+
   Future<void> _openLeaderboard() async {
     final controller = _controller;
     if (controller == null) return;
@@ -234,6 +264,11 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
                 key: _mapViewKey,
                 controller: controller,
                 onTerritoryTap: controller.selectTerritory,
+                onLocatingChanged: (isLocating) {
+                  if (_isLocatingUser != isLocating) {
+                    setState(() => _isLocatingUser = isLocating);
+                  }
+                },
               )
             else
               const ColoredBox(color: AppColors.background),
@@ -241,8 +276,15 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
               MapPermissionCard(
                 state: controller.permissionState ?? LocationPermissionState.denied,
                 onRequestPermission: () async {
-                  await _showPermissionExplanation();
-                  await controller.requestLocationPermission();
+                  final proceed = await _showPermissionExplanation();
+                  if (!proceed || !mounted) return;
+                  final state = await controller.requestLocationPermission();
+                  if (!mounted) return;
+                  if (state == LocationPermissionState.granted) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      unawaited(_locateUserWithFeedback());
+                    });
+                  }
                 },
                 onOpenSettings: controller.openSystemSettings,
               ),
@@ -257,7 +299,8 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
             if (permissionGranted)
               MapFloatingControls(
                 controller: controller,
-                onLocateMe: () => _mapViewKey.currentState?.locateUser(),
+                isLocating: _isLocatingUser,
+                onLocateMe: _locateUserWithFeedback,
                 onLeaderboard: _leaderboardLoading ? () {} : _openLeaderboard,
                 onStartCapture: _startCapture,
                 onSatelliteUnavailable: () {
