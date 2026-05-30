@@ -12,7 +12,6 @@ class MapFloatingControls extends StatelessWidget {
     required this.onLocateMe,
     required this.onLeaderboard,
     required this.onStartCapture,
-    required this.onSatelliteUnavailable,
     this.isLocating = false,
   });
 
@@ -20,7 +19,6 @@ class MapFloatingControls extends StatelessWidget {
   final VoidCallback onLocateMe;
   final VoidCallback onLeaderboard;
   final VoidCallback onStartCapture;
-  final VoidCallback onSatelliteUnavailable;
   final bool isLocating;
 
   @override
@@ -42,13 +40,6 @@ class MapFloatingControls extends StatelessWidget {
             tooltip: l10n.mapLocateMe,
             onPressed: isLocating ? null : onLocateMe,
             highlighted: true,
-          ),
-          const SizedBox(height: 10),
-          _RoundMapButton(
-            icon: Icons.satellite_alt_rounded,
-            tooltip: l10n.mapModeSatellite,
-            onPressed: onSatelliteUnavailable,
-            muted: true,
           ),
           const SizedBox(height: 10),
           _RoundMapButton(
@@ -82,14 +73,12 @@ class _RoundMapButton extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     required this.onPressed,
-    this.muted = false,
     this.highlighted = false,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback? onPressed;
-  final bool muted;
   final bool highlighted;
 
   @override
@@ -116,11 +105,7 @@ class _RoundMapButton extends StatelessWidget {
         onPressed: onPressed,
         icon: Icon(
           icon,
-          color: muted
-              ? PremiumColors.textMuted
-              : highlighted
-                  ? PremiumColors.accentBlue
-                  : PremiumColors.textPrimary,
+          color: highlighted ? PremiumColors.accentBlue : PremiumColors.textPrimary,
         ),
       ),
     );

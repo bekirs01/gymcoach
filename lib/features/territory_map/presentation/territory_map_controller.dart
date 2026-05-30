@@ -71,7 +71,7 @@ class TerritoryMapController extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshLeaderboard() async {
+  Future<List<LeaderboardEntry>> refreshLeaderboard() async {
     try {
       leaderboard = await apiClient.getLeaderboard();
       errorMessage = null;
@@ -79,6 +79,7 @@ class TerritoryMapController extends ChangeNotifier {
       errorMessage = error.toString();
     }
     notifyListeners();
+    return leaderboard;
   }
 
   Future<LocationPermissionState> requestLocationPermission() async {

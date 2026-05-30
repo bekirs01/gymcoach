@@ -17,7 +17,6 @@ import '../plans/presentation/create_plan_sheet.dart';
 import '../plans/presentation/plan_detail_page.dart';
 import '../profile/domain/user_profile.dart';
 import '../profile/presentation/profile_page.dart';
-import '../leaderboard/presentation/leaderboard_page.dart';
 import '../progress/presentation/progress_page.dart';
 import '../progress/presentation/streak_detail_page.dart';
 import '../territory_map/presentation/territory_map_page.dart';
@@ -205,11 +204,6 @@ class _MainShellState extends State<MainShell> {
         activeIcon: Icons.insights_rounded,
         label: l10n.navProgress,
       ),
-      FloatingTabItem(
-        icon: Icons.leaderboard_outlined,
-        activeIcon: Icons.leaderboard_rounded,
-        label: l10n.navLeaderboard,
-      ),
     ];
 
     final bottomNavReserve = FloatingTabBar.reservedBottomSpace(context);
@@ -229,7 +223,6 @@ class _MainShellState extends State<MainShell> {
         0 => Colors.transparent,
         1 => Colors.transparent,
         2 => PremiumColors.midnightMid,
-        4 => Colors.transparent,
         _ => AppColors.background,
       },
       body: Stack(
@@ -237,7 +230,7 @@ class _MainShellState extends State<MainShell> {
         children: [
           Padding(
             padding: EdgeInsets.only(
-              bottom: (_selectedIndex == 0 || _selectedIndex == 1 || _selectedIndex == 2 || _selectedIndex == 4)
+              bottom: (_selectedIndex == 0 || _selectedIndex == 1 || _selectedIndex == 2)
                   ? 0
                   : bottomNavReserve,
             ),
@@ -306,8 +299,6 @@ class _MainShellState extends State<MainShell> {
           completions: completions,
           onOpenStreak: () => _openStreak(context),
         );
-      case 4:
-        return LeaderboardPage(displayName: profile.displayName);
       default:
         return const SizedBox.shrink();
     }

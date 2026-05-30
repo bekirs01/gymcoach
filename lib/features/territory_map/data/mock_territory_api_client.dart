@@ -115,8 +115,8 @@ class MockTerritoryApiClient implements TerritoryApiClient {
         name: 'Riverside Loop',
         ownerId: 'demo-user-1',
         ownerDisplayName: 'Jordan Lee',
-        centerLat: 41.015,
-        centerLng: 28.979,
+        centerLat: 41.022,
+        centerLng: 29.012,
         radiusMeters: 90,
       ),
       _demoTerritory(
@@ -124,8 +124,8 @@ class MockTerritoryApiClient implements TerritoryApiClient {
         name: 'Park Circuit',
         ownerId: 'demo-user-2',
         ownerDisplayName: 'Maya Chen',
-        centerLat: 41.018,
-        centerLng: 28.985,
+        centerLat: 41.028,
+        centerLng: 29.028,
         radiusMeters: 70,
       ),
     ]);

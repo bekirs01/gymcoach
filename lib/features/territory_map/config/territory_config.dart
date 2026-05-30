@@ -1,19 +1,19 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 abstract final class MapStyleConfig {
-  static const standardStyleUrl = 'https://tiles.openfreemap.org/styles/fiord';
-  static const positronStyleUrl = 'https://tiles.openfreemap.org/styles/positron';
-  static const darkStyleUrl = 'https://tiles.openfreemap.org/styles/fiord';
+  /// Colorful OSM-style map (similar to standard Google/Apple maps).
+  static const standardStyleUrl = 'https://tiles.openfreemap.org/styles/liberty';
+  static const libertyStyleUrl = 'https://tiles.openfreemap.org/styles/liberty';
 
   static String styleUrlFor(TerritoryMapVisualMode mode) {
     return switch (mode) {
       TerritoryMapVisualMode.standard => standardStyleUrl,
-      TerritoryMapVisualMode.positron => positronStyleUrl,
+      TerritoryMapVisualMode.liberty => libertyStyleUrl,
     };
   }
 }
 
-enum TerritoryMapVisualMode { standard, positron }
+enum TerritoryMapVisualMode { standard, liberty }
 
 abstract final class TerritoryConfig {
   static const minCapturePoints = 4;

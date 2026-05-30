@@ -112,6 +112,12 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
       final territory = widget.controller.territories.where((t) => t.id == territoryId).firstOrNull;
       if (territory != null) widget.onTerritoryTap?.call(territory);
     });
+    controller.onCircleTapped.add((circle) {
+      final territoryId = circle.data?['territoryId'] as String?;
+      if (territoryId == null) return;
+      final territory = widget.controller.territories.where((t) => t.id == territoryId).firstOrNull;
+      if (territory != null) widget.onTerritoryTap?.call(territory);
+    });
   }
 
   Future<void> _onStyleLoaded() async {
@@ -146,20 +152,63 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
 
     await controller.clearFills();
     await controller.clearLines();
+    await controller.clearCircles();
+    await controller.clearSymbols();
 
     for (final territory in widget.controller.territories) {
       final ring = _ringFromTerritory(territory);
       if (ring == null) continue;
+      final fillColor = territory.isOwnedByCurrentUser
+          ? PremiumColors.accentBlue
+          : _ownerColor(territory.ownerId);
       await controller.addFill(
         FillOptions(
           geometry: [ring],
-          fillColor: territory.isOwnedByCurrentUser
-              ? _colorHex(PremiumColors.accentBlue)
-              : _mutedColorHex(territory.ownerId),
-          fillOpacity: territory.isOwnedByCurrentUser ? 0.35 : 0.28,
-          fillOutlineColor: territory.isOwnedByCurrentUser
-              ? _colorHex(PremiumColors.accentBlueSoft)
-              : _colorHex(PremiumColors.textSecondary),
+          fillColor: _colorHex(fillColor),
+          fillOpacity: territory.isOwnedByCurrentUser ? 0.42 : 0.36,
+          fillOutlineColor: _colorHex(fillColor),
+        ),
+        {'territoryId': territory.id},
+      );
+
+      final centroid = _centroidFromRing(ring);
+      if (centroid == null) continue;
+
+      await controller.addCircle(
+        CircleOptions(
+          geometry: centroid,
+          circleRadius: 16,
+          circleColor: _colorHex(fillColor),
+          circleOpacity: 0.95,
+          circleStrokeWidth: 2.5,
+          circleStrokeColor: '#FFFFFF',
+        ),
+        {'territoryId': territory.id},
+      );
+
+      await controller.addSymbol(
+        SymbolOptions(
+          geometry: centroid,
+          textField: _initials(territory.ownerDisplayName),
+          textSize: 11,
+          textColor: '#FFFFFF',
+          textHaloColor: '#000000',
+          textHaloWidth: 0.8,
+          fontNames: const ['Noto Sans Regular'],
+        ),
+        {'territoryId': territory.id},
+      );
+
+      await controller.addSymbol(
+        SymbolOptions(
+          geometry: centroid,
+          textField: territory.name,
+          textSize: 12,
+          textColor: '#1A1A2E',
+          textHaloColor: '#FFFFFF',
+          textHaloWidth: 1.6,
+          textOffset: const Offset(0, 2.8),
+          fontNames: const ['Noto Sans Regular'],
         ),
         {'territoryId': territory.id},
       );
@@ -211,15 +260,37 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     return '#${(value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
   }
 
-  String _mutedColorHex(String ownerId) {
-    final palette = <Color>[
-      PremiumColors.textMuted,
-      PremiumColors.textSecondary,
-      const Color(0xFF6366F1),
-      const Color(0xFF8B5CF6),
-      const Color(0xFF0EA5E9),
+  Color _ownerColor(String ownerId) {
+    const palette = <Color>[
+      Color(0xFF2563EB),
+      Color(0xFF7C3AED),
+      Color(0xFF059669),
+      Color(0xFFDC2626),
+      Color(0xFFEA580C),
+      Color(0xFF0891B2),
     ];
-    return _colorHex(palette[ownerId.hashCode.abs() % palette.length]);
+    return palette[ownerId.hashCode.abs() % palette.length];
+  }
+
+  LatLng? _centroidFromRing(List<LatLng> ring) {
+    if (ring.isEmpty) return null;
+    var sumLat = 0.0;
+    var sumLng = 0.0;
+    for (final point in ring) {
+      sumLat += point.latitude;
+      sumLng += point.longitude;
+    }
+    return LatLng(sumLat / ring.length, sumLng / ring.length);
+  }
+
+  String _initials(String raw) {
+    final parts = raw.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) {
+      final p = parts.first;
+      return p.length >= 2 ? p.substring(0, 2).toUpperCase() : p.toUpperCase();
+    }
+    return '${parts.first[0]}${parts[1][0]}'.toUpperCase();
   }
 
   Future<void> zoomToTerritory(Territory territory) async {
@@ -247,7 +318,7 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     );
   }
 
-  Future<UserLocationResult?> locateUser() async {
+  Future<UserLocationResult?> locateUser({double zoom = 16}) async {
     if (_isLocating) return null;
     _setLocating(true);
 
@@ -258,7 +329,7 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
       }
 
       final position = result.position!;
-      await _centerOnPosition(position, zoom: 16, animate: true);
+      await _centerOnPosition(position, zoom: zoom, animate: true);
       return result;
     } finally {
       _setLocating(false);
@@ -312,7 +383,7 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     final initialTarget = _resolvedInitialTarget ?? const LatLng(41.015, 28.979);
 
     return ColoredBox(
-      color: PremiumColors.midnightMid,
+      color: const Color(0xFFE8EDF2),
       child: MediaQuery.removePadding(
         context: context,
         removeBottom: true,
@@ -324,7 +395,7 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
               styleString: MapStyleConfig.styleUrlFor(widget.controller.mapMode),
               initialCameraPosition: CameraPosition(
                 target: initialTarget,
-                zoom: _resolvedInitialTarget == null ? 4 : 15,
+                zoom: _resolvedInitialTarget == null ? 4 : 16,
               ),
               myLocationEnabled: true,
               myLocationRenderMode:
@@ -342,6 +413,26 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
                   child: _LocatingBanner(isLocating: _isLocating),
                 ),
               ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 96,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        PremiumColors.midnightMid.withValues(alpha: 0.55),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

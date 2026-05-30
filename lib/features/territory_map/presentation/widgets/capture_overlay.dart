@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
-import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/premium_tokens.dart';
+import '../../../../app/widgets/floating_tab_bar.dart';
+import '../../config/territory_config.dart';
 import '../territory_formatters.dart';
 import '../territory_map_controller.dart';
 
@@ -20,12 +22,16 @@ class CaptureOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context).textTheme;
+    final bottomOffset = FloatingTabBar.reservedBottomSpace(context) + 12;
+    final points = controller.capturePoints.length;
+    final minPoints = TerritoryConfig.minCapturePoints;
+    final minArea = TerritoryConfig.minAreaSquareMeters;
+    final areaProgress = (controller.estimatedAreaSquareMeters / minArea).clamp(0.0, 1.0);
 
     return Positioned(
       left: 16,
       right: 16,
-      bottom: 24,
+      bottom: bottomOffset,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -35,82 +41,142 @@ class CaptureOverlay extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF7ED),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFFED7AA)),
+                color: const Color(0xFF3D2A14),
+                borderRadius: BorderRadius.circular(PremiumRadii.md),
+                border: Border.all(color: const Color(0xFFB87333).withValues(alpha: 0.45)),
               ),
-              child: Text(
-                l10n.mapGpsAccuracyWarning,
-                style: theme.bodySmall?.copyWith(color: const Color(0xFF9A3412)),
+              child: Row(
+                children: [
+                  const Icon(Icons.gps_off_rounded, color: Color(0xFFFFB74D), size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      l10n.mapGpsAccuracyWarning,
+                      style: const TextStyle(color: Color(0xFFFFE0B2), fontSize: 13, height: 1.35),
+                    ),
+                  ),
+                ],
               ),
             ),
           Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.borderSubtle),
-              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 16, offset: Offset(0, 6))],
+              color: PremiumColors.surfaceRaised.withValues(alpha: 0.96),
+              borderRadius: BorderRadius.circular(PremiumRadii.xl),
+              border: Border.all(color: PremiumColors.accentBlue.withValues(alpha: 0.35)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  l10n.mapCaptureActive,
-                  style: theme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: PremiumColors.accentBlue,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.mapCaptureActive,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      TerritoryFormatters.duration(controller.elapsed),
+                      style: const TextStyle(
+                        color: PremiumColors.accentBlue,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    _StatChip(label: l10n.mapElapsed, value: TerritoryFormatters.duration(controller.elapsed)),
-                    const SizedBox(width: 8),
-                    _StatChip(
+                    _StatTile(
                       label: l10n.mapDistance,
                       value: TerritoryFormatters.distance(controller.routeDistanceMeters),
+                    ),
+                    const SizedBox(width: 8),
+                    _StatTile(
+                      label: l10n.mapEstimatedArea,
+                      value: TerritoryFormatters.area(controller.estimatedAreaSquareMeters),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    _StatChip(
-                      label: l10n.mapEstimatedArea,
-                      value: TerritoryFormatters.area(controller.estimatedAreaSquareMeters),
+                    _StatTile(
+                      label: 'GPS',
+                      value: '${controller.latestAccuracyMeters.round()} m',
                     ),
                     const SizedBox(width: 8),
-                    _StatChip(
-                      label: l10n.mapGpsAccuracy,
-                      value: '${controller.latestAccuracyMeters.round()} m',
+                    _StatTile(
+                      label: 'Points',
+                      value: '$points / $minPoints',
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(PremiumRadii.pill),
+                  child: LinearProgressIndicator(
+                    value: areaProgress,
+                    minHeight: 6,
+                    backgroundColor: Colors.white.withValues(alpha: 0.08),
+                    color: PremiumColors.accentBlue,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Close the loop to capture at least ${TerritoryFormatters.area(minArea)}.',
+                  style: const TextStyle(color: PremiumColors.textMuted, fontSize: 11, height: 1.35),
+                ),
+                const SizedBox(height: 14),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: onCancel,
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.textSecondary,
-                          side: const BorderSide(color: AppColors.borderSubtle),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          foregroundColor: PremiumColors.textSecondary,
+                          side: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(PremiumRadii.md),
+                          ),
                         ),
                         child: Text(l10n.cancel),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: FilledButton(
                         onPressed: onFinish,
                         style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: PremiumColors.accentBlue,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(PremiumRadii.md),
+                          ),
                         ),
                         child: Text(l10n.mapFinishCapture),
                       ),
@@ -126,8 +192,8 @@ class CaptureOverlay extends StatelessWidget {
   }
 }
 
-class _StatChip extends StatelessWidget {
-  const _StatChip({required this.label, required this.value});
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -138,24 +204,25 @@ class _StatChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.borderSubtle),
+          color: PremiumColors.surface,
+          borderRadius: BorderRadius.circular(PremiumRadii.md),
+          border: Border.all(color: PremiumColors.glassBorder),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               label,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.textMuted),
+              style: const TextStyle(color: PremiumColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
             Text(
               value,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+              ),
             ),
           ],
         ),

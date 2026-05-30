@@ -6,6 +6,7 @@ abstract final class TerritoryMapRowMapper {
     Map<String, dynamic> row, {
     required String currentUserId,
     Map<String, String> displayNames = const {},
+    Map<String, String> avatarUrls = const {},
   }) {
     final ownerId = row['owner_user_id'] as String? ?? row['owner_id'] as String? ?? '';
     final geometry = row['geometry'] as Map?;
@@ -17,6 +18,9 @@ abstract final class TerritoryMapRowMapper {
       ownerDisplayName: row['owner_display_name'] as String? ??
           displayNames[ownerId] ??
           _fallbackName(ownerId),
+      ownerAvatarUrl: row['owner_avatar_url'] as String? ??
+          avatarUrls[ownerId] ??
+          '',
       areaSquareMeters:
           (row['area_m2'] as num? ?? row['area_square_meters'] as num? ?? row['areaSquareMeters'] as num? ?? 0)
               .toDouble(),

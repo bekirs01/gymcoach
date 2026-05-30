@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/premium_tokens.dart';
+import '../../../core/device_user_id.dart';
 import '../data/territory_api_factory.dart';
 import '../services/location_permission_service.dart';
 import '../services/user_location_service.dart';
@@ -94,6 +95,10 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
     );
     if (!started && mounted && controller.permissionState != LocationPermissionState.granted) {
       setState(() {});
+      return;
+    }
+    if (started && mounted) {
+      await _mapViewKey.currentState?.locateUser(zoom: 17);
     }
   }
 
@@ -216,21 +221,19 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
 
   Future<void> _openLeaderboard() async {
     final controller = _controller;
-    if (controller == null) return;
+    if (controller == null || _leaderboardLoading) return;
     setState(() => _leaderboardLoading = true);
-    unawaited(showTerritoryLeaderboardSheet(
-      context: context,
-      entries: controller.leaderboard,
-      isLoading: true,
-    ));
     await controller.refreshLeaderboard();
     if (!mounted) return;
-    Navigator.of(context).pop();
+    final prefs = await SharedPreferences.getInstance();
+    final userId = await DeviceUserId.resolve(prefs);
+    if (!mounted) return;
     setState(() => _leaderboardLoading = false);
     await showTerritoryLeaderboardSheet(
       context: context,
       entries: controller.leaderboard,
-      isLoading: false,
+      currentUserId: userId,
+      onRefresh: controller.refreshLeaderboard,
     );
   }
 
@@ -307,16 +310,8 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
                 controller: controller,
                 isLocating: _isLocatingUser,
                 onLocateMe: _locateUserWithFeedback,
-                onLeaderboard: _leaderboardLoading ? () {} : _openLeaderboard,
+                onLeaderboard: _openLeaderboard,
                 onStartCapture: _startCapture,
-                onSatelliteUnavailable: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      behavior: SnackBarBehavior.floating,
-                      content: Text(l10n.mapSatelliteUnavailable),
-                    ),
-                  );
-                },
               ),
             if (controller.capturePhase == CapturePhase.capturing)
               CaptureOverlay(
@@ -336,20 +331,32 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
                 },
               ),
             Positioned(
-              left: 20,
-              top: topPadding + 12,
-              child: Text(
-                l10n.mapTitle,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -0.3,
-                      shadows: permissionGranted
-                          ? const [
-                              Shadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, 1)),
-                            ]
-                          : null,
+              left: 16,
+              top: topPadding + 8,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(PremiumRadii.lg),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  child: Text(
+                    l10n.mapTitle,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: PremiumColors.midnightMid,
+                          letterSpacing: -0.3,
+                        ),
+                  ),
+                ),
               ),
             ),
           ],

@@ -8,12 +8,14 @@ class Territory {
     required this.capturedAt,
     required this.polygonGeoJson,
     required this.isOwnedByCurrentUser,
+    this.ownerAvatarUrl = '',
   });
 
   final String id;
   final String name;
   final String ownerId;
   final String ownerDisplayName;
+  final String ownerAvatarUrl;
   final double areaSquareMeters;
   final DateTime capturedAt;
   final Map<String, dynamic> polygonGeoJson;
@@ -22,6 +24,7 @@ class Territory {
   Territory copyWith({
     String? name,
     String? ownerDisplayName,
+    String? ownerAvatarUrl,
     bool? isOwnedByCurrentUser,
   }) {
     return Territory(
@@ -29,6 +32,7 @@ class Territory {
       name: name ?? this.name,
       ownerId: ownerId,
       ownerDisplayName: ownerDisplayName ?? this.ownerDisplayName,
+      ownerAvatarUrl: ownerAvatarUrl ?? this.ownerAvatarUrl,
       areaSquareMeters: areaSquareMeters,
       capturedAt: capturedAt,
       polygonGeoJson: polygonGeoJson,
@@ -46,6 +50,7 @@ class Territory {
       ownerId: ownerId,
       ownerDisplayName:
           json['owner_display_name'] as String? ?? json['ownerDisplayName'] as String? ?? 'Unknown',
+      ownerAvatarUrl: json['owner_avatar_url'] as String? ?? json['ownerAvatarUrl'] as String? ?? '',
       areaSquareMeters: (json['area_m2'] as num? ??
               json['area_square_meters'] as num? ??
               json['areaSquareMeters'] as num? ??

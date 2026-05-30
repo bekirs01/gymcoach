@@ -153,38 +153,45 @@ class SupabaseTerritoryApiClient implements TerritoryApiClient {
         .map((row) => row['owner_user_id'] as String? ?? '')
         .where((id) => id.isNotEmpty)
         .toSet();
-    final displayNames = await _loadDisplayNames(ownerIds);
+    final displayNames = await _loadOwnerProfiles(ownerIds);
     return parsed
         .map((row) {
           final territory = TerritoryMapRowMapper.territoryFromRow(
             row,
             currentUserId: currentUserId,
-            displayNames: displayNames,
+            displayNames: displayNames.names,
+            avatarUrls: displayNames.avatars,
           );
           return forceOwned ? territory.copyWith(isOwnedByCurrentUser: true) : territory;
         })
         .toList(growable: false);
   }
 
-  Future<Map<String, String>> _loadDisplayNames(Set<String> ownerIds) async {
-    if (ownerIds.isEmpty) return const {};
+  Future<({Map<String, String> names, Map<String, String> avatars})> _loadOwnerProfiles(
+    Set<String> ownerIds,
+  ) async {
+    if (ownerIds.isEmpty) {
+      return (names: <String, String>{}, avatars: <String, String>{});
+    }
     try {
       final rows = await _client
           .from('profiles')
-          .select('id, display_name')
+          .select('id, display_name, avatar_url')
           .inFilter('id', ownerIds.toList(growable: false));
       final names = <String, String>{};
+      final avatars = <String, String>{};
       for (final row in rows) {
         final map = Map<String, dynamic>.from(row);
         final id = map['id'] as String?;
         final name = map['display_name'] as String?;
-        if (id != null && name != null && name.isNotEmpty) {
-          names[id] = name;
-        }
+        final avatar = map['avatar_url'] as String?;
+        if (id == null) continue;
+        if (name != null && name.isNotEmpty) names[id] = name;
+        if (avatar != null && avatar.isNotEmpty) avatars[id] = avatar;
       }
-      return names;
+      return (names: names, avatars: avatars);
     } catch (_) {
-      return const {};
+      return (names: <String, String>{}, avatars: <String, String>{});
     }
   }
 }
