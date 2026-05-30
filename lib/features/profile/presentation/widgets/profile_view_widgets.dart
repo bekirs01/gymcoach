@@ -270,17 +270,21 @@ class ProfileFeedSection extends StatelessWidget {
     super.key,
     required this.posts,
     required this.heroTagPrefix,
+    this.emptyMessage = 'This user has not shared any posts yet.',
+    this.emptyIcon = Icons.dynamic_feed_outlined,
   });
 
   final List<FeedPost> posts;
   final String heroTagPrefix;
+  final String emptyMessage;
+  final IconData emptyIcon;
 
   @override
   Widget build(BuildContext context) {
     if (posts.isEmpty) {
-      return const ProfileEmptyTabState(
-        icon: Icons.dynamic_feed_outlined,
-        message: 'This user has not shared any posts yet.',
+      return ProfileEmptyTabState(
+        icon: emptyIcon,
+        message: emptyMessage,
       );
     }
 

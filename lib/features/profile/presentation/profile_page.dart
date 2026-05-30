@@ -69,6 +69,7 @@ class _ProfilePageState extends State<ProfilePage> {
   late UserProfile _profile;
   SocialApiClient? _client;
   List<FeedPost> _posts = const [];
+  List<FeedPost> _savedPosts = const [];
   var _loadingSocial = true;
   var _tab = 0;
 
@@ -106,6 +107,7 @@ class _ProfilePageState extends State<ProfilePage> {
       if (!mounted) return;
       setState(() {
         _posts = posts;
+        _savedPosts = client.loadSavedPosts();
         _loadingSocial = false;
         if (social != null) {
           _profile = _profile.copyWith(
@@ -267,9 +269,14 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                                 const SizedBox(height: 18),
                                 ProfileSegmentTabs(
-                                  labels: const ['Photos', 'About', 'Feed', 'Settings'],
+                                  labels: const ['Photos', 'About', 'Feed', 'Saved', 'Settings'],
                                   selected: _tab,
-                                  onSelected: (v) => setState(() => _tab = v),
+                                  onSelected: (v) {
+                                    setState(() => _tab = v);
+                                    if (v == 3) {
+                                      setState(() => _savedPosts = _client?.loadSavedPosts() ?? const []);
+                                    }
+                                  },
                                 ),
                               ],
                             ),
@@ -305,6 +312,8 @@ class _ProfilePageState extends State<ProfilePage> {
         return [_aboutSliver()];
       case 2:
         return [_postsSliver()];
+      case 3:
+        return [_savedSliver()];
       default:
         return [
           SliverPadding(
@@ -355,6 +364,17 @@ class _ProfilePageState extends State<ProfilePage> {
       child: ProfileFeedSection(
         posts: _posts,
         heroTagPrefix: 'own-feed',
+      ),
+    );
+  }
+
+  Widget _savedSliver() {
+    return SliverToBoxAdapter(
+      child: ProfileFeedSection(
+        posts: _savedPosts,
+        heroTagPrefix: 'own-saved',
+        emptyIcon: Icons.bookmark_border_rounded,
+        emptyMessage: 'No saved posts yet. Tap bookmark on a feed post to save it here.',
       ),
     );
   }

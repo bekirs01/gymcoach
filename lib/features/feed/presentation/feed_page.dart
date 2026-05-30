@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/floating_tab_bar.dart';
 import '../../../app/widgets/premium_background.dart';
+import '../../../app/widgets/premium_image_viewer.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../profile/presentation/public_profile_page.dart';
 import '../../social/data/social_api_client.dart';
@@ -229,7 +230,9 @@ class _FeedPostCardState extends State<_FeedPostCard> {
   late bool _likedByMe;
   late int _likeCount;
   late int _commentCount;
+  late bool _savedByMe;
   var _liking = false;
+  var _saving = false;
 
   @override
   void initState() {
@@ -237,6 +240,7 @@ class _FeedPostCardState extends State<_FeedPostCard> {
     _likedByMe = widget.post.likedByMe;
     _likeCount = widget.post.likeCount;
     _commentCount = widget.post.commentCount;
+    _savedByMe = widget.client.isPostSaved(widget.post.id);
   }
 
   void _setLiked(bool value) {
@@ -265,6 +269,31 @@ class _FeedPostCardState extends State<_FeedPostCard> {
       _setLiked(wasLiked);
     } finally {
       _liking = false;
+    }
+  }
+
+  Future<void> _toggleSave() async {
+    if (_saving) return;
+    final wasSaved = _savedByMe;
+    final next = !wasSaved;
+    setState(() {
+      _savedByMe = next;
+      _saving = true;
+    });
+    try {
+      final saved = await widget.client.toggleSavePost(
+        widget.post.copyWith(
+          likedByMe: _likedByMe,
+          likeCount: _likeCount,
+          commentCount: _commentCount,
+        ),
+      );
+      if (!mounted) return;
+      setState(() => _savedByMe = saved);
+    } catch (_) {
+      if (mounted) setState(() => _savedByMe = wasSaved);
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -398,17 +427,44 @@ class _FeedPostCardState extends State<_FeedPostCard> {
           if (post.media.isNotEmpty) ...[
             AspectRatio(
               aspectRatio: 1,
-              child: PageView.builder(
-                itemCount: post.media.length,
-                onPageChanged: (i) => setState(() => _photoIndex = i),
-                itemBuilder: (context, i) => Image.network(
-                  post.media[i].url,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const ColoredBox(
-                    color: PremiumColors.midnightBottom,
-                    child: Icon(Icons.broken_image_outlined, color: PremiumColors.textMuted),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  PageView.builder(
+                    itemCount: post.media.length,
+                    onPageChanged: (i) => setState(() => _photoIndex = i),
+                    itemBuilder: (context, i) {
+                      final url = post.media[i].url;
+                      return GestureDetector(
+                        onTap: () => showPremiumImageViewer(context, imageUrl: url),
+                        child: Image.network(
+                          url,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const ColoredBox(
+                            color: PremiumColors.midnightBottom,
+                            child: Icon(Icons.broken_image_outlined, color: PremiumColors.textMuted),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                ),
+                  if (post.media.length > 1)
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(PremiumRadii.pill),
+                        ),
+                        child: Text(
+                          '${_photoIndex + 1}/${post.media.length}',
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             if (post.media.length > 1)
@@ -448,6 +504,13 @@ class _FeedPostCardState extends State<_FeedPostCard> {
                     IconButton(
                       onPressed: _openComments,
                       icon: const Icon(Icons.mode_comment_outlined, color: Colors.white),
+                    ),
+                    IconButton(
+                      onPressed: _saving ? null : _toggleSave,
+                      icon: Icon(
+                        _savedByMe ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                        color: _savedByMe ? PremiumColors.accentBlue : Colors.white,
+                      ),
                     ),
                     const Spacer(),
                     Text(

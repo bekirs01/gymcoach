@@ -7,6 +7,7 @@ import '../../profile/domain/user_profile.dart';
 import '../domain/feed_comment.dart';
 import '../domain/feed_post.dart';
 import '../domain/social_profile.dart';
+import 'saved_posts_store.dart';
 
 final class SocialApiClient {
   SocialApiClient({
@@ -212,6 +213,14 @@ final class SocialApiClient {
       'reason': reason,
     });
   }
+
+  SavedPostsStore get savedPosts => SavedPostsStore(_prefs);
+
+  Future<bool> toggleSavePost(FeedPost post) => savedPosts.toggle(post);
+
+  bool isPostSaved(String postId) => savedPosts.isSaved(postId);
+
+  List<FeedPost> loadSavedPosts() => savedPosts.loadAll();
 
   String _contentType(String ext) {
     switch (ext) {
