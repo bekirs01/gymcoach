@@ -5,15 +5,14 @@ import 'package:gym/l10n/app_localizations.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/training_app_state.dart';
+import '../../app/widgets/floating_tab_bar.dart';
 import '../../core/training_stats.dart';
 import '../calendar/presentation/calendar_page.dart';
-import '../categories/presentation/category_detail_page.dart';
 import '../history/presentation/completed_workout_detail_page.dart';
 import '../home/presentation/home_page.dart';
 import '../plans/domain/workout_plan.dart';
 import '../plans/presentation/create_plan_sheet.dart';
 import '../plans/presentation/plan_detail_page.dart';
-import '../plans/presentation/plans_page.dart';
 import '../profile/domain/user_profile.dart';
 import '../profile/presentation/profile_page.dart';
 import '../progress/presentation/progress_page.dart';
@@ -39,7 +38,6 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   var _selectedIndex = 0;
-  var _plansCreateSignal = 0;
 
   TrainingAppState get _t => widget.training;
 
@@ -49,21 +47,12 @@ class _MainShellState extends State<MainShell> {
 
   Future<void> _removePlan(WorkoutPlan plan) => _t.removePlan(plan);
 
-  void _goToPlansTab({bool openCreateSheet = false}) {
-    setState(() {
-      _selectedIndex = 1;
-      if (openCreateSheet) {
-        _plansCreateSignal++;
-      }
-    });
-  }
-
   void _goToProgressTab() {
-    setState(() => _selectedIndex = 4);
+    setState(() => _selectedIndex = 3);
   }
 
   void _goToProfileTab() {
-    setState(() => _selectedIndex = 5);
+    setState(() => _selectedIndex = 4);
   }
 
   Future<void> _handleSessionComplete(WorkoutPlan plan, WorkoutCompletion completion) =>
@@ -137,14 +126,6 @@ class _MainShellState extends State<MainShell> {
     return List.generate(7, (i) => days.contains(WorkoutPlan.dateOnly(mon.add(Duration(days: i)))));
   }
 
-  void _openCategory(BuildContext navContext, String key) {
-    Navigator.of(navContext).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => CategoryDetailPage.forCatalogKey(navContext, key),
-      ),
-    );
-  }
-
   void _openCompletion(BuildContext navContext, WorkoutCompletion c) {
     Navigator.of(navContext).push<void>(
       MaterialPageRoute<void>(builder: (_) => CompletedWorkoutDetailPage(completion: c)),
@@ -195,48 +176,61 @@ class _MainShellState extends State<MainShell> {
     final completions = _t.completions;
     final profile = _t.profile;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: _buildActiveTab(
-        plans: plans,
-        completions: completions,
-        profile: profile,
-        weekFlags: weekFlags,
-        l10n: l10n,
+    final tabItems = [
+      FloatingTabItem(
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home_rounded,
+        label: l10n.navHome,
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onDestinationSelected,
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.home_outlined),
-            selectedIcon: const Icon(Icons.home_rounded),
-            label: l10n.navHome,
+      FloatingTabItem(
+        icon: Icons.map_outlined,
+        activeIcon: Icons.map_rounded,
+        label: l10n.navMap,
+      ),
+      FloatingTabItem(
+        icon: Icons.calendar_month_outlined,
+        activeIcon: Icons.calendar_month_rounded,
+        label: l10n.navCalendar,
+      ),
+      FloatingTabItem(
+        icon: Icons.insights_outlined,
+        activeIcon: Icons.insights_rounded,
+        label: l10n.navProgress,
+      ),
+      FloatingTabItem(
+        icon: Icons.person_outline_rounded,
+        activeIcon: Icons.person_rounded,
+        label: l10n.navProfile,
+      ),
+    ];
+
+    final bottomNavReserve = FloatingTabBar.reservedBottomSpace(context);
+
+    return Scaffold(
+      extendBody: true,
+      backgroundColor: _selectedIndex == 0 ? Colors.transparent : AppColors.background,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(bottom: _selectedIndex == 0 ? 0 : bottomNavReserve),
+            child: _buildActiveTab(
+              plans: plans,
+              completions: completions,
+              profile: profile,
+              weekFlags: weekFlags,
+              l10n: l10n,
+            ),
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.fitness_center_outlined),
-            selectedIcon: const Icon(Icons.fitness_center_rounded),
-            label: l10n.navPlans,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.map_outlined),
-            selectedIcon: const Icon(Icons.map_rounded),
-            label: l10n.navMap,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.calendar_month_outlined),
-            selectedIcon: const Icon(Icons.calendar_month_rounded),
-            label: l10n.navCalendar,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.insights_outlined),
-            selectedIcon: const Icon(Icons.insights_rounded),
-            label: l10n.navProgress,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.person_outline_rounded),
-            selectedIcon: const Icon(Icons.person_rounded),
-            label: l10n.navProfile,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: FloatingTabBar(
+              selectedIndex: _selectedIndex,
+              onSelected: _onDestinationSelected,
+              items: tabItems,
+            ),
           ),
         ],
       ),
@@ -257,29 +251,18 @@ class _MainShellState extends State<MainShell> {
           completions: completions,
           profile: profile,
           weekCompleted: weekFlags,
-          onNavigateToPlans: () => setState(() => _selectedIndex = 1),
-          onNavigateToPlansCreate: () => _goToPlansTab(openCreateSheet: true),
+          onAddPlan: (p) => unawaited(_addPlan(p)),
           onNavigateToProgress: _goToProgressTab,
           onNavigateToProfile: _goToProfileTab,
           onOpenPlanDetail: (p) => _openPlanDetail(context, p),
-          onOpenCategory: (key) => _openCategory(context, key),
+          onStartSession: (p) => _pushSession(context, p),
           onOpenCompletion: (c) => _openCompletion(context, c),
           onOpenStreak: () => _openStreak(context),
           onLogWorkout: () => _logWorkout(context),
         );
       case 1:
-        return PlansPage(
-          plans: plans,
-          onAddPlan: (p) {
-            unawaited(_addPlan(p));
-          },
-          createSheetSignal: _plansCreateSignal,
-          onOpenPlanDetail: (p) => _openPlanDetail(context, p),
-          onStartSession: (p) => _pushSession(context, p),
-        );
-      case 2:
         return TerritoryMapPage(displayName: profile.displayName);
-      case 3:
+      case 2:
         return CalendarPage(
           plans: plans,
           completions: completions,
@@ -294,13 +277,13 @@ class _MainShellState extends State<MainShell> {
           },
           onOpenPlan: (p) => _openPlanDetail(context, p),
         );
-      case 4:
+      case 3:
         return ProgressPage(
           plans: plans,
           completions: completions,
           onOpenStreak: () => _openStreak(context),
         );
-      case 5:
+      case 4:
         return ProfilePage(
           profile: profile,
           onProfileChanged: (p) {

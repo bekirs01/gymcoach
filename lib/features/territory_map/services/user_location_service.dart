@@ -150,6 +150,7 @@ class UserLocationService {
 
   bool _isValid(Position position) {
     if (!position.latitude.isFinite || !position.longitude.isFinite) return false;
+    if (position.latitude.abs() > 90 || position.longitude.abs() > 180) return false;
     if (position.latitude == 0 && position.longitude == 0) return false;
     return true;
   }

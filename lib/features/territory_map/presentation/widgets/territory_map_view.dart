@@ -33,7 +33,6 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
 
   MapLibreMapController? _mapController;
   var _styleReady = false;
-  var _autoLocateAttempted = false;
   var _isLocating = false;
   String? _loadedStyleUrl;
   LatLng? _resolvedInitialTarget;
@@ -69,14 +68,40 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     super.dispose();
   }
 
+  bool _isValidLatLng(LatLng target) {
+    if (!target.latitude.isFinite || !target.longitude.isFinite) return false;
+    if (target.latitude.abs() > 90 || target.longitude.abs() > 180) return false;
+    if (target.latitude == 0 && target.longitude == 0) return false;
+    return true;
+  }
+
+  double _clampZoom(double zoom) => zoom.clamp(3.0, 18.0);
+
+  Future<void> _safeCameraUpdate(CameraUpdate update, {required bool animate}) async {
+    final controller = _mapController;
+    if (controller == null || !_styleReady) return;
+
+    try {
+      // animated camera moves crash MapLibre on some iOS simulator builds.
+      if (animate && !Platform.isAndroid) {
+        await controller.moveCamera(update);
+      } else if (animate) {
+        await controller.animateCamera(update);
+      } else {
+        await controller.moveCamera(update);
+      }
+    } catch (error, stackTrace) {
+      debugPrint('Map camera update failed: $error\n$stackTrace');
+    }
+  }
+
   Future<void> _resolveInitialTarget() async {
     final result = await _locationService.resolveCurrentPosition();
     if (!mounted || !result.isSuccess) return;
     final position = result.position!;
-    setState(() {
-      _resolvedInitialTarget = LatLng(position.latitude, position.longitude);
-    });
-    await _centerOnPosition(position, zoom: 15, animate: false);
+    final target = LatLng(position.latitude, position.longitude);
+    if (!_isValidLatLng(target)) return;
+    setState(() => _resolvedInitialTarget = target);
   }
 
   Future<void> _onMapCreated(MapLibreMapController controller) async {
@@ -93,10 +118,6 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     _styleReady = true;
     await _syncMap();
     await _applyPendingCenter();
-    if (!_autoLocateAttempted) {
-      _autoLocateAttempted = true;
-      await locateUser();
-    }
   }
 
   Future<void> _syncMap() async {
@@ -176,10 +197,11 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     final points = <LatLng>[];
     for (final vertex in ringData) {
       if (vertex is! List || vertex.length < 2) continue;
-      points.add(LatLng(
-        (vertex[1] as num).toDouble(),
-        (vertex[0] as num).toDouble(),
-      ));
+      final lat = (vertex[1] as num).toDouble();
+      final lng = (vertex[0] as num).toDouble();
+      if (!lat.isFinite || !lng.isFinite) continue;
+      if (lat.abs() > 90 || lng.abs() > 180) continue;
+      points.add(LatLng(lat, lng));
     }
     return points.isEmpty ? null : points;
   }
@@ -216,11 +238,12 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
       maxLng = point.longitude > maxLng ? point.longitude : maxLng;
     }
 
-    await controller.animateCamera(
+    await _safeCameraUpdate(
       CameraUpdate.newLatLngZoom(
         LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2),
-        15.5,
+        _clampZoom(15.5),
       ),
+      animate: false,
     );
   }
 
@@ -247,21 +270,21 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     required double zoom,
     required bool animate,
   }) async {
+    final target = LatLng(position.latitude, position.longitude);
+    if (!_isValidLatLng(target)) return;
+
     final controller = _mapController;
     if (controller == null || !_styleReady) {
       _pendingCenterPosition = position;
-      _pendingCenterZoom = zoom;
+      _pendingCenterZoom = _clampZoom(zoom);
       _pendingCenterAnimate = animate;
       return;
     }
 
-    final target = LatLng(position.latitude, position.longitude);
-    final update = CameraUpdate.newLatLngZoom(target, zoom);
-    if (animate) {
-      await controller.animateCamera(update);
-    } else {
-      await controller.moveCamera(update);
-    }
+    await _safeCameraUpdate(
+      CameraUpdate.newLatLngZoom(target, _clampZoom(zoom)),
+      animate: animate,
+    );
     _pendingCenterPosition = null;
     _pendingCenterZoom = null;
     _pendingCenterAnimate = false;

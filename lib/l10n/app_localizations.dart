@@ -392,6 +392,84 @@ abstract class AppLocalizations {
   /// **'No workout planned for today.'**
   String get homeNoWorkoutToday;
 
+  /// No description provided for @homeScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Workouts'**
+  String get homeScreenTitle;
+
+  /// No description provided for @homeTabDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get homeTabDashboard;
+
+  /// No description provided for @homeTabWorkouts.
+  ///
+  /// In en, this message translates to:
+  /// **'Workouts'**
+  String get homeTabWorkouts;
+
+  /// No description provided for @homeTabDiet.
+  ///
+  /// In en, this message translates to:
+  /// **'Diet'**
+  String get homeTabDiet;
+
+  /// No description provided for @homeBannerCreateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'See how to create new workouts'**
+  String get homeBannerCreateHint;
+
+  /// No description provided for @homeBannerStartHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Start by adding a new training day'**
+  String get homeBannerStartHint;
+
+  /// No description provided for @homeMyTraining.
+  ///
+  /// In en, this message translates to:
+  /// **'My Training'**
+  String get homeMyTraining;
+
+  /// No description provided for @homeCompletedSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} sessions completed'**
+  String homeCompletedSessions(int count);
+
+  /// No description provided for @homeTrainingSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Training Schedule'**
+  String get homeTrainingSchedule;
+
+  /// No description provided for @homeMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get homeMore;
+
+  /// No description provided for @homeNoWorkoutsOnDate.
+  ///
+  /// In en, this message translates to:
+  /// **'No workouts scheduled for this date'**
+  String get homeNoWorkoutsOnDate;
+
+  /// No description provided for @homeFeaturedEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No training plan yet'**
+  String get homeFeaturedEmptyTitle;
+
+  /// No description provided for @homeFeaturedEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your first workout to get started'**
+  String get homeFeaturedEmptySubtitle;
+
   /// No description provided for @plansPageTitle.
   ///
   /// In en, this message translates to:

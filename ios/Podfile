@@ -27,6 +27,83 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 
 flutter_ios_podfile_setup
 
+MLKIT_SIMULATOR_FRAMEWORKS = %w[
+  MLImage MLKitCommon MLKitPoseDetection MLKitPoseDetectionAccurate
+  MLKitPoseDetectionCommon MLKitVision MLKitXenoCommon
+  google_mlkit_commons google_mlkit_pose_detection
+].freeze
+
+def strip_mlkit_linker_flags(flags)
+  out = flags.dup
+  MLKIT_SIMULATOR_FRAMEWORKS.each do |framework|
+    out.gsub!(/-framework "#{framework}" /, '')
+  end
+  out.gsub!(/^\$\(inherited\)\s*/, '')
+  out.squeeze(' ').strip
+end
+
+def strip_mlkit_framework_search_paths(paths)
+  out = paths.dup
+  out.gsub!(/"\$\{PODS_ROOT\}\/ML[^"]*" /, '')
+  out.gsub!(/"\$\{PODS_CONFIGURATION_BUILD_DIR\}\/google_mlkit_[^"]*" /, '')
+  out.gsub!(/^\$\(inherited\)\s*/, '')
+  out.squeeze(' ').strip
+end
+
+def patch_pods_runner_xcconfig_for_simulator(installer)
+  %w[debug profile release].each do |name|
+    path = File.join(
+      installer.sandbox.root,
+      'Target Support Files',
+      'Pods-Runner',
+      "Pods-Runner.#{name}.xcconfig",
+    )
+    next unless File.exist?(path)
+
+    contents = File.read(path)
+    contents = contents.gsub(
+      'EXCLUDED_ARCHS[sdk=iphonesimulator*] = arm64',
+      'EXCLUDED_ARCHS[sdk=iphonesimulator*] = i386',
+    )
+
+    ldflags = contents[/^OTHER_LDFLAGS = (.+)$/, 1]
+    framework_paths = contents[/^FRAMEWORK_SEARCH_PATHS = (.+)$/, 1]
+    next unless ldflags
+
+    contents = contents.gsub(/^OTHER_LDFLAGS = .+$/, "OTHER_LDFLAGS[sdk=iphoneos*] = #{ldflags}")
+    contents << "\nOTHER_LDFLAGS[sdk=iphonesimulator*] = #{strip_mlkit_linker_flags(ldflags)}\n"
+
+    if framework_paths
+      contents = contents.gsub(
+        /^FRAMEWORK_SEARCH_PATHS = .+$/,
+        "FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*] = #{framework_paths}",
+      )
+      contents << "FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*] = #{strip_mlkit_framework_search_paths(framework_paths)}\n"
+    end
+
+    File.write(path, contents)
+  end
+end
+
+def write_flutter_xcconfigs_with_simulator_overrides(installer)
+  flutter_dir = File.join(__dir__, 'Flutter')
+  {
+    'debug' => 'Debug',
+    'profile' => 'Profile',
+    'release' => 'Release',
+  }.each do |pods_name, flutter_name|
+    flutter_path = File.join(flutter_dir, "#{flutter_name}.xcconfig")
+    File.write(
+      flutter_path,
+      <<~XCC,
+        #include? "../Pods/Target Support Files/Pods-Runner/Pods-Runner.#{pods_name}.xcconfig"
+        #include "Generated.xcconfig"
+        EXCLUDED_ARCHS[sdk=iphonesimulator*]=i386
+      XCC
+    )
+  end
+end
+
 target 'Runner' do
   use_frameworks!
 
@@ -50,6 +127,7 @@ post_install do |installer|
         'PERMISSION_LOCATION=1',
       ]
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
+      # Apple Silicon simulators need arm64; some pods default to excluding it.
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386'
 
       # Google ML Kit's iOS pods do not ship arm64 simulator binaries for
@@ -64,6 +142,11 @@ post_install do |installer|
     end
   end
 
+  # CocoaPods aggregate xcconfigs: arm64 simulator + ML Kit simulator linker split.
+  patch_pods_runner_xcconfig_for_simulator(installer)
+
   load File.join(__dir__, 'scripts', 'patch_mlkit_simulator_registrant.rb')
   patch_mlkit_simulator_registrant(__dir__)
+
+  write_flutter_xcconfigs_with_simulator_overrides(installer)
 end

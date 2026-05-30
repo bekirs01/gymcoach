@@ -169,6 +169,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeNoWorkoutToday => 'No workout planned for today.';
 
   @override
+  String get homeScreenTitle => 'Workouts';
+
+  @override
+  String get homeTabDashboard => 'Dashboard';
+
+  @override
+  String get homeTabWorkouts => 'Workouts';
+
+  @override
+  String get homeTabDiet => 'Diet';
+
+  @override
+  String get homeBannerCreateHint => 'See how to create new workouts';
+
+  @override
+  String get homeBannerStartHint => 'Start by adding a new training day';
+
+  @override
+  String get homeMyTraining => 'My Training';
+
+  @override
+  String homeCompletedSessions(int count) {
+    return '$count sessions completed';
+  }
+
+  @override
+  String get homeTrainingSchedule => 'Training Schedule';
+
+  @override
+  String get homeMore => 'More';
+
+  @override
+  String get homeNoWorkoutsOnDate => 'No workouts scheduled for this date';
+
+  @override
+  String get homeFeaturedEmptyTitle => 'No training plan yet';
+
+  @override
+  String get homeFeaturedEmptySubtitle =>
+      'Create your first workout to get started';
+
+  @override
   String get plansPageTitle => 'Workout Plans';
 
   @override
