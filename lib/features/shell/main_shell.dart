@@ -14,6 +14,7 @@ import '../plans/domain/workout_plan.dart';
 import '../plans/presentation/create_plan_sheet.dart';
 import '../plans/presentation/plan_detail_page.dart';
 import '../plans/presentation/plans_page.dart';
+import '../profile/domain/user_profile.dart';
 import '../profile/presentation/profile_page.dart';
 import '../progress/presentation/progress_page.dart';
 import '../progress/presentation/streak_detail_page.dart';
@@ -196,61 +197,12 @@ class _MainShellState extends State<MainShell> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          HomePage(
-            plans: plans,
-            completions: completions,
-            profile: profile,
-            weekCompleted: weekFlags,
-            onNavigateToPlans: () => setState(() => _selectedIndex = 1),
-            onNavigateToPlansCreate: () => _goToPlansTab(openCreateSheet: true),
-            onNavigateToProgress: _goToProgressTab,
-            onNavigateToProfile: _goToProfileTab,
-            onOpenPlanDetail: (p) => _openPlanDetail(context, p),
-            onOpenCategory: (key) => _openCategory(context, key),
-            onOpenCompletion: (c) => _openCompletion(context, c),
-            onOpenStreak: () => _openStreak(context),
-            onLogWorkout: () => _logWorkout(context),
-          ),
-          PlansPage(
-            plans: plans,
-            onAddPlan: (p) {
-              unawaited(_addPlan(p));
-            },
-            createSheetSignal: _plansCreateSignal,
-            onOpenPlanDetail: (p) => _openPlanDetail(context, p),
-            onStartSession: (p) => _pushSession(context, p),
-          ),
-          TerritoryMapPage(displayName: profile.displayName),
-          CalendarPage(
-            plans: plans,
-            completions: completions,
-            onAddPlan: (plan) {
-              unawaited(_addPlan(plan));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  behavior: SnackBarBehavior.floating,
-                  content: Text(l10n.snackbarCalendarAdded),
-                ),
-              );
-            },
-            onOpenPlan: (p) => _openPlanDetail(context, p),
-          ),
-          ProgressPage(
-            plans: plans,
-            completions: completions,
-            onOpenStreak: () => _openStreak(context),
-          ),
-          ProfilePage(
-            profile: profile,
-            onProfileChanged: (p) {
-              unawaited(_t.updateProfile(p));
-            },
-            onLocaleChanged: widget.onLocaleChanged,
-          ),
-        ],
+      body: _buildActiveTab(
+        plans: plans,
+        completions: completions,
+        profile: profile,
+        weekFlags: weekFlags,
+        l10n: l10n,
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
@@ -289,5 +241,75 @@ class _MainShellState extends State<MainShell> {
         ],
       ),
     );
+  }
+
+  Widget _buildActiveTab({
+    required List<WorkoutPlan> plans,
+    required List<WorkoutCompletion> completions,
+    required UserProfile profile,
+    required List<bool> weekFlags,
+    required AppLocalizations l10n,
+  }) {
+    switch (_selectedIndex) {
+      case 0:
+        return HomePage(
+          plans: plans,
+          completions: completions,
+          profile: profile,
+          weekCompleted: weekFlags,
+          onNavigateToPlans: () => setState(() => _selectedIndex = 1),
+          onNavigateToPlansCreate: () => _goToPlansTab(openCreateSheet: true),
+          onNavigateToProgress: _goToProgressTab,
+          onNavigateToProfile: _goToProfileTab,
+          onOpenPlanDetail: (p) => _openPlanDetail(context, p),
+          onOpenCategory: (key) => _openCategory(context, key),
+          onOpenCompletion: (c) => _openCompletion(context, c),
+          onOpenStreak: () => _openStreak(context),
+          onLogWorkout: () => _logWorkout(context),
+        );
+      case 1:
+        return PlansPage(
+          plans: plans,
+          onAddPlan: (p) {
+            unawaited(_addPlan(p));
+          },
+          createSheetSignal: _plansCreateSignal,
+          onOpenPlanDetail: (p) => _openPlanDetail(context, p),
+          onStartSession: (p) => _pushSession(context, p),
+        );
+      case 2:
+        return TerritoryMapPage(displayName: profile.displayName);
+      case 3:
+        return CalendarPage(
+          plans: plans,
+          completions: completions,
+          onAddPlan: (plan) {
+            unawaited(_addPlan(plan));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                behavior: SnackBarBehavior.floating,
+                content: Text(l10n.snackbarCalendarAdded),
+              ),
+            );
+          },
+          onOpenPlan: (p) => _openPlanDetail(context, p),
+        );
+      case 4:
+        return ProgressPage(
+          plans: plans,
+          completions: completions,
+          onOpenStreak: () => _openStreak(context),
+        );
+      case 5:
+        return ProfilePage(
+          profile: profile,
+          onProfileChanged: (p) {
+            unawaited(_t.updateProfile(p));
+          },
+          onLocaleChanged: widget.onLocaleChanged,
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 }

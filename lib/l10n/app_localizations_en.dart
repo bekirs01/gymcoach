@@ -1033,7 +1033,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapLocationServiceDisabled =>
-      'Location services are turned off. Enable GPS to see your position on the map.';
+      'Location services are off. Turn on GPS to see where you are.';
 
   @override
   String get mapLocationPermissionDenied =>
@@ -1041,7 +1041,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapLocationTimeout =>
-      'GPS is taking too long. Move to open sky and tap My location again.';
+      'GPS is taking too long. Move outdoors and tap My location again.';
 
   @override
   String get mapOpenLocationSettings => 'Open settings';

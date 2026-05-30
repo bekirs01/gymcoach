@@ -198,6 +198,7 @@
 			buildPhases = (
 				1E8EC16718DFD768E4995A16 /* [CP] Check Pods Manifest.lock */,
 				9740EEB61CF901F6004384FC /* Run Script */,
+				F1A2B3C41CF901F6004384FD /* Patch ML Kit Simulator Registrant */,
 				97C146EA1CF9000F007C117D /* Sources */,
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
@@ -362,6 +363,23 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
+		};
+		F1A2B3C41CF901F6004384FD /* Patch ML Kit Simulator Registrant */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${SRCROOT}/Runner/GeneratedPluginRegistrant.m",
+				"${SRCROOT}/scripts/patch_mlkit_simulator_registrant.rb",
+			);
+			name = "Patch ML Kit Simulator Registrant";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "ruby \"${SRCROOT}/scripts/patch_mlkit_simulator_registrant.rb\"\n";
 		};
 		B42CEEC5C341AD878FCA961D /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;

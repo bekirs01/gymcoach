@@ -32,17 +32,17 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
   final _locationService = UserLocationService();
 
   MapLibreMapController? _mapController;
-  StreamSubscription<geo.Position>? _positionSubscription;
   var _styleReady = false;
   var _autoLocateAttempted = false;
   var _isLocating = false;
   String? _loadedStyleUrl;
-  Circle? _userCircle;
   LatLng? _resolvedInitialTarget;
   geo.Position? _pendingCenterPosition;
   double? _pendingCenterZoom;
   var _pendingCenterAnimate = false;
-  var _hasCenteredOnUser = false;
+  var _lastSyncedCaptureCount = -1;
+  var _lastSyncedTerritoryCount = -1;
+  var _lastSyncedMapMode = '';
 
   @override
   void initState() {
@@ -53,17 +53,24 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
   @override
   void didUpdateWidget(covariant TerritoryMapView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!_needsMapSync(oldWidget.controller, widget.controller)) return;
     unawaited(_syncMap());
+  }
+
+  bool _needsMapSync(TerritoryMapController old, TerritoryMapController neu) {
+    if (old.mapMode != neu.mapMode) return true;
+    if (old.territories.length != neu.territories.length) return true;
+    if (old.capturePoints.length != neu.capturePoints.length) return true;
+    return false;
   }
 
   @override
   void dispose() {
-    unawaited(_positionSubscription?.cancel());
     super.dispose();
   }
 
   Future<void> _resolveInitialTarget() async {
-    final result = await _locationService.resolveCurrentPosition(forceFresh: true);
+    final result = await _locationService.resolveCurrentPosition();
     if (!mounted || !result.isSuccess) return;
     final position = result.position!;
     setState(() {
@@ -80,17 +87,6 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
       final territory = widget.controller.territories.where((t) => t.id == territoryId).firstOrNull;
       if (territory != null) widget.onTerritoryTap?.call(territory);
     });
-    _startWatchingPosition();
-  }
-
-  void _startWatchingPosition() {
-    unawaited(_positionSubscription?.cancel());
-    _positionSubscription = _locationService.watchPosition().listen(
-      (position) {
-        unawaited(_updateUserMarker(position));
-      },
-      onError: (_) {},
-    );
   }
 
   Future<void> _onStyleLoaded() async {
@@ -110,11 +106,22 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     final styleUrl = MapStyleConfig.styleUrlFor(widget.controller.mapMode);
     if (_loadedStyleUrl != styleUrl) {
       _styleReady = false;
-      _userCircle = null;
       await controller.setStyle(styleUrl);
       _loadedStyleUrl = styleUrl;
       return;
     }
+
+    final captureCount = widget.controller.capturePoints.length;
+    final territoryCount = widget.controller.territories.length;
+    final mapMode = widget.controller.mapMode.name;
+    if (_lastSyncedCaptureCount == captureCount &&
+        _lastSyncedTerritoryCount == territoryCount &&
+        _lastSyncedMapMode == mapMode) {
+      return;
+    }
+    _lastSyncedCaptureCount = captureCount;
+    _lastSyncedTerritoryCount = territoryCount;
+    _lastSyncedMapMode = mapMode;
 
     await controller.clearFills();
     await controller.clearLines();
@@ -228,10 +235,7 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
       }
 
       final position = result.position!;
-      _hasCenteredOnUser = true;
       await _centerOnPosition(position, zoom: 16, animate: true);
-      await _updateUserMarker(position);
-      await _mapController?.updateMyLocationTrackingMode(MyLocationTrackingMode.tracking);
       return result;
     } finally {
       _setLocating(false);
@@ -258,7 +262,6 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     } else {
       await controller.moveCamera(update);
     }
-    _hasCenteredOnUser = true;
     _pendingCenterPosition = null;
     _pendingCenterZoom = null;
     _pendingCenterAnimate = false;
@@ -272,42 +275,6 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
       position,
       zoom: zoom,
       animate: _pendingCenterAnimate,
-    );
-  }
-
-  Future<void> _updateUserMarker(geo.Position position) async {
-    await _updateUserMarkerAt(LatLng(position.latitude, position.longitude));
-  }
-
-  Future<void> _updateUserMarkerAt(LatLng target) async {
-    final controller = _mapController;
-    if (controller == null || !_styleReady) return;
-
-    final circle = _userCircle;
-    if (circle == null) {
-      _userCircle = await controller.addCircle(
-        CircleOptions(
-          geometry: target,
-          circleRadius: 12,
-          circleColor: _colorHex(AppColors.primary),
-          circleOpacity: 0.25,
-          circleStrokeWidth: 3,
-          circleStrokeColor: '#FFFFFF',
-        ),
-      );
-      return;
-    }
-
-    await controller.updateCircle(
-      circle,
-      CircleOptions(
-        geometry: target,
-        circleRadius: 12,
-        circleColor: _colorHex(AppColors.primary),
-        circleOpacity: 0.25,
-        circleStrokeWidth: 3,
-        circleStrokeColor: '#FFFFFF',
-      ),
     );
   }
 
@@ -334,21 +301,10 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
           myLocationEnabled: true,
           myLocationRenderMode:
               Platform.isIOS ? MyLocationRenderMode.compass : MyLocationRenderMode.normal,
-          myLocationTrackingMode: MyLocationTrackingMode.tracking,
+          myLocationTrackingMode: MyLocationTrackingMode.none,
           compassEnabled: true,
           onMapCreated: _onMapCreated,
           onStyleLoadedCallback: _onStyleLoaded,
-          onUserLocationUpdated: (location) {
-            unawaited(_updateUserMarkerAt(location.position));
-            if (!_hasCenteredOnUser && _mapController != null) {
-              _hasCenteredOnUser = true;
-              unawaited(
-                _mapController!.animateCamera(
-                  CameraUpdate.newLatLngZoom(location.position, 16),
-                ),
-              );
-            }
-          },
         ),
         if (_isLocating)
           Align(

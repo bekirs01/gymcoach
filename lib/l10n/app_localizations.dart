@@ -1997,7 +1997,7 @@ abstract class AppLocalizations {
   /// No description provided for @mapLocationServiceDisabled.
   ///
   /// In en, this message translates to:
-  /// **'Location services are turned off. Enable GPS to see your position on the map.'**
+  /// **'Location services are off. Turn on GPS to see where you are.'**
   String get mapLocationServiceDisabled;
 
   /// No description provided for @mapLocationPermissionDenied.
@@ -2009,7 +2009,7 @@ abstract class AppLocalizations {
   /// No description provided for @mapLocationTimeout.
   ///
   /// In en, this message translates to:
-  /// **'GPS is taking too long. Move to open sky and tap My location again.'**
+  /// **'GPS is taking too long. Move outdoors and tap My location again.'**
   String get mapLocationTimeout;
 
   /// No description provided for @mapOpenLocationSettings.
