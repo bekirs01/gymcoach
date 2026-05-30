@@ -3,6 +3,7 @@ import 'package:gym/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
+import '../../../../core/workout_exercise_catalog.dart';
 import '../../../plans/domain/workout_plan.dart';
 
 class HomeReferenceHeader extends StatelessWidget {
@@ -722,12 +723,17 @@ class _WorkoutComposerSheet extends StatefulWidget {
 class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
   final _nameController = TextEditingController();
   final Set<String> _selectedExerciseNames = {};
-  var _selectedCategory = _exerciseCategories.first;
+  final Set<String> _selectedCategoryTitles = {WorkoutExerciseCatalog.categories.first.title};
   var _step = _WorkoutBuildStep.category;
 
-  List<_ExerciseItem> get _selectedExercises {
-    return _exerciseCategories
-        .expand((category) => category.exercises)
+  List<WorkoutExerciseCategory> get _selectedCategories {
+    return WorkoutExerciseCatalog.categories
+        .where((category) => _selectedCategoryTitles.contains(category.title))
+        .toList();
+  }
+
+  List<WorkoutExerciseEntry> get _selectedExercises {
+    return WorkoutExerciseCatalog.allExercises
         .where((exercise) => _selectedExerciseNames.contains(exercise.name))
         .toList();
   }
@@ -735,9 +741,23 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
   String get _title {
     return switch (_step) {
       _WorkoutBuildStep.category => 'Choose muscle group',
-      _WorkoutBuildStep.exercises => _selectedCategory.title,
+      _WorkoutBuildStep.exercises => _selectedCategories.length == 1
+          ? _selectedCategories.first.title
+          : 'Choose exercises',
       _WorkoutBuildStep.details => 'Name your workout',
     };
+  }
+
+  void _toggleCategory(WorkoutExerciseCategory category) {
+    setState(() {
+      if (_selectedCategoryTitles.contains(category.title)) {
+        if (_selectedCategoryTitles.length > 1) {
+          _selectedCategoryTitles.remove(category.title);
+        }
+      } else {
+        _selectedCategoryTitles.add(category.title);
+      }
+    });
   }
 
   @override
@@ -746,7 +766,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
     super.dispose();
   }
 
-  void _toggleExercise(_ExerciseItem exercise) {
+  void _toggleExercise(WorkoutExerciseEntry exercise) {
     setState(() {
       if (_selectedExerciseNames.contains(exercise.name)) {
         _selectedExerciseNames.remove(exercise.name);
@@ -860,9 +880,15 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
   Widget _buildBottomAction() {
     return switch (_step) {
       _WorkoutBuildStep.category => FilledButton(
-          onPressed: () => setState(() => _step = _WorkoutBuildStep.exercises),
+          onPressed: _selectedCategoryTitles.isEmpty
+              ? null
+              : () => setState(() => _step = _WorkoutBuildStep.exercises),
           style: _primaryButtonStyle(),
-          child: const Text('Continue'),
+          child: Text(
+            _selectedCategoryTitles.length <= 1
+                ? 'Continue'
+                : 'Continue (${_selectedCategoryTitles.length} groups)',
+          ),
         ),
       _WorkoutBuildStep.exercises => FilledButton(
           onPressed: _selectedExerciseNames.isEmpty
@@ -905,7 +931,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'Select the area you want to train first.',
+          'Select one or more areas you want to train.',
           style: TextStyle(
             color: PremiumColors.textSecondary,
             fontSize: 14,
@@ -913,11 +939,11 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
           ),
         ),
         const SizedBox(height: 16),
-        for (final category in _exerciseCategories) ...[
+        for (final category in WorkoutExerciseCatalog.categories) ...[
           _MuscleCategoryCard(
             category: category,
-            selected: category == _selectedCategory,
-            onTap: () => setState(() => _selectedCategory = category),
+            selected: _selectedCategoryTitles.contains(category.title),
+            onTap: () => _toggleCategory(category),
           ),
           const SizedBox(height: 12),
         ],
@@ -930,7 +956,9 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Choose ${_selectedCategory.title.toLowerCase()} exercises. Tap a row to select and read the details.',
+          _selectedCategories.length == 1
+              ? 'Choose ${_selectedCategories.first.title.toLowerCase()} exercises. Tap a row to select and read the details.'
+              : 'Choose exercises from your selected muscle groups.',
           style: const TextStyle(
             color: PremiumColors.textSecondary,
             fontSize: 14,
@@ -938,13 +966,27 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
           ),
         ),
         const SizedBox(height: 16),
-        for (final exercise in _selectedCategory.exercises) ...[
-          _ExercisePhotoCard(
-            exercise: exercise,
-            selected: _selectedExerciseNames.contains(exercise.name),
-            onTap: () => _toggleExercise(exercise),
-          ),
-          const SizedBox(height: 10),
+        for (final category in _selectedCategories) ...[
+          if (_selectedCategories.length > 1) ...[
+            Text(
+              category.title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          for (final exercise in category.exercises) ...[
+            _ExercisePhotoCard(
+              exercise: exercise,
+              selected: _selectedExerciseNames.contains(exercise.name),
+              onTap: () => _toggleExercise(exercise),
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (_selectedCategories.length > 1) const SizedBox(height: 8),
         ],
       ],
     );
@@ -1119,7 +1161,7 @@ class _WorkoutPlanTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageAsset = _imageForExerciseName(plan.exerciseNames.isEmpty
+    final imageAsset = WorkoutExerciseCatalog.imageForName(plan.exerciseNames.isEmpty
         ? null
         : plan.exerciseNames.first);
     final progressPercent = _workoutProgressPercent(plan);
@@ -1214,7 +1256,7 @@ class _ExercisePhotoCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final _ExerciseItem exercise;
+  final WorkoutExerciseEntry exercise;
   final bool selected;
   final VoidCallback onTap;
 
@@ -1337,7 +1379,7 @@ class _ExercisePhotoCard extends StatelessWidget {
 class _SelectedExerciseSummary extends StatelessWidget {
   const _SelectedExerciseSummary({required this.exercise});
 
-  final _ExerciseItem exercise;
+  final WorkoutExerciseEntry exercise;
 
   @override
   Widget build(BuildContext context) {
@@ -1410,7 +1452,7 @@ class _MuscleCategoryCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final _ExerciseCategory category;
+  final WorkoutExerciseCategory category;
   final bool selected;
   final VoidCallback onTap;
 
@@ -1500,266 +1542,6 @@ class _MuscleCategoryCard extends StatelessWidget {
     );
   }
 }
-
-String? _imageForExerciseName(String? name) {
-  if (name == null) return null;
-  for (final category in _exerciseCategories) {
-    for (final exercise in category.exercises) {
-      if (exercise.name == name) return exercise.imageAsset;
-    }
-  }
-  return null;
-}
-
-class _ExerciseItem {
-  const _ExerciseItem({
-    required this.name,
-    required this.imageAsset,
-    required this.description,
-  });
-
-  final String name;
-  final String imageAsset;
-  final String description;
-}
-
-class _ExerciseCategory {
-  const _ExerciseCategory({
-    required this.title,
-    required this.imageAsset,
-    required this.icon,
-    required this.startColor,
-    required this.endColor,
-    required this.exercises,
-  });
-
-  final String title;
-  final String imageAsset;
-  final IconData icon;
-  final Color startColor;
-  final Color endColor;
-  final List<_ExerciseItem> exercises;
-}
-
-const _exerciseCategories = [
-  _ExerciseCategory(
-    title: 'Chest',
-    imageAsset: 'assets/workout_categories/chest.jpg',
-    icon: Icons.accessibility_new_rounded,
-    startColor: Color(0xFF0B3344),
-    endColor: Color(0xFF12263A),
-    exercises: [
-      _ExerciseItem(
-        name: 'Barbell Bench Press',
-        imageAsset: 'assets/workout_exercises/chest_bench_press.jpg',
-        description: 'A classic chest press focused on the pectorals, front delts, and triceps. Keep shoulder blades stable and control the bar path.',
-      ),
-      _ExerciseItem(
-        name: 'Chest Fly',
-        imageAsset: 'assets/workout_exercises/chest_fly.jpg',
-        description: 'Opens the chest through a wide arc. Use lighter weight, soft elbows, and squeeze the chest at the top.',
-      ),
-      _ExerciseItem(
-        name: 'Push-up',
-        imageAsset: 'assets/workout_exercises/chest_pushup.jpg',
-        description: 'Bodyweight chest movement. Keep the body straight, lower under control, and press away from the floor.',
-      ),
-    ],
-  ),
-  _ExerciseCategory(
-    title: 'Back',
-    imageAsset: 'assets/workout_categories/back.jpg',
-    icon: Icons.self_improvement_rounded,
-    startColor: Color(0xFF123A42),
-    endColor: Color(0xFF13283A),
-    exercises: [
-      _ExerciseItem(
-        name: 'Pull-up',
-        imageAsset: 'assets/workout_exercises/back_pullup.jpg',
-        description: 'Vertical pull for lats and upper back. Start from a controlled hang and pull the chest toward the bar.',
-      ),
-      _ExerciseItem(
-        name: 'Lat Pulldown',
-        imageAsset: 'assets/workout_exercises/back_lat_pulldown.jpg',
-        description: 'Targets the lats with a stable seated position. Pull elbows down and avoid shrugging the shoulders.',
-      ),
-      _ExerciseItem(
-        name: 'Seated Row',
-        imageAsset: 'assets/workout_exercises/back_seated_row.jpg',
-        description: 'Horizontal row for mid-back thickness. Keep the spine tall and pull the handle toward the torso.',
-      ),
-      _ExerciseItem(
-        name: 'Deadlift',
-        imageAsset: 'assets/workout_exercises/back_deadlift.jpg',
-        description: 'Full posterior-chain lift. Brace the core, keep the bar close, and drive through the floor.',
-      ),
-    ],
-  ),
-  _ExerciseCategory(
-    title: 'Legs',
-    imageAsset: 'assets/workout_categories/legs.jpg',
-    icon: Icons.directions_run_rounded,
-    startColor: Color(0xFF25394F),
-    endColor: Color(0xFF172338),
-    exercises: [
-      _ExerciseItem(
-        name: 'Squat',
-        imageAsset: 'assets/workout_exercises/legs_squat.jpg',
-        description: 'Main lower-body strength movement. Sit between the hips, keep knees tracking over toes, and stand tall.',
-      ),
-      _ExerciseItem(
-        name: 'Lunge',
-        imageAsset: 'assets/workout_exercises/legs_lunge.jpg',
-        description: 'Single-leg movement for quads and glutes. Step with control and keep the front foot planted.',
-      ),
-      _ExerciseItem(
-        name: 'Leg Curl',
-        imageAsset: 'assets/workout_exercises/legs_curl.jpg',
-        description: 'Hamstring isolation exercise. Curl smoothly and avoid lifting the hips off the pad.',
-      ),
-    ],
-  ),
-  _ExerciseCategory(
-    title: 'Glutes',
-    imageAsset: 'assets/workout_categories/glutes.jpg',
-    icon: Icons.fitness_center_rounded,
-    startColor: Color(0xFF3A2B4A),
-    endColor: Color(0xFF1C2438),
-    exercises: [
-      _ExerciseItem(
-        name: 'Hip Thrust',
-        imageAsset: 'assets/workout_exercises/glutes_hip_thrust.jpg',
-        description: 'Heavy glute movement. Tuck the ribs, drive through the heels, and squeeze at full hip extension.',
-      ),
-      _ExerciseItem(
-        name: 'Glute Bridge',
-        imageAsset: 'assets/workout_exercises/glutes_bridge.jpg',
-        description: 'Beginner-friendly glute exercise. Lift the hips with control and pause briefly at the top.',
-      ),
-      _ExerciseItem(
-        name: 'Romanian Deadlift',
-        imageAsset: 'assets/workout_exercises/glutes_rdl.jpg',
-        description: 'Hip-hinge movement for glutes and hamstrings. Push hips back and keep the weight close.',
-      ),
-      _ExerciseItem(
-        name: 'Step-up',
-        imageAsset: 'assets/workout_exercises/glutes_stepup.jpg',
-        description: 'Single-leg glute and quad builder. Step up through the full foot without bouncing off the rear leg.',
-      ),
-    ],
-  ),
-  _ExerciseCategory(
-    title: 'Shoulders',
-    imageAsset: 'assets/workout_categories/shoulders.jpg',
-    icon: Icons.sports_gymnastics_rounded,
-    startColor: Color(0xFF3B344A),
-    endColor: Color(0xFF172235),
-    exercises: [
-      _ExerciseItem(
-        name: 'Shoulder Press',
-        imageAsset: 'assets/workout_exercises/shoulders_press.jpg',
-        description: 'Overhead press for delts and triceps. Brace the core and press without over-arching the back.',
-      ),
-      _ExerciseItem(
-        name: 'Lateral Raise',
-        imageAsset: 'assets/workout_exercises/shoulders_lateral_raise.jpg',
-        description: 'Side-delt isolation. Raise to shoulder height with soft elbows and controlled tempo.',
-      ),
-      _ExerciseItem(
-        name: 'Front Raise',
-        imageAsset: 'assets/workout_exercises/shoulders_front_raise.jpg',
-        description: 'Targets the front delts. Lift smoothly and avoid swinging the body.',
-      ),
-      _ExerciseItem(
-        name: 'Face Pull',
-        imageAsset: 'assets/workout_exercises/shoulders_face_pull.jpg',
-        description: 'Rear-delt and upper-back movement. Pull toward the face while keeping elbows high.',
-      ),
-    ],
-  ),
-  _ExerciseCategory(
-    title: 'Arms',
-    imageAsset: 'assets/workout_categories/arms.jpg',
-    icon: Icons.sports_martial_arts_rounded,
-    startColor: Color(0xFF44302E),
-    endColor: Color(0xFF1B2635),
-    exercises: [
-      _ExerciseItem(
-        name: 'Biceps Curl',
-        imageAsset: 'assets/workout_exercises/arms_biceps_curl.jpg',
-        description: 'Classic biceps isolation. Keep elbows near the torso and curl without swinging.',
-      ),
-      _ExerciseItem(
-        name: 'Hammer Curl',
-        imageAsset: 'assets/workout_exercises/arms_hammer_curl.jpg',
-        description: 'Neutral-grip curl for biceps and forearms. Control both the lift and the lowering phase.',
-      ),
-      _ExerciseItem(
-        name: 'Dips',
-        imageAsset: 'assets/workout_exercises/arms_dips.jpg',
-        description: 'Triceps-focused press. Keep shoulders stable and lower only as far as comfortable.',
-      ),
-    ],
-  ),
-  _ExerciseCategory(
-    title: 'Core',
-    imageAsset: 'assets/workout_categories/core.jpg',
-    icon: Icons.blur_circular_rounded,
-    startColor: Color(0xFF2D3E34),
-    endColor: Color(0xFF172337),
-    exercises: [
-      _ExerciseItem(
-        name: 'Plank',
-        imageAsset: 'assets/workout_exercises/core_plank.jpg',
-        description: 'Core stability hold. Keep ribs down, glutes active, and body in one straight line.',
-      ),
-      _ExerciseItem(
-        name: 'Cable Crunch',
-        imageAsset: 'assets/workout_exercises/core_crunch.jpg',
-        description: 'Weighted ab flexion. Curl the ribs toward the pelvis instead of pulling with the arms.',
-      ),
-      _ExerciseItem(
-        name: 'Leg Raise',
-        imageAsset: 'assets/workout_exercises/core_leg_raise.jpg',
-        description: 'Lower-ab focused movement. Lift the legs under control and avoid arching the lower back.',
-      ),
-      _ExerciseItem(
-        name: 'Bicycle Crunch',
-        imageAsset: 'assets/workout_exercises/core_twist.jpg',
-        description: 'Rotational core exercise. Move slowly and rotate through the torso, not just the elbows.',
-      ),
-    ],
-  ),
-  _ExerciseCategory(
-    title: 'Cardio',
-    imageAsset: 'assets/workout_categories/cardio.jpg',
-    icon: Icons.monitor_heart_rounded,
-    startColor: Color(0xFF274458),
-    endColor: Color(0xFF142236),
-    exercises: [
-      _ExerciseItem(
-        name: 'Burpee',
-        imageAsset: 'assets/workout_exercises/cardio_burpee.jpg',
-        description: 'Full-body conditioning drill. Move from squat to plank to jump with steady rhythm.',
-      ),
-      _ExerciseItem(
-        name: 'Mountain Climber',
-        imageAsset: 'assets/workout_exercises/cardio_mountain_climber.jpg',
-        description: 'Fast core and cardio movement. Keep shoulders stacked and drive knees forward.',
-      ),
-      _ExerciseItem(
-        name: 'Jump Rope',
-        imageAsset: 'assets/workout_exercises/cardio_jump_rope.jpg',
-        description: 'Low-space cardio drill. Stay light on the feet and keep wrists relaxed.',
-      ),
-      _ExerciseItem(
-        name: 'Stationary Bike',
-        imageAsset: 'assets/workout_exercises/cardio_bike.jpg',
-        description: 'Joint-friendly cardio option. Maintain cadence and gradually increase resistance.',
-      ),
-    ],
-  ),
-];
 
 class _MonthCell {
   const _MonthCell({required this.date, required this.outsideMonth});

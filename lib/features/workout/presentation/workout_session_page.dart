@@ -1,11 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
-import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/premium_tokens.dart';
+import '../../../app/widgets/premium_background.dart';
 import '../../../core/session_calorie_estimator.dart';
+import '../../../core/workout_exercise_catalog.dart';
 import '../../plans/domain/workout_plan.dart';
-import '../../plans/presentation/plans_widgets.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../camera_validation/data/exercise_name_resolver.dart';
 import '../../camera_validation/exercise_tracker_registry.dart';
@@ -35,21 +38,32 @@ class WorkoutSessionPage extends StatefulWidget {
 
 class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
   DateTime? _startedAt;
+  Timer? _timer;
+  var _elapsedSeconds = 0;
   var _index = 0;
-  final _saved = <int, ({int sets, int reps})>{};
+  final _saved = <int, ({int sets, int reps, int restSec})>{};
   final _logsByIndex = <int, CompletedExerciseLog>{};
-  var _isStarted = false;
   var _showSummary = false;
+  var _summaryElapsedSeconds = 0;
   late WorkoutCompletion _summary;
   late TextEditingController _setsController;
   late TextEditingController _repsController;
+  late TextEditingController _restController;
 
   @override
   void initState() {
     super.initState();
     _setsController = TextEditingController();
     _repsController = TextEditingController();
-    _fillControllersFromSaved();
+    _restController = TextEditingController(text: '60');
+    _setsController.addListener(_refreshInputs);
+    _repsController.addListener(_refreshInputs);
+    _restController.addListener(_refreshInputs);
+    _startedAt = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _startedAt == null) return;
+      setState(() => _elapsedSeconds = DateTime.now().difference(_startedAt!).inSeconds);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final names = widget.plan.exerciseNames;
@@ -59,18 +73,38 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     });
   }
 
+  void _refreshInputs() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _timer?.cancel();
+    _setsController.removeListener(_refreshInputs);
+    _repsController.removeListener(_refreshInputs);
+    _restController.removeListener(_refreshInputs);
     _setsController.dispose();
     _repsController.dispose();
+    _restController.dispose();
     super.dispose();
   }
 
+  String get _elapsedLabel {
+    final h = _elapsedSeconds ~/ 3600;
+    final m = (_elapsedSeconds % 3600) ~/ 60;
+    final s = _elapsedSeconds % 60;
+    if (h > 0) {
+      return '${h.toString().padLeft(1, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    }
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
   void _flushInputsToSaved() {
-    final s = int.tryParse(_setsController.text.trim());
-    final r = int.tryParse(_repsController.text.trim());
-    if (s != null && r != null && s > 0 && r > 0) {
-      _saved[_index] = (sets: s, reps: r);
+    final sets = int.tryParse(_setsController.text.trim());
+    final reps = int.tryParse(_repsController.text.trim());
+    final rest = int.tryParse(_restController.text.trim()) ?? 60;
+    if (sets != null && reps != null && sets > 0 && reps > 0) {
+      _saved[_index] = (sets: sets, reps: reps, restSec: rest);
     }
   }
 
@@ -79,9 +113,11 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     if (e != null) {
       _setsController.text = '${e.sets}';
       _repsController.text = '${e.reps}';
+      _restController.text = '${e.restSec}';
     } else {
       _setsController.text = '';
       _repsController.text = '';
+      _restController.text = '60';
     }
   }
 
@@ -95,13 +131,6 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     widget.analytics.onExerciseBecameActive(i, widget.plan.exerciseNames[i]);
   }
 
-  void _startSession() {
-    setState(() {
-      _startedAt = DateTime.now();
-      _isStarted = true;
-    });
-  }
-
   bool _isCameraSupportedFor(String exerciseName) {
     final l10n = AppLocalizations.of(context)!;
     final canonical = ExerciseNameResolver.canonicalIdForName(exerciseName, l10n);
@@ -111,12 +140,6 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
 
   Future<void> _openCameraTracking(String exerciseName) async {
     final l10n = AppLocalizations.of(context)!;
-    if (!_isStarted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(behavior: SnackBarBehavior.floating, content: Text(l10n.sessionStartFirst)),
-      );
-      return;
-    }
     final result = await Navigator.of(context).push<CameraTrackingResult>(
       MaterialPageRoute(
         builder: (_) => CameraTrackingPage(exerciseName: exerciseName),
@@ -145,13 +168,6 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
 
   void _completeCurrent() {
     final l10n = AppLocalizations.of(context)!;
-    if (!_isStarted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(behavior: SnackBarBehavior.floating, content: Text(l10n.sessionStartFirst)),
-      );
-      return;
-    }
-    final names = widget.plan.exerciseNames;
     if (_logsByIndex.containsKey(_index)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(behavior: SnackBarBehavior.floating, content: Text(l10n.sessionExerciseAlreadyLogged)),
@@ -160,12 +176,14 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     }
     final s = int.tryParse(_setsController.text.trim()) ?? 0;
     final r = int.tryParse(_repsController.text.trim()) ?? 0;
+    final rest = int.tryParse(_restController.text.trim()) ?? 60;
     if (s <= 0 || r <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(behavior: SnackBarBehavior.floating, content: Text(l10n.sessionValidationSetsReps)),
       );
       return;
     }
+    final names = widget.plan.exerciseNames;
     final name = names[_index];
     final id = '${widget.plan.id}_$_index';
     final cat = SessionCalorieEstimator.categoryKeyForName(name);
@@ -186,7 +204,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     );
     widget.analytics.onExerciseLogged(index: _index, sets: s, reps: r);
     setState(() {
-      _saved[_index] = (sets: s, reps: r);
+      _saved[_index] = (sets: s, reps: r, restSec: rest);
       _logsByIndex[_index] = log;
       if (_index < names.length - 1) {
         _index++;
@@ -198,35 +216,36 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
 
   void _finishWorkout() {
     final l10n = AppLocalizations.of(context)!;
-    if (!_isStarted || _startedAt == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(behavior: SnackBarBehavior.floating, content: Text(l10n.sessionStartFirst)),
-      );
-      return;
-    }
+    if (_startedAt == null) return;
     _flushInputsToSaved();
     final names = widget.plan.exerciseNames;
     final finishedAt = DateTime.now();
-    final elapsed = finishedAt.difference(_startedAt!).inMinutes.clamp(1, 999);
+    final elapsedSeconds = finishedAt.difference(_startedAt!).inSeconds.clamp(1, 86400);
+    final elapsedMinutes = (elapsedSeconds / 60).ceil().clamp(1, 999);
     final ordered = <CompletedExerciseLog>[];
     for (var i = 0; i < names.length; i++) {
       final log = _logsByIndex[i];
       if (log != null) ordered.add(log);
     }
-    final totalKcal = SessionCalorieEstimator.sessionKcalFromLogs(
+    final logKcal = ordered.fold<int>(0, (sum, log) => sum + log.estimatedCalories);
+    final timeKcal = SessionCalorieEstimator.sessionKcalFromLogs(
       weightKg: widget.profile.weightKg,
       difficulty: widget.plan.difficulty,
-      durationMinutes: elapsed,
+      durationMinutes: elapsedMinutes,
       exerciseCount: names.length,
       logs: ordered,
     );
+    final totalKcal = ordered.isEmpty
+        ? timeKcal
+        : ((logKcal * 0.65) + (timeKcal * 0.35)).round().clamp(logKcal, logKcal + timeKcal);
     widget.analytics.onSessionFinished(finishedAt.difference(_startedAt!));
+    _summaryElapsedSeconds = elapsedSeconds;
     _summary = WorkoutCompletion(
       id: finishedAt.microsecondsSinceEpoch.toString(),
       title: widget.plan.name,
       workoutType: l10n.workoutTypePlannedSession,
       completedAt: finishedAt,
-      durationMinutes: elapsed,
+      durationMinutes: elapsedMinutes,
       calories: totalKcal,
       exerciseNames: List<String>.from(names),
       exerciseLogs: ordered,
@@ -240,6 +259,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     if (_showSummary) {
       return _SessionSummaryView(
         completion: _summary,
+        elapsedSeconds: _summaryElapsedSeconds,
         onClose: () {
           widget.onFinished(_summary);
           Navigator.of(context).pop();
@@ -248,139 +268,141 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     }
 
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context).textTheme;
     final names = widget.plan.exerciseNames;
     final current = names[_index];
+    final entry = WorkoutExerciseCatalog.entryForName(current);
+    final imageAsset = entry?.imageAsset;
+    final parsedSets = int.tryParse(_setsController.text.trim()) ?? 0;
+    final parsedReps = int.tryParse(_repsController.text.trim()) ?? 0;
+    final parsedRest = int.tryParse(_restController.text.trim()) ?? 60;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(l10n.sessionActiveTitle),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+    return PremiumBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
+          title: Text(
+            '${_index + 1}/${names.length}',
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 14),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: PremiumColors.surfaceRaised,
+                    borderRadius: BorderRadius.circular(PremiumRadii.pill),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  ),
+                  child: Text(
+                    _elapsedLabel,
+                    style: const TextStyle(
+                      color: PremiumColors.accentBlue,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        body: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: ListView(
                   physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
                   keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   children: [
+                    _ExercisePhotoFrame(imageAsset: imageAsset, label: current),
+                    const SizedBox(height: 14),
                     Text(
-                      widget.plan.name,
-                      style: theme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                      current,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                    if (entry != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        entry.description,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: PremiumColors.textSecondary,
+                          fontSize: 13,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    Row(
                       children: [
-                        DifficultyBadge(difficulty: widget.plan.difficulty),
-                        _ChipMeta(
-                          icon: Icons.timer_outlined,
-                          label: _isStarted
-                              ? l10n.sessionTimerRunning
-                              : l10n.minutesPlanShort(widget.plan.durationMinutes),
+                        Expanded(
+                          child: _StatBubble(
+                            label: l10n.labelSets,
+                            value: parsedSets > 0 ? '$parsedSets' : '-',
+                            color: PremiumColors.successGreen,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _StatBubble(
+                            label: l10n.labelReps,
+                            value: parsedReps > 0 ? '$parsedReps' : '-',
+                            color: PremiumColors.accentBlue,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _StatBubble(
+                            label: 'Rest',
+                            value: '${parsedRest}s',
+                            color: const Color(0xFFFF8A65),
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    if (!_isStarted)
-                      _StartSessionCard(
-                        title: l10n.sessionStartTitle,
-                        body: l10n.sessionStartBody,
-                        buttonLabel: l10n.sessionStartButton,
-                        onStart: _startSession,
-                      ),
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.sessionCurrentExercise,
-                      style: theme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textMuted,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(child: _SessionField(controller: _setsController, label: l10n.labelSets)),
+                        const SizedBox(width: 10),
+                        Expanded(child: _SessionField(controller: _repsController, label: l10n.labelReps)),
+                        const SizedBox(width: 10),
+                        Expanded(child: _SessionField(controller: _restController, label: 'Rest (s)')),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Material(
-                      color: AppColors.surface,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: const BorderSide(color: AppColors.borderSubtle),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              current,
-                              style: theme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _setsController,
-                                    decoration: InputDecoration(
-                                      labelText: l10n.labelSets,
-                                      filled: true,
-                                      fillColor: AppColors.background,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                    onChanged: (_) => setState(() {}),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _repsController,
-                                    decoration: InputDecoration(
-                                      labelText: l10n.labelReps,
-                                      filled: true,
-                                      fillColor: AppColors.background,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                    onChanged: (_) => setState(() {}),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            OutlinedButton.icon(
-                              onPressed: _isStarted && _isCameraSupportedFor(current)
-                                  ? () => _openCameraTracking(current)
-                                  : null,
-                              icon: const Icon(Icons.videocam_outlined),
-                              label: Text(l10n.sessionCameraTracking),
-                            ),
-                          ],
+                    const SizedBox(height: 12),
+                    if (_isCameraSupportedFor(current))
+                      OutlinedButton.icon(
+                        onPressed: () => _openCameraTracking(current),
+                        icon: const Icon(Icons.videocam_outlined, size: 18),
+                        label: Text(l10n.sessionCameraTracking),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: PremiumColors.accentBlue,
+                          side: BorderSide(color: PremiumColors.accentBlue.withValues(alpha: 0.5)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(PremiumRadii.md),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
                     Text(
                       l10n.sessionAllExercises,
-                      style: theme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textMuted,
+                      style: const TextStyle(
+                        color: PremiumColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -396,41 +418,52 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _completeCurrent,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    _index >= names.length - 1 ? l10n.sessionCompleteFinal : l10n.sessionCompleteExercise,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: _finishWorkout,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    l10n.sessionFinishWorkout,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: _completeCurrent,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: PremiumColors.accentBlue,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(54),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(PremiumRadii.md),
+                            ),
+                          ),
+                          child: Text(
+                            _index >= names.length - 1
+                                ? l10n.sessionCompleteFinal
+                                : l10n.sessionCompleteExercise,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: _finishWorkout,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: PremiumColors.textSecondary,
+                            side: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+                            minimumSize: const Size.fromHeight(50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(PremiumRadii.md),
+                            ),
+                          ),
+                          child: Text(
+                            l10n.sessionFinishWorkout,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -442,32 +475,96 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
   }
 }
 
-class _ChipMeta extends StatelessWidget {
-  const _ChipMeta({required this.icon, required this.label});
+class _ExercisePhotoFrame extends StatelessWidget {
+  const _ExercisePhotoFrame({
+    required this.imageAsset,
+    required this.label,
+  });
 
-  final IconData icon;
+  final String? imageAsset;
   final String label;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      height: 210,
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.successTint.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.borderSubtle),
+        color: PremiumColors.surface,
+        borderRadius: BorderRadius.circular(PremiumRadii.lg),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(PremiumRadii.lg),
+        child: imageAsset == null
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.fitness_center_rounded, color: PremiumColors.accentBlue, size: 48),
+                    const SizedBox(height: 8),
+                    Text(label, style: const TextStyle(color: PremiumColors.textSecondary, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.all(12),
+                child: Image.asset(
+                  imageAsset!,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.center,
+                  filterQuality: FilterQuality.high,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+class _StatBubble extends StatelessWidget {
+  const _StatBubble({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: PremiumColors.surface,
+        borderRadius: BorderRadius.circular(PremiumRadii.md),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, size: 16, color: AppColors.primary),
-          const SizedBox(width: 6),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: color,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
           Text(
             label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primaryDark,
-                ),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: PremiumColors.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -475,62 +572,37 @@ class _ChipMeta extends StatelessWidget {
   }
 }
 
-class _StartSessionCard extends StatelessWidget {
-  const _StartSessionCard({
-    required this.title,
-    required this.body,
-    required this.buttonLabel,
-    required this.onStart,
-  });
+class _SessionField extends StatelessWidget {
+  const _SessionField({required this.controller, required this.label});
 
-  final String title;
-  final String body;
-  final String buttonLabel;
-  final VoidCallback onStart;
+  final TextEditingController controller;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
-    return Material(
-      color: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.borderSubtle),
+    return TextField(
+      controller: controller,
+      textAlign: TextAlign.center,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: theme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              body,
-              style: theme.bodyMedium?.copyWith(color: AppColors.textSecondary, height: 1.35),
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: onStart,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(buttonLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: PremiumColors.textMuted, fontSize: 11),
+        filled: true,
+        fillColor: PremiumColors.surface,
+        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(PremiumRadii.md),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(PremiumRadii.md),
+          borderSide: const BorderSide(color: PremiumColors.accentBlue, width: 1.4),
         ),
       ),
     );
@@ -552,28 +624,58 @@ class _ExerciseListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
+    final imageAsset = WorkoutExerciseCatalog.imageForName(title);
+
     return Material(
-      color: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: active ? AppColors.primary : AppColors.borderSubtle,
-          width: active ? 1.4 : 1,
-        ),
-      ),
-      child: ListTile(
+      color: active ? PremiumColors.surfaceRaised : PremiumColors.surface,
+      borderRadius: BorderRadius.circular(PremiumRadii.md),
+      child: InkWell(
         onTap: onTap,
-        title: Text(
-          title,
-          style: theme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+        borderRadius: BorderRadius.circular(PremiumRadii.md),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(PremiumRadii.md),
+            border: Border.all(
+              color: active
+                  ? PremiumColors.accentBlue.withValues(alpha: 0.8)
+                  : Colors.white.withValues(alpha: 0.1),
+              width: active ? 1.4 : 1,
+            ),
           ),
-        ),
-        trailing: Icon(
-          done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-          color: done ? AppColors.primary : AppColors.textMuted,
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: imageAsset == null
+                      ? Container(
+                          color: PremiumColors.accentBlue.withValues(alpha: 0.16),
+                          child: const Icon(Icons.fitness_center_rounded, color: PremiumColors.accentBlue, size: 18),
+                        )
+                      : Image.asset(imageAsset, fit: BoxFit.cover),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              Icon(
+                done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                color: done ? PremiumColors.successGreen : PremiumColors.textMuted,
+                size: 20,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -583,103 +685,170 @@ class _ExerciseListTile extends StatelessWidget {
 class _SessionSummaryView extends StatelessWidget {
   const _SessionSummaryView({
     required this.completion,
+    required this.elapsedSeconds,
     required this.onClose,
   });
 
   final WorkoutCompletion completion;
+  final int elapsedSeconds;
   final VoidCallback onClose;
+
+  String _formatDuration(int seconds) {
+    if (seconds < 60) return '${seconds}s';
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    if (s == 0) return '$m min';
+    return '${m}m ${s}s';
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context).textTheme;
+    final heroName = completion.exerciseLogs.isNotEmpty
+        ? completion.exerciseLogs.first.exerciseName
+        : (completion.exerciseNames.isNotEmpty ? completion.exerciseNames.first : completion.title);
+    final heroImage = WorkoutExerciseCatalog.imageForName(heroName);
+    final logKcal = completion.exerciseLogs.fold<int>(0, (sum, log) => sum + log.estimatedCalories);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(l10n.sessionSummaryTitle),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+    return PremiumBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
+          title: Text(l10n.sessionSummaryTitle),
+        ),
+        body: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Material(
-                color: AppColors.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  side: const BorderSide(color: AppColors.borderSubtle),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(18, 4, 18, 12),
+                  physics: const BouncingScrollPhysics(),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        completion.title,
-                        style: theme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: PremiumColors.surface,
+                          borderRadius: BorderRadius.circular(PremiumRadii.lg),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(PremiumRadii.md),
+                              child: SizedBox(
+                                height: 120,
+                                child: heroImage == null
+                                    ? Container(
+                                        color: PremiumColors.surfaceRaised,
+                                        child: const Icon(
+                                          Icons.fitness_center_rounded,
+                                          color: PremiumColors.accentBlue,
+                                          size: 40,
+                                        ),
+                                      )
+                                    : Padding(
+                                        padding: const EdgeInsets.all(8),
+                                        child: Image.asset(
+                                          heroImage,
+                                          fit: BoxFit.contain,
+                                          filterQuality: FilterQuality.high,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              completion.title,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _SummaryTile(
+                                    label: l10n.sessionSummaryDuration,
+                                    value: _formatDuration(elapsedSeconds),
+                                    icon: Icons.schedule_rounded,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _SummaryTile(
+                                    label: l10n.sessionSummaryCalories,
+                                    value: l10n.sessionCaloriesUnit(completion.calories),
+                                    icon: Icons.local_fire_department_outlined,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (logKcal > 0) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                'Exercise volume: $logKcal kcal · Session total: ${completion.calories} kcal',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: PremiumColors.textMuted,
+                                  fontSize: 11,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                            if (completion.caloriesAreEstimated) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                l10n.sessionCaloriesEstimateNote,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: PremiumColors.textMuted,
+                                  fontSize: 11,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _SummaryTile(
-                              label: l10n.sessionSummaryDuration,
-                              value: l10n.minutesShort(completion.durationMinutes),
-                              icon: Icons.schedule_rounded,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _SummaryTile(
-                              label: l10n.sessionSummaryCalories,
-                              value: l10n.sessionCaloriesUnit(completion.calories),
-                              icon: Icons.local_fire_department_outlined,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (completion.caloriesAreEstimated) ...[
-                        const SizedBox(height: 10),
-                        Text(
-                          l10n.sessionCaloriesEstimateNote,
-                          style: theme.bodySmall?.copyWith(color: AppColors.textMuted, height: 1.35),
-                        ),
-                      ],
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
                       Text(
                         l10n.sessionCompletedExercises,
-                        style: theme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textMuted,
+                        style: const TextStyle(
+                          color: PremiumColors.textSecondary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      ..._buildExerciseLines(context, l10n),
+                      const SizedBox(height: 8),
+                      ..._buildExerciseLines(l10n),
                     ],
                   ),
                 ),
               ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
                 child: FilledButton(
                   onPressed: onClose,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: PremiumColors.accentBlue,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(PremiumRadii.md),
                     ),
                   ),
                   child: Text(
                     l10n.sessionDone,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
               ),
@@ -690,64 +859,89 @@ class _SessionSummaryView extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildExerciseLines(BuildContext context, AppLocalizations l10n) {
-    final theme = Theme.of(context).textTheme;
+  List<Widget> _buildExerciseLines(AppLocalizations l10n) {
     if (completion.exerciseLogs.isEmpty) {
       return completion.exerciseNames
           .map(
-            (n) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_rounded, color: AppColors.primary, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      n,
-                      style: theme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            (n) => _SummaryExerciseRow(
+              name: n,
+              detail: null,
+              imageAsset: WorkoutExerciseCatalog.imageForName(n),
             ),
           )
           .toList();
     }
     return completion.exerciseLogs
         .map(
-          (log) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.check_rounded, color: AppColors.primary, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        log.exerciseName,
-                        style: theme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        l10n.historySetsRepsDetail(log.setsCompleted, log.repsCompleted),
-                        style: theme.bodySmall?.copyWith(color: AppColors.textMuted),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          (log) => _SummaryExerciseRow(
+            name: log.exerciseName,
+            detail: l10n.historySetsRepsDetail(log.setsCompleted, log.repsCompleted),
+            imageAsset: WorkoutExerciseCatalog.imageForName(log.exerciseName),
+            kcal: log.estimatedCalories,
           ),
         )
         .toList();
+  }
+}
+
+class _SummaryExerciseRow extends StatelessWidget {
+  const _SummaryExerciseRow({
+    required this.name,
+    required this.imageAsset,
+    this.detail,
+    this.kcal,
+  });
+
+  final String name;
+  final String? detail;
+  final String? imageAsset;
+  final int? kcal;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: PremiumColors.surface,
+        borderRadius: BorderRadius.circular(PremiumRadii.md),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: imageAsset == null
+                  ? Container(
+                      color: PremiumColors.accentBlue.withValues(alpha: 0.16),
+                      child: const Icon(Icons.fitness_center_rounded, color: PremiumColors.accentBlue, size: 18),
+                    )
+                  : Image.asset(imageAsset!, fit: BoxFit.cover),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+                if (detail != null)
+                  Text(detail!, style: const TextStyle(color: PremiumColors.textMuted, fontSize: 12)),
+                if (kcal != null)
+                  Text('$kcal kcal', style: const TextStyle(color: PremiumColors.accentBlue, fontSize: 11)),
+              ],
+            ),
+          ),
+          const Icon(Icons.check_circle_rounded, color: PremiumColors.successGreen, size: 18),
+        ],
+      ),
+    );
   }
 }
 
@@ -764,26 +958,27 @@ class _SummaryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderSubtle),
+        color: PremiumColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(PremiumRadii.md),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, color: AppColors.primary, size: 20),
-          const SizedBox(height: 8),
-          Text(label, style: theme.labelSmall?.copyWith(color: AppColors.textMuted)),
-          const SizedBox(height: 4),
+          Icon(icon, color: PremiumColors.accentBlue, size: 18),
+          const SizedBox(height: 6),
+          Text(label, textAlign: TextAlign.center, style: const TextStyle(color: PremiumColors.textMuted, fontSize: 10)),
+          const SizedBox(height: 3),
           Text(
             value,
-            style: theme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
             ),
           ),
         ],
