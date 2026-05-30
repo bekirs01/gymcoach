@@ -241,7 +241,7 @@ class HomeFeaturedTrainingCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Image.asset(
-              'assets/workout_categories/chest.jpg',
+              'assets/workout_categories/home_banner.jpg',
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => const DecoratedBox(
                 decoration: BoxDecoration(
@@ -677,30 +677,6 @@ class _HomeWorkoutBuilderPanelState extends State<HomeWorkoutBuilderPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Training Days',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
-                ),
-              ),
-            ),
-            IconButton(
-              onPressed: _openComposer,
-              icon: const Icon(Icons.add_rounded, color: PremiumColors.accentBlue),
-              style: IconButton.styleFrom(
-                backgroundColor: PremiumColors.surfaceRaised,
-                shape: const CircleBorder(),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
         if (widget.plans.isEmpty)
           _WorkoutEmptyState(onCreate: _openComposer),
         if (widget.plans.isNotEmpty) ...[
@@ -1084,6 +1060,52 @@ class _WorkoutEmptyState extends StatelessWidget {
   }
 }
 
+int _workoutProgressPercent(WorkoutPlan plan) {
+  return plan.status == PlanStatus.completed ? 100 : 0;
+}
+
+class _WorkoutProgressRing extends StatelessWidget {
+  const _WorkoutProgressRing({required this.percent});
+
+  final int percent;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = percent / 100.0;
+    final color = percent >= 100
+        ? const Color(0xFF34C759)
+        : const Color(0xFFFF453A);
+
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 44,
+            height: 44,
+            child: CircularProgressIndicator(
+              value: progress,
+              strokeWidth: 3,
+              backgroundColor: Colors.white.withValues(alpha: 0.12),
+              color: color,
+            ),
+          ),
+          Text(
+            '$percent%',
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _WorkoutPlanTile extends StatelessWidget {
   const _WorkoutPlanTile({
     required this.plan,
@@ -1100,64 +1122,85 @@ class _WorkoutPlanTile extends StatelessWidget {
     final imageAsset = _imageForExerciseName(plan.exerciseNames.isEmpty
         ? null
         : plan.exerciseNames.first);
+    final progressPercent = _workoutProgressPercent(plan);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: PremiumColors.surface,
-        borderRadius: BorderRadius.circular(PremiumRadii.md),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: ListTile(
+    return Material(
+      color: PremiumColors.surface,
+      borderRadius: BorderRadius.circular(PremiumRadii.md),
+      child: InkWell(
         onTap: onOpen,
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: SizedBox(
-            width: 56,
-            height: 56,
-            child: imageAsset == null
-                ? Container(
-                    color: PremiumColors.accentBlue.withValues(alpha: 0.16),
-                    child: const Icon(
-                      Icons.fitness_center_rounded,
-                      color: PremiumColors.accentBlue,
-                    ),
-                  )
-                : Image.asset(
-                    imageAsset,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
-                      color: PremiumColors.accentBlue.withValues(alpha: 0.16),
-                      child: const Icon(
-                        Icons.fitness_center_rounded,
-                        color: PremiumColors.accentBlue,
+        borderRadius: BorderRadius.circular(PremiumRadii.md),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(PremiumRadii.md),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          ),
+          padding: const EdgeInsets.fromLTRB(10, 10, 4, 10),
+          child: Row(
+            children: [
+              _WorkoutProgressRing(percent: progressPercent),
+              const SizedBox(width: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: imageAsset == null
+                      ? Container(
+                          color: PremiumColors.accentBlue.withValues(alpha: 0.16),
+                          child: const Icon(
+                            Icons.fitness_center_rounded,
+                            color: PremiumColors.accentBlue,
+                          ),
+                        )
+                      : Image.asset(
+                          imageAsset,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => Container(
+                            color: PremiumColors.accentBlue.withValues(alpha: 0.16),
+                            child: const Icon(
+                              Icons.fitness_center_rounded,
+                              color: PremiumColors.accentBlue,
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      plan.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${plan.exerciseNames.length} exercises · ${plan.formattedTime}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: PremiumColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: onStart,
+                icon: const Icon(Icons.play_arrow_rounded),
+                color: PremiumColors.accentBlue,
+              ),
+            ],
           ),
-        ),
-        title: Text(
-          plan.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        subtitle: Text(
-          '${plan.exerciseNames.length} exercises · ${plan.formattedTime}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: PremiumColors.textSecondary,
-            fontSize: 12,
-          ),
-        ),
-        trailing: IconButton(
-          onPressed: onStart,
-          icon: const Icon(Icons.play_arrow_rounded),
-          color: PremiumColors.accentBlue,
         ),
       ),
     );
@@ -1396,6 +1439,7 @@ class _MuscleCategoryCard extends StatelessWidget {
             Image.asset(
               category.imageAsset,
               fit: BoxFit.cover,
+              filterQuality: FilterQuality.high,
               errorBuilder: (_, _, _) => DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -1500,7 +1544,7 @@ class _ExerciseCategory {
 const _exerciseCategories = [
   _ExerciseCategory(
     title: 'Chest',
-    imageAsset: 'assets/workout_exercises/chest_bench_press.jpg',
+    imageAsset: 'assets/workout_categories/chest.jpg',
     icon: Icons.accessibility_new_rounded,
     startColor: Color(0xFF0B3344),
     endColor: Color(0xFF12263A),
@@ -1524,7 +1568,7 @@ const _exerciseCategories = [
   ),
   _ExerciseCategory(
     title: 'Back',
-    imageAsset: 'assets/workout_exercises/back_lat_pulldown.jpg',
+    imageAsset: 'assets/workout_categories/back.jpg',
     icon: Icons.self_improvement_rounded,
     startColor: Color(0xFF123A42),
     endColor: Color(0xFF13283A),
@@ -1553,7 +1597,7 @@ const _exerciseCategories = [
   ),
   _ExerciseCategory(
     title: 'Legs',
-    imageAsset: 'assets/workout_exercises/legs_squat.jpg',
+    imageAsset: 'assets/workout_categories/legs.jpg',
     icon: Icons.directions_run_rounded,
     startColor: Color(0xFF25394F),
     endColor: Color(0xFF172338),
@@ -1577,7 +1621,7 @@ const _exerciseCategories = [
   ),
   _ExerciseCategory(
     title: 'Glutes',
-    imageAsset: 'assets/workout_exercises/glutes_bridge.jpg',
+    imageAsset: 'assets/workout_categories/glutes.jpg',
     icon: Icons.fitness_center_rounded,
     startColor: Color(0xFF3A2B4A),
     endColor: Color(0xFF1C2438),
@@ -1606,7 +1650,7 @@ const _exerciseCategories = [
   ),
   _ExerciseCategory(
     title: 'Shoulders',
-    imageAsset: 'assets/workout_exercises/shoulders_press.jpg',
+    imageAsset: 'assets/workout_categories/shoulders.jpg',
     icon: Icons.sports_gymnastics_rounded,
     startColor: Color(0xFF3B344A),
     endColor: Color(0xFF172235),
@@ -1635,7 +1679,7 @@ const _exerciseCategories = [
   ),
   _ExerciseCategory(
     title: 'Arms',
-    imageAsset: 'assets/workout_exercises/arms_biceps_curl.jpg',
+    imageAsset: 'assets/workout_categories/arms.jpg',
     icon: Icons.sports_martial_arts_rounded,
     startColor: Color(0xFF44302E),
     endColor: Color(0xFF1B2635),
@@ -1659,7 +1703,7 @@ const _exerciseCategories = [
   ),
   _ExerciseCategory(
     title: 'Core',
-    imageAsset: 'assets/workout_exercises/core_plank.jpg',
+    imageAsset: 'assets/workout_categories/core.jpg',
     icon: Icons.blur_circular_rounded,
     startColor: Color(0xFF2D3E34),
     endColor: Color(0xFF172337),
@@ -1688,7 +1732,7 @@ const _exerciseCategories = [
   ),
   _ExerciseCategory(
     title: 'Cardio',
-    imageAsset: 'assets/workout_exercises/cardio_burpee.jpg',
+    imageAsset: 'assets/workout_categories/cardio.jpg',
     icon: Icons.monitor_heart_rounded,
     startColor: Color(0xFF274458),
     endColor: Color(0xFF142236),

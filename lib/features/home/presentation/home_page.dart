@@ -133,6 +133,27 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: AppSpacing.md),
 
               if (_topTab == 1) ...[
+                HomeFeaturedTrainingCard(
+                  eyebrow: l10n.homeMyTraining,
+                  title: featured?.name ?? l10n.homeFeaturedEmptyTitle,
+                  subtitle: featured != null
+                      ? l10n.homeCompletedSessions(sessionCount)
+                      : l10n.homeFeaturedEmptySubtitle,
+                  onTap: () {
+                    if (featured != null) {
+                      widget.onOpenPlanDetail(featured);
+                    }
+                  },
+                  onShare: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        content: Text(featured?.name ?? l10n.homeFeaturedEmptyTitle),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: AppSpacing.md),
                 HomeWorkoutBuilderPanel(
                   plans: widget.plans,
                   onAddPlan: widget.onAddPlan,
