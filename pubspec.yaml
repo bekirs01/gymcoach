@@ -71,6 +71,7 @@ flutter:
   assets:
     - .env.example
     - assets/workout_categories/
+    - assets/workout_exercises/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

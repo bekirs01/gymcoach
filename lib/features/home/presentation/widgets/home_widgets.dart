@@ -654,57 +654,26 @@ class HomeWorkoutBuilderPanel extends StatefulWidget {
 }
 
 class _HomeWorkoutBuilderPanelState extends State<HomeWorkoutBuilderPanel> {
-  final _nameController = TextEditingController();
-  final Set<String> _selectedExercises = {};
-  var _selectedCategory = _exerciseCategories.first;
-  var _showComposer = false;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
-  }
-
-  void _toggleExercise(String exercise) {
-    setState(() {
-      if (_selectedExercises.contains(exercise)) {
-        _selectedExercises.remove(exercise);
-      } else {
-        _selectedExercises.add(exercise);
-      }
-    });
-  }
-
-  void _saveWorkout() {
-    final name = _nameController.text.trim();
-    if (name.isEmpty || _selectedExercises.isEmpty) return;
-
-    final now = DateTime.now();
-    widget.onAddPlan(
-      WorkoutPlan(
-        id: now.microsecondsSinceEpoch.toString(),
-        name: name,
-        scheduledDate: WorkoutPlan.dateOnly(now),
-        scheduledTime: TimeOfDay.now(),
-        durationMinutes: 45,
-        difficulty: PlanDifficulty.intermediate,
-        exerciseNames: _selectedExercises.toList()..sort(),
-        status: PlanStatus.planned,
-      ),
+  Future<void> _openComposer() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.72),
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+          ),
+          child: _WorkoutComposerSheet(onAddPlan: widget.onAddPlan),
+        );
+      },
     );
-
-    setState(() {
-      _nameController.clear();
-      _selectedExercises.clear();
-      _showComposer = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final canSave =
-        _nameController.text.trim().isNotEmpty && _selectedExercises.isNotEmpty;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -722,11 +691,8 @@ class _HomeWorkoutBuilderPanelState extends State<HomeWorkoutBuilderPanel> {
               ),
             ),
             IconButton(
-              onPressed: () => setState(() => _showComposer = !_showComposer),
-              icon: Icon(
-                _showComposer ? Icons.close_rounded : Icons.add_rounded,
-                color: PremiumColors.accentBlue,
-              ),
+              onPressed: _openComposer,
+              icon: const Icon(Icons.add_rounded, color: PremiumColors.accentBlue),
               style: IconButton.styleFrom(
                 backgroundColor: PremiumColors.surfaceRaised,
                 shape: const CircleBorder(),
@@ -735,9 +701,9 @@ class _HomeWorkoutBuilderPanelState extends State<HomeWorkoutBuilderPanel> {
           ],
         ),
         const SizedBox(height: 12),
-        if (!_showComposer && widget.plans.isEmpty)
-          _WorkoutEmptyState(onCreate: () => setState(() => _showComposer = true)),
-        if (!_showComposer && widget.plans.isNotEmpty) ...[
+        if (widget.plans.isEmpty)
+          _WorkoutEmptyState(onCreate: _openComposer),
+        if (widget.plans.isNotEmpty) ...[
           for (final plan in widget.plans.take(4)) ...[
             _WorkoutPlanTile(
               plan: plan,
@@ -750,7 +716,7 @@ class _HomeWorkoutBuilderPanelState extends State<HomeWorkoutBuilderPanel> {
           Align(
             alignment: Alignment.centerRight,
             child: FilledButton.icon(
-              onPressed: () => setState(() => _showComposer = true),
+              onPressed: _openComposer,
               icon: const Icon(Icons.add_rounded),
               label: const Text('Add workout'),
               style: FilledButton.styleFrom(
@@ -763,104 +729,300 @@ class _HomeWorkoutBuilderPanelState extends State<HomeWorkoutBuilderPanel> {
             ),
           ),
         ],
-        if (_showComposer) ...[
-          TextField(
-            controller: _nameController,
-            onChanged: (_) => setState(() {}),
-            textCapitalization: TextCapitalization.words,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Enter workout name...',
-              hintStyle: TextStyle(
-                color: PremiumColors.textMuted.withValues(alpha: 0.8),
-              ),
-              filled: true,
-              fillColor: PremiumColors.surface,
-              prefixIcon: const Icon(
-                Icons.edit_note_rounded,
-                color: PremiumColors.textSecondary,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(PremiumRadii.md),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(PremiumRadii.md),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(PremiumRadii.md),
-                borderSide: const BorderSide(color: PremiumColors.accentBlue),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 126,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: _exerciseCategories.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 10),
-              itemBuilder: (context, index) {
-                final category = _exerciseCategories[index];
-                return _MuscleCategoryCard(
-                  category: category,
-                  selected: category == _selectedCategory,
-                  onTap: () => setState(() => _selectedCategory = category),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final exercise in _selectedCategory.exercises)
-                _ExerciseChoiceChip(
-                  label: exercise,
-                  selected: _selectedExercises.contains(exercise),
-                  onTap: () => _toggleExercise(exercise),
+      ],
+    );
+  }
+}
+
+class _WorkoutComposerSheet extends StatefulWidget {
+  const _WorkoutComposerSheet({required this.onAddPlan});
+
+  final ValueChanged<WorkoutPlan> onAddPlan;
+
+  @override
+  State<_WorkoutComposerSheet> createState() => _WorkoutComposerSheetState();
+}
+
+class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
+  final _nameController = TextEditingController();
+  final Set<String> _selectedExerciseNames = {};
+  var _selectedCategory = _exerciseCategories.first;
+  var _step = _WorkoutBuildStep.category;
+
+  List<_ExerciseItem> get _selectedExercises {
+    return _exerciseCategories
+        .expand((category) => category.exercises)
+        .where((exercise) => _selectedExerciseNames.contains(exercise.name))
+        .toList();
+  }
+
+  String get _title {
+    return switch (_step) {
+      _WorkoutBuildStep.category => 'Choose muscle group',
+      _WorkoutBuildStep.exercises => _selectedCategory.title,
+      _WorkoutBuildStep.details => 'Name your workout',
+    };
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void _toggleExercise(_ExerciseItem exercise) {
+    setState(() {
+      if (_selectedExerciseNames.contains(exercise.name)) {
+        _selectedExerciseNames.remove(exercise.name);
+      } else {
+        _selectedExerciseNames.add(exercise.name);
+      }
+    });
+  }
+
+  void _saveWorkout() {
+    final name = _nameController.text.trim();
+    if (name.isEmpty || _selectedExerciseNames.isEmpty) return;
+
+    final now = DateTime.now();
+    widget.onAddPlan(
+      WorkoutPlan(
+        id: now.microsecondsSinceEpoch.toString(),
+        name: name,
+        scheduledDate: WorkoutPlan.dateOnly(now),
+        scheduledTime: TimeOfDay.now(),
+        durationMinutes: 45,
+        difficulty: PlanDifficulty.intermediate,
+        exerciseNames: _selectedExerciseNames.toList()..sort(),
+        status: PlanStatus.planned,
+      ),
+    );
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final height = MediaQuery.sizeOf(context).height * 0.92;
+
+    return Container(
+      height: height,
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        color: PremiumColors.midnightMid,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 8),
+            child: Row(
+              children: [
+                if (_step != _WorkoutBuildStep.category)
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _step = _step == _WorkoutBuildStep.details
+                            ? _WorkoutBuildStep.exercises
+                            : _WorkoutBuildStep.category;
+                      });
+                    },
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    color: PremiumColors.accentBlue,
+                  )
+                else
+                  const SizedBox(width: 48),
+                Expanded(
+                  child: Text(
+                    _title,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
                 ),
-            ],
-          ),
-          if (_selectedExercises.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Text(
-              'Selected: ${_selectedExercises.length}',
-              style: const TextStyle(
-                color: PremiumColors.accentBlue,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: canSave ? _saveWorkout : null,
-            icon: const Icon(Icons.check_rounded),
-            label: const Text('Save workout'),
-            style: FilledButton.styleFrom(
-              backgroundColor: PremiumColors.accentBlue,
-              disabledBackgroundColor: PremiumColors.surfaceRaised,
-              foregroundColor: Colors.white,
-              disabledForegroundColor: PremiumColors.textMuted,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(PremiumRadii.md),
-              ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                  color: PremiumColors.textSecondary,
+                ),
+              ],
             ),
           ),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              child: _buildStep(),
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
+              child: _buildBottomAction(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep() {
+    return switch (_step) {
+      _WorkoutBuildStep.category => _buildCategoryStep(),
+      _WorkoutBuildStep.exercises => _buildExerciseStep(),
+      _WorkoutBuildStep.details => _buildDetailsStep(),
+    };
+  }
+
+  Widget _buildBottomAction() {
+    return switch (_step) {
+      _WorkoutBuildStep.category => FilledButton(
+          onPressed: () => setState(() => _step = _WorkoutBuildStep.exercises),
+          style: _primaryButtonStyle(),
+          child: const Text('Continue'),
+        ),
+      _WorkoutBuildStep.exercises => FilledButton(
+          onPressed: _selectedExerciseNames.isEmpty
+              ? null
+              : () => setState(() => _step = _WorkoutBuildStep.details),
+          style: _primaryButtonStyle(),
+          child: Text(
+            _selectedExerciseNames.isEmpty
+                ? 'Select exercises'
+                : 'Continue (${_selectedExerciseNames.length})',
+          ),
+        ),
+      _WorkoutBuildStep.details => FilledButton.icon(
+          onPressed: _nameController.text.trim().isEmpty || _selectedExerciseNames.isEmpty
+              ? null
+              : _saveWorkout,
+          icon: const Icon(Icons.check_rounded),
+          label: const Text('Save workout'),
+          style: _primaryButtonStyle(),
+        ),
+    };
+  }
+
+  ButtonStyle _primaryButtonStyle() {
+    return FilledButton.styleFrom(
+      backgroundColor: PremiumColors.accentBlue,
+      disabledBackgroundColor: PremiumColors.surfaceRaised,
+      foregroundColor: Colors.white,
+      disabledForegroundColor: PremiumColors.textMuted,
+      minimumSize: const Size.fromHeight(54),
+      textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(PremiumRadii.md),
+      ),
+    );
+  }
+
+  Widget _buildCategoryStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Select the area you want to train first.',
+          style: TextStyle(
+            color: PremiumColors.textSecondary,
+            fontSize: 14,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 16),
+        for (final category in _exerciseCategories) ...[
+          _MuscleCategoryCard(
+            category: category,
+            selected: category == _selectedCategory,
+            onTap: () => setState(() => _selectedCategory = category),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildExerciseStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Choose ${_selectedCategory.title.toLowerCase()} exercises. Tap a row to select and read the details.',
+          style: const TextStyle(
+            color: PremiumColors.textSecondary,
+            fontSize: 14,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 16),
+        for (final exercise in _selectedCategory.exercises) ...[
+          _ExercisePhotoCard(
+            exercise: exercise,
+            selected: _selectedExerciseNames.contains(exercise.name),
+            onTap: () => _toggleExercise(exercise),
+          ),
+          const SizedBox(height: 10),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDetailsStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _nameController,
+          onChanged: (_) => setState(() {}),
+          textCapitalization: TextCapitalization.words,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+          decoration: InputDecoration(
+            hintText: 'Enter workout name...',
+            hintStyle: TextStyle(
+              color: PremiumColors.textMuted.withValues(alpha: 0.8),
+            ),
+            filled: true,
+            fillColor: PremiumColors.surface,
+            prefixIcon: const Icon(
+              Icons.edit_note_rounded,
+              color: PremiumColors.textSecondary,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(PremiumRadii.md),
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(PremiumRadii.md),
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(PremiumRadii.md),
+              borderSide: const BorderSide(color: PremiumColors.accentBlue),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        for (final exercise in _selectedExercises) ...[
+          _SelectedExerciseSummary(exercise: exercise),
+          const SizedBox(height: 10),
         ],
       ],
     );
   }
 }
+
+enum _WorkoutBuildStep { category, exercises, details }
 
 class _WorkoutEmptyState extends StatelessWidget {
   const _WorkoutEmptyState({required this.onCreate});
@@ -935,6 +1097,10 @@ class _WorkoutPlanTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageAsset = _imageForExerciseName(plan.exerciseNames.isEmpty
+        ? null
+        : plan.exerciseNames.first);
+
     return Container(
       decoration: BoxDecoration(
         color: PremiumColors.surface,
@@ -943,16 +1109,30 @@ class _WorkoutPlanTile extends StatelessWidget {
       ),
       child: ListTile(
         onTap: onOpen,
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: PremiumColors.accentBlue.withValues(alpha: 0.16),
-          ),
-          child: const Icon(
-            Icons.fitness_center_rounded,
-            color: PremiumColors.accentBlue,
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: SizedBox(
+            width: 56,
+            height: 56,
+            child: imageAsset == null
+                ? Container(
+                    color: PremiumColors.accentBlue.withValues(alpha: 0.16),
+                    child: const Icon(
+                      Icons.fitness_center_rounded,
+                      color: PremiumColors.accentBlue,
+                    ),
+                  )
+                : Image.asset(
+                    imageAsset,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Container(
+                      color: PremiumColors.accentBlue.withValues(alpha: 0.16),
+                      child: const Icon(
+                        Icons.fitness_center_rounded,
+                        color: PremiumColors.accentBlue,
+                      ),
+                    ),
+                  ),
           ),
         ),
         title: Text(
@@ -984,6 +1164,202 @@ class _WorkoutPlanTile extends StatelessWidget {
   }
 }
 
+class _ExercisePhotoCard extends StatelessWidget {
+  const _ExercisePhotoCard({
+    required this.exercise,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _ExerciseItem exercise;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        constraints: BoxConstraints(minHeight: selected ? 138 : 104),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: PremiumColors.surface,
+          borderRadius: BorderRadius.circular(PremiumRadii.md),
+          border: Border.all(
+            color: selected
+                ? PremiumColors.accentBlue.withValues(alpha: 0.9)
+                : Colors.white.withValues(alpha: 0.1),
+            width: selected ? 1.4 : 1,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 92,
+                height: 92,
+                child: Image.asset(
+                  exercise.imageAsset,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => Container(
+                    color: PremiumColors.surfaceRaised,
+                    child: const Icon(
+                      Icons.fitness_center_rounded,
+                      color: PremiumColors.textMuted,
+                      size: 32,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          exercise.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            height: 1.12,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? PremiumColors.accentBlue
+                              : Colors.white.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: selected
+                                ? PremiumColors.accentBlue
+                                : Colors.white.withValues(alpha: 0.12),
+                          ),
+                        ),
+                        child: Icon(
+                          selected ? Icons.check_rounded : Icons.add_rounded,
+                          color: Colors.white,
+                          size: 17,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    exercise.description,
+                    maxLines: selected ? 4 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: PremiumColors.textSecondary,
+                      fontSize: 12,
+                      height: 1.3,
+                    ),
+                  ),
+                  if (selected) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Selected',
+                      style: TextStyle(
+                        color: PremiumColors.accentBlue,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectedExerciseSummary extends StatelessWidget {
+  const _SelectedExerciseSummary({required this.exercise});
+
+  final _ExerciseItem exercise;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: PremiumColors.surface,
+        borderRadius: BorderRadius.circular(PremiumRadii.md),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 58,
+              height: 58,
+              child: Image.asset(
+                exercise.imageAsset,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  color: PremiumColors.surfaceRaised,
+                  child: const Icon(
+                    Icons.fitness_center_rounded,
+                    color: PremiumColors.textMuted,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  exercise.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  exercise.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: PremiumColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MuscleCategoryCard extends StatelessWidget {
   const _MuscleCategoryCard({
     required this.category,
@@ -1001,7 +1377,8 @@ class _MuscleCategoryCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        width: 158,
+        width: double.infinity,
+        height: 138,
         padding: const EdgeInsets.all(14),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
@@ -1032,12 +1409,12 @@ class _MuscleCategoryCard extends StatelessWidget {
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
                   colors: [
-                    Colors.black.withValues(alpha: 0.05),
-                    Colors.black.withValues(alpha: 0.28),
-                    Colors.black.withValues(alpha: 0.72),
+                    Colors.black.withValues(alpha: 0.74),
+                    Colors.black.withValues(alpha: 0.34),
+                    Colors.black.withValues(alpha: 0.10),
                   ],
                 ),
               ),
@@ -1052,14 +1429,14 @@ class _MuscleCategoryCard extends StatelessWidget {
               ),
             ),
             Align(
-              alignment: Alignment.bottomLeft,
+              alignment: Alignment.centerLeft,
               child: Text(
                 category.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 24,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -1080,59 +1457,26 @@ class _MuscleCategoryCard extends StatelessWidget {
   }
 }
 
-class _ExerciseChoiceChip extends StatelessWidget {
-  const _ExerciseChoiceChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
+String? _imageForExerciseName(String? name) {
+  if (name == null) return null;
+  for (final category in _exerciseCategories) {
+    for (final exercise in category.exercises) {
+      if (exercise.name == name) return exercise.imageAsset;
+    }
+  }
+  return null;
+}
+
+class _ExerciseItem {
+  const _ExerciseItem({
+    required this.name,
+    required this.imageAsset,
+    required this.description,
   });
 
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected
-              ? PremiumColors.accentBlue.withValues(alpha: 0.24)
-              : PremiumColors.surface,
-          borderRadius: BorderRadius.circular(PremiumRadii.pill),
-          border: Border.all(
-            color: selected
-                ? PremiumColors.accentBlue.withValues(alpha: 0.8)
-                : Colors.white.withValues(alpha: 0.1),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (selected) ...[
-              const Icon(
-                Icons.check_rounded,
-                color: PremiumColors.accentBlue,
-                size: 16,
-              ),
-              const SizedBox(width: 5),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? Colors.white : PremiumColors.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  final String name;
+  final String imageAsset;
+  final String description;
 }
 
 class _ExerciseCategory {
@@ -1150,73 +1494,226 @@ class _ExerciseCategory {
   final IconData icon;
   final Color startColor;
   final Color endColor;
-  final List<String> exercises;
+  final List<_ExerciseItem> exercises;
 }
 
 const _exerciseCategories = [
   _ExerciseCategory(
     title: 'Chest',
-    imageAsset: 'assets/workout_categories/chest.jpg',
+    imageAsset: 'assets/workout_exercises/chest_bench_press.jpg',
     icon: Icons.accessibility_new_rounded,
     startColor: Color(0xFF0B3344),
     endColor: Color(0xFF12263A),
-    exercises: ['Push-ups', 'Bench Press', 'Incline Press', 'Chest Fly'],
+    exercises: [
+      _ExerciseItem(
+        name: 'Barbell Bench Press',
+        imageAsset: 'assets/workout_exercises/chest_bench_press.jpg',
+        description: 'A classic chest press focused on the pectorals, front delts, and triceps. Keep shoulder blades stable and control the bar path.',
+      ),
+      _ExerciseItem(
+        name: 'Chest Fly',
+        imageAsset: 'assets/workout_exercises/chest_fly.jpg',
+        description: 'Opens the chest through a wide arc. Use lighter weight, soft elbows, and squeeze the chest at the top.',
+      ),
+      _ExerciseItem(
+        name: 'Push-up',
+        imageAsset: 'assets/workout_exercises/chest_pushup.jpg',
+        description: 'Bodyweight chest movement. Keep the body straight, lower under control, and press away from the floor.',
+      ),
+    ],
   ),
   _ExerciseCategory(
     title: 'Back',
-    imageAsset: 'assets/workout_categories/back.jpg',
+    imageAsset: 'assets/workout_exercises/back_lat_pulldown.jpg',
     icon: Icons.self_improvement_rounded,
     startColor: Color(0xFF123A42),
     endColor: Color(0xFF13283A),
-    exercises: ['Pull-ups', 'Lat Pulldown', 'Seated Row', 'Deadlift'],
+    exercises: [
+      _ExerciseItem(
+        name: 'Pull-up',
+        imageAsset: 'assets/workout_exercises/back_pullup.jpg',
+        description: 'Vertical pull for lats and upper back. Start from a controlled hang and pull the chest toward the bar.',
+      ),
+      _ExerciseItem(
+        name: 'Lat Pulldown',
+        imageAsset: 'assets/workout_exercises/back_lat_pulldown.jpg',
+        description: 'Targets the lats with a stable seated position. Pull elbows down and avoid shrugging the shoulders.',
+      ),
+      _ExerciseItem(
+        name: 'Seated Row',
+        imageAsset: 'assets/workout_exercises/back_seated_row.jpg',
+        description: 'Horizontal row for mid-back thickness. Keep the spine tall and pull the handle toward the torso.',
+      ),
+      _ExerciseItem(
+        name: 'Deadlift',
+        imageAsset: 'assets/workout_exercises/back_deadlift.jpg',
+        description: 'Full posterior-chain lift. Brace the core, keep the bar close, and drive through the floor.',
+      ),
+    ],
   ),
   _ExerciseCategory(
     title: 'Legs',
-    imageAsset: 'assets/workout_categories/legs.jpg',
+    imageAsset: 'assets/workout_exercises/legs_squat.jpg',
     icon: Icons.directions_run_rounded,
     startColor: Color(0xFF25394F),
     endColor: Color(0xFF172338),
-    exercises: ['Squats', 'Lunges', 'Leg Press', 'Leg Curl'],
+    exercises: [
+      _ExerciseItem(
+        name: 'Squat',
+        imageAsset: 'assets/workout_exercises/legs_squat.jpg',
+        description: 'Main lower-body strength movement. Sit between the hips, keep knees tracking over toes, and stand tall.',
+      ),
+      _ExerciseItem(
+        name: 'Lunge',
+        imageAsset: 'assets/workout_exercises/legs_lunge.jpg',
+        description: 'Single-leg movement for quads and glutes. Step with control and keep the front foot planted.',
+      ),
+      _ExerciseItem(
+        name: 'Leg Curl',
+        imageAsset: 'assets/workout_exercises/legs_curl.jpg',
+        description: 'Hamstring isolation exercise. Curl smoothly and avoid lifting the hips off the pad.',
+      ),
+    ],
   ),
   _ExerciseCategory(
     title: 'Glutes',
-    imageAsset: 'assets/workout_categories/glutes.jpg',
+    imageAsset: 'assets/workout_exercises/glutes_bridge.jpg',
     icon: Icons.fitness_center_rounded,
     startColor: Color(0xFF3A2B4A),
     endColor: Color(0xFF1C2438),
-    exercises: ['Hip Thrust', 'Glute Bridge', 'Romanian Deadlift', 'Step-ups'],
+    exercises: [
+      _ExerciseItem(
+        name: 'Hip Thrust',
+        imageAsset: 'assets/workout_exercises/glutes_hip_thrust.jpg',
+        description: 'Heavy glute movement. Tuck the ribs, drive through the heels, and squeeze at full hip extension.',
+      ),
+      _ExerciseItem(
+        name: 'Glute Bridge',
+        imageAsset: 'assets/workout_exercises/glutes_bridge.jpg',
+        description: 'Beginner-friendly glute exercise. Lift the hips with control and pause briefly at the top.',
+      ),
+      _ExerciseItem(
+        name: 'Romanian Deadlift',
+        imageAsset: 'assets/workout_exercises/glutes_rdl.jpg',
+        description: 'Hip-hinge movement for glutes and hamstrings. Push hips back and keep the weight close.',
+      ),
+      _ExerciseItem(
+        name: 'Step-up',
+        imageAsset: 'assets/workout_exercises/glutes_stepup.jpg',
+        description: 'Single-leg glute and quad builder. Step up through the full foot without bouncing off the rear leg.',
+      ),
+    ],
   ),
   _ExerciseCategory(
     title: 'Shoulders',
-    imageAsset: 'assets/workout_categories/shoulders.jpg',
+    imageAsset: 'assets/workout_exercises/shoulders_press.jpg',
     icon: Icons.sports_gymnastics_rounded,
     startColor: Color(0xFF3B344A),
     endColor: Color(0xFF172235),
-    exercises: ['Shoulder Press', 'Lateral Raise', 'Front Raise', 'Face Pull'],
+    exercises: [
+      _ExerciseItem(
+        name: 'Shoulder Press',
+        imageAsset: 'assets/workout_exercises/shoulders_press.jpg',
+        description: 'Overhead press for delts and triceps. Brace the core and press without over-arching the back.',
+      ),
+      _ExerciseItem(
+        name: 'Lateral Raise',
+        imageAsset: 'assets/workout_exercises/shoulders_lateral_raise.jpg',
+        description: 'Side-delt isolation. Raise to shoulder height with soft elbows and controlled tempo.',
+      ),
+      _ExerciseItem(
+        name: 'Front Raise',
+        imageAsset: 'assets/workout_exercises/shoulders_front_raise.jpg',
+        description: 'Targets the front delts. Lift smoothly and avoid swinging the body.',
+      ),
+      _ExerciseItem(
+        name: 'Face Pull',
+        imageAsset: 'assets/workout_exercises/shoulders_face_pull.jpg',
+        description: 'Rear-delt and upper-back movement. Pull toward the face while keeping elbows high.',
+      ),
+    ],
   ),
   _ExerciseCategory(
     title: 'Arms',
-    imageAsset: 'assets/workout_categories/arms.jpg',
+    imageAsset: 'assets/workout_exercises/arms_biceps_curl.jpg',
     icon: Icons.sports_martial_arts_rounded,
     startColor: Color(0xFF44302E),
     endColor: Color(0xFF1B2635),
-    exercises: ['Biceps Curl', 'Triceps Pushdown', 'Hammer Curl', 'Dips'],
+    exercises: [
+      _ExerciseItem(
+        name: 'Biceps Curl',
+        imageAsset: 'assets/workout_exercises/arms_biceps_curl.jpg',
+        description: 'Classic biceps isolation. Keep elbows near the torso and curl without swinging.',
+      ),
+      _ExerciseItem(
+        name: 'Hammer Curl',
+        imageAsset: 'assets/workout_exercises/arms_hammer_curl.jpg',
+        description: 'Neutral-grip curl for biceps and forearms. Control both the lift and the lowering phase.',
+      ),
+      _ExerciseItem(
+        name: 'Dips',
+        imageAsset: 'assets/workout_exercises/arms_dips.jpg',
+        description: 'Triceps-focused press. Keep shoulders stable and lower only as far as comfortable.',
+      ),
+    ],
   ),
   _ExerciseCategory(
     title: 'Core',
-    imageAsset: 'assets/workout_categories/core.jpg',
+    imageAsset: 'assets/workout_exercises/core_plank.jpg',
     icon: Icons.blur_circular_rounded,
     startColor: Color(0xFF2D3E34),
     endColor: Color(0xFF172337),
-    exercises: ['Plank', 'Crunches', 'Leg Raises', 'Russian Twist'],
+    exercises: [
+      _ExerciseItem(
+        name: 'Plank',
+        imageAsset: 'assets/workout_exercises/core_plank.jpg',
+        description: 'Core stability hold. Keep ribs down, glutes active, and body in one straight line.',
+      ),
+      _ExerciseItem(
+        name: 'Cable Crunch',
+        imageAsset: 'assets/workout_exercises/core_crunch.jpg',
+        description: 'Weighted ab flexion. Curl the ribs toward the pelvis instead of pulling with the arms.',
+      ),
+      _ExerciseItem(
+        name: 'Leg Raise',
+        imageAsset: 'assets/workout_exercises/core_leg_raise.jpg',
+        description: 'Lower-ab focused movement. Lift the legs under control and avoid arching the lower back.',
+      ),
+      _ExerciseItem(
+        name: 'Bicycle Crunch',
+        imageAsset: 'assets/workout_exercises/core_twist.jpg',
+        description: 'Rotational core exercise. Move slowly and rotate through the torso, not just the elbows.',
+      ),
+    ],
   ),
   _ExerciseCategory(
     title: 'Cardio',
-    imageAsset: 'assets/workout_categories/cardio.jpg',
+    imageAsset: 'assets/workout_exercises/cardio_burpee.jpg',
     icon: Icons.monitor_heart_rounded,
     startColor: Color(0xFF274458),
     endColor: Color(0xFF142236),
-    exercises: ['Running', 'Jumping Jacks', 'Cycling', 'Rowing'],
+    exercises: [
+      _ExerciseItem(
+        name: 'Burpee',
+        imageAsset: 'assets/workout_exercises/cardio_burpee.jpg',
+        description: 'Full-body conditioning drill. Move from squat to plank to jump with steady rhythm.',
+      ),
+      _ExerciseItem(
+        name: 'Mountain Climber',
+        imageAsset: 'assets/workout_exercises/cardio_mountain_climber.jpg',
+        description: 'Fast core and cardio movement. Keep shoulders stacked and drive knees forward.',
+      ),
+      _ExerciseItem(
+        name: 'Jump Rope',
+        imageAsset: 'assets/workout_exercises/cardio_jump_rope.jpg',
+        description: 'Low-space cardio drill. Stay light on the feet and keep wrists relaxed.',
+      ),
+      _ExerciseItem(
+        name: 'Stationary Bike',
+        imageAsset: 'assets/workout_exercises/cardio_bike.jpg',
+        description: 'Joint-friendly cardio option. Maintain cadence and gradually increase resistance.',
+      ),
+    ],
   ),
 ];
 
