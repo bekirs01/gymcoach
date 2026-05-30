@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
-import '../../feed/presentation/social_avatar.dart';
 import '../../social/data/social_api_client.dart';
+import '../../social/domain/feed_media.dart';
 import '../../social/domain/feed_post.dart';
 import '../../social/domain/social_profile.dart';
 import '../domain/user_profile.dart';
+import 'widgets/profile_view_widgets.dart';
 
 class PublicProfilePage extends StatefulWidget {
   const PublicProfilePage({
@@ -31,9 +32,12 @@ class PublicProfilePage extends StatefulWidget {
 class _PublicProfilePageState extends State<PublicProfilePage> {
   var _loading = true;
   var _isMine = false;
+  var _tab = 0;
   String? _error;
   SocialProfile? _profile;
   List<FeedPost> _posts = const [];
+
+  static const _tabLabels = ['Photos', 'About', 'Feed'];
 
   @override
   void initState() {
@@ -68,16 +72,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     }
   }
 
-  List<String> _gridUrls() {
-    final urls = <String>[];
-    for (final post in _posts) {
-      if (post.media.isEmpty) continue;
-      for (final m in post.media) {
-        urls.add(m.url);
-      }
-    }
-    return urls;
-  }
+  List<FeedMedia> get _allMedia => _posts.expand((p) => p.media).toList();
 
   Future<void> _menu() async {
     if (_isMine) return;
@@ -122,7 +117,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: PremiumBackground(
-        child: _loading
+        child: _loading && _profile == null
             ? const Center(child: CircularProgressIndicator(color: PremiumColors.accentBlue))
             : _error != null && _profile == null
                 ? _ErrorView(message: _error!, onRetry: _load)
@@ -138,157 +133,147 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     final profile = _profile!;
     final topPad = MediaQuery.of(context).padding.top;
     final name = profile.displayName.isEmpty ? 'Athlete' : profile.displayName;
+    final bio = profile.bio.trim().isEmpty ? '' : profile.bio;
 
     return [
       SliverToBoxAdapter(
-        child: Stack(
-          clipBehavior: Clip.none,
+        child: Column(
           children: [
-            Container(
-              height: 168 + topPad,
-              decoration: BoxDecoration(
-                color: PremiumColors.surface,
-                image: profile.coverUrl.isEmpty
-                    ? null
-                    : DecorationImage(
-                        image: NetworkImage(profile.coverUrl),
-                        fit: BoxFit.cover,
-                        colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.3), BlendMode.darken),
-                      ),
-              ),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  height: 156 + topPad,
+                  decoration: BoxDecoration(
+                    color: PremiumColors.surface,
+                    image: profile.coverUrl.isEmpty
+                        ? null
+                        : DecorationImage(
+                            image: NetworkImage(profile.coverUrl),
+                            fit: BoxFit.cover,
+                            colorFilter: ColorFilter.mode(
+                              Colors.black.withValues(alpha: 0.35),
+                              BlendMode.darken,
+                            ),
+                          ),
+                  ),
+                ),
+                Positioned(
+                  left: 4,
+                  top: topPad + 2,
+                  child: IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: topPad + 6,
+                  child: const Text(
+                    'Profile',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+                if (!_isMine)
+                  Positioned(
+                    right: 4,
+                    top: topPad + 2,
+                    child: IconButton(
+                      onPressed: _menu,
+                      icon: const Icon(Icons.more_horiz_rounded, color: Colors.white),
+                    ),
+                  ),
+              ],
             ),
-            Positioned(
-              left: 8,
-              top: topPad + 6,
-              child: IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-              ),
-            ),
-            if (!_isMine)
-              Positioned(
-                right: 8,
-                top: topPad + 6,
-                child: IconButton(
-                  onPressed: _menu,
-                  icon: const Icon(Icons.more_horiz_rounded, color: Colors.white),
+            Transform.translate(
+              offset: const Offset(0, -48),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: PremiumColors.midnightMid, width: 4),
+                ),
+                child: ProfileAvatarButton(
+                  name: name,
+                  imageUrl: profile.avatarUrl,
+                  size: 96,
                 ),
               ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: -44,
-              child: Center(
-                child: SocialAvatar(name: name, imageUrl: profile.avatarUrl, size: 92),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              name,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+              ),
+            ),
+            if (bio.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  bio,
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: PremiumColors.textSecondary,
+                    height: 1.4,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 18),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: ProfileSegmentTabs(
+                labels: _tabLabels,
+                selected: _tab,
+                onSelected: (v) => setState(() => _tab = v),
               ),
             ),
           ],
         ),
       ),
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(20, 56, 20, 0),
-        sliver: SliverToBoxAdapter(
-          child: Column(
-            children: [
-              Text(
-                name,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                profile.bio.isEmpty ? 'No public bio yet.' : profile.bio,
-                textAlign: TextAlign.center,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: PremiumColors.textSecondary, height: 1.35),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: _StatChip(value: '${_posts.length}', label: 'Posts')),
-                  const SizedBox(width: 10),
-                  Expanded(child: _StatChip(value: '${_posts.fold(0, (s, p) => s + p.media.length)}', label: 'Photos')),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
-        sliver: SliverToBoxAdapter(
-          child: Text('Posts', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
-        ),
-      ),
-      if (_gridUrls().isEmpty)
+      if (_loading)
         const SliverPadding(
-          padding: EdgeInsets.fromLTRB(20, 48, 20, 0),
-          sliver: SliverToBoxAdapter(child: _EmptyState(text: 'No posts yet.')),
+          padding: EdgeInsets.all(32),
+          sliver: SliverToBoxAdapter(
+            child: Center(child: CircularProgressIndicator(color: PremiumColors.accentBlue)),
+          ),
         )
       else
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-          sliver: SliverGrid.builder(
-            itemCount: _gridUrls().length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 6,
-              crossAxisSpacing: 6,
-            ),
-            itemBuilder: (context, index) {
-              final url = _gridUrls()[index];
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(PremiumRadii.sm),
-                child: Image.network(url, fit: BoxFit.cover),
-              );
-            },
-          ),
-        ),
+        SliverToBoxAdapter(child: _tabContent(profile)),
     ];
   }
-}
 
-class _StatChip extends StatelessWidget {
-  const _StatChip({required this.value, required this.label});
-
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-      decoration: BoxDecoration(
-        color: PremiumColors.surface,
-        borderRadius: BorderRadius.circular(PremiumRadii.lg),
-        border: Border.all(color: PremiumColors.glassBorder),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20)),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: PremiumColors.textMuted, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Text(text, style: const TextStyle(color: PremiumColors.textMuted)),
-      ),
-    );
+  Widget _tabContent(SocialProfile profile) {
+    switch (_tab) {
+      case 0:
+        return ProfilePhotoGrid(
+          media: _allMedia,
+          heroTagPrefix: 'public-photo-${widget.userId}',
+        );
+      case 1:
+        return ProfileAboutSection(bio: profile.bio);
+      case 2:
+      default:
+        return ProfileFeedSection(
+          posts: _posts,
+          heroTagPrefix: 'public-feed-${widget.userId}',
+        );
+    }
   }
 }
 

@@ -55,16 +55,12 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _openProfile(BuildContext context) {
-    final profile = _t.profile;
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => ProfilePage(
-          profile: profile,
-          onProfileChanged: (p) => unawaited(_t.updateProfile(p)),
-          onLocaleChanged: widget.onLocaleChanged,
-        ),
-      ),
-    );
+    unawaited(showProfileSheet(
+      context: context,
+      profile: _t.profile,
+      onProfileChanged: (p) => unawaited(_t.updateProfile(p)),
+      onLocaleChanged: widget.onLocaleChanged,
+    ));
   }
 
   Future<void> _handleSessionComplete(WorkoutPlan plan, WorkoutCompletion completion) =>

@@ -9,6 +9,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
 import '../../feed/presentation/social_avatar.dart';
+import 'widgets/profile_view_widgets.dart';
 import '../../social/data/social_api_client.dart';
 import '../../social/domain/feed_post.dart';
 import '../domain/user_profile.dart';
@@ -19,6 +20,33 @@ double? _parsePositiveMetric(String raw) {
   final value = double.tryParse(normalized);
   if (value == null || value <= 0 || !value.isFinite) return null;
   return value;
+}
+
+Future<void> showProfileSheet({
+  required BuildContext context,
+  required UserProfile profile,
+  required ValueChanged<UserProfile> onProfileChanged,
+  required ValueChanged<Locale> onLocaleChanged,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.72),
+    isDismissible: true,
+    enableDrag: true,
+    builder: (sheetContext) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(sheetContext).bottom),
+        child: ProfilePage(
+          profile: profile,
+          onProfileChanged: onProfileChanged,
+          onLocaleChanged: onLocaleChanged,
+        ),
+      );
+    },
+  );
 }
 
 class ProfilePage extends StatefulWidget {
@@ -177,68 +205,93 @@ class _ProfilePageState extends State<ProfilePage> {
     final langLabel =
         Localizations.localeOf(context).languageCode == 'ru' ? l10n.languageRussian : l10n.languageEnglish;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: MediaQuery(
+    return Container(
+      height: MediaQuery.sizeOf(context).height * 0.94,
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        color: PremiumColors.midnightMid,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: MediaQuery(
         data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
-        child: PremiumBackground(
-          child: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              _ProfileHeader(profile: _profile, onEdit: _editProfile),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 54, 20, 0),
-                sliver: SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        _profile.displayName,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        _profile.bio.isEmpty ? 'No public bio yet.' : _profile.bio,
-                        textAlign: TextAlign.center,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: PremiumColors.textSecondary, height: 1.35),
-                      ),
-                      const SizedBox(height: 18),
-                      Row(
+        child: Column(
+          children: [
+            _ProfileSheetChrome(
+              onClose: () => Navigator.of(context).pop(),
+              onEdit: _editProfile,
+            ),
+            Expanded(
+              child: PremiumBackground(
+                child: CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Column(
                         children: [
-                          Expanded(child: _MetricChip(value: '${_posts.length}', label: 'Posts')),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _MetricChip(
-                              value: '${_posts.fold<int>(0, (sum, p) => sum + p.media.length)}',
-                              label: 'Photos',
+                          _ProfileCover(profile: _profile),
+                          Transform.translate(
+                            offset: const Offset(0, -48),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: PremiumColors.midnightMid, width: 4),
+                              ),
+                              child: ProfileAvatarButton(
+                                name: _profile.displayName,
+                                imageUrl: _profile.avatarUrl,
+                                size: 96,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Column(
+                              children: [
+                                Text(
+                                  _profile.displayName,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _profile.bio.isEmpty ? 'No public bio yet.' : _profile.bio,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: PremiumColors.textSecondary, height: 1.35),
+                                ),
+                                const SizedBox(height: 18),
+                                ProfileSegmentTabs(
+                                  labels: const ['Photos', 'About', 'Feed', 'Settings'],
+                                  selected: _tab,
+                                  onSelected: (v) => setState(() => _tab = v),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 18),
-                      _ProfileTabs(
-                        selected: _tab,
-                        onSelected: (v) => setState(() => _tab = v),
-                      ),
-                    ],
-                  ),
+                    ),
+                    if (_loadingSocial)
+                      const SliverPadding(
+                        padding: EdgeInsets.all(24),
+                        sliver: SliverToBoxAdapter(
+                          child: Center(child: CircularProgressIndicator(color: PremiumColors.accentBlue)),
+                        ),
+                      )
+                    else
+                      ..._tabSlivers(langLabel),
+                    SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 24)),
+                  ],
                 ),
               ),
-              if (_loadingSocial)
-                const SliverPadding(
-                  padding: EdgeInsets.all(24),
-                  sliver: SliverToBoxAdapter(
-                    child: Center(child: CircularProgressIndicator(color: PremiumColors.accentBlue)),
-                  ),
-                )
-              else
-                ..._tabSlivers(langLabel),
-              SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 24)),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -276,293 +329,130 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _aboutSliver() {
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-      sliver: SliverToBoxAdapter(
-        child: Column(
-          children: [
-            _InfoCard(
-              title: 'About me',
-              body: _profile.bio.isEmpty ? 'This user has not added public info yet.' : _profile.bio,
-              icon: Icons.article_outlined,
-            ),
-            const SizedBox(height: 14),
-            _InfoCard(
-              title: 'Private notes',
-              body: _profile.privateNotes.isEmpty
-                  ? 'Add private notes only you can see.'
-                  : _profile.privateNotes,
-              icon: Icons.lock_outline_rounded,
-            ),
-            const SizedBox(height: 14),
-            _InfoCard(
-              title: 'Fitness',
-              body: '${_profile.fitnessGoal}\n${_profile.weightKg} kg · ${_profile.heightCm} cm',
-              icon: Icons.fitness_center_rounded,
-            ),
-          ],
-        ),
+    return SliverToBoxAdapter(
+      child: ProfileAboutSection(
+        bio: _profile.bio,
+        extraSections: [
+          ProfileAboutBlock(
+            title: 'Private notes',
+            body: _profile.privateNotes.isEmpty
+                ? 'Add private notes only you can see.'
+                : _profile.privateNotes,
+            icon: Icons.lock_outline_rounded,
+          ),
+          ProfileAboutBlock(
+            title: 'Fitness',
+            body: '${_profile.fitnessGoal}\n${_profile.weightKg} kg · ${_profile.heightCm} cm',
+            icon: Icons.fitness_center_rounded,
+          ),
+        ],
       ),
     );
   }
 
   Widget _postsSliver() {
-    if (_posts.isEmpty) {
-      return const SliverPadding(
-        padding: EdgeInsets.fromLTRB(20, 90, 20, 0),
-        sliver: SliverToBoxAdapter(
-          child: _EmptyProfileState(
-            icon: Icons.feed_outlined,
-            text: 'No feed posts yet.',
-          ),
-        ),
-      );
-    }
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-      sliver: SliverList.separated(
-        itemCount: _posts.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final post = _posts[index];
-          return _MiniPostCard(post: post);
-        },
+    return SliverToBoxAdapter(
+      child: ProfileFeedSection(
+        posts: _posts,
+        heroTagPrefix: 'own-feed',
       ),
     );
   }
 
   Widget _photosSliver() {
     final media = _posts.expand((p) => p.media).toList();
-    if (media.isEmpty) {
-      return const SliverPadding(
-        padding: EdgeInsets.fromLTRB(20, 90, 20, 0),
-        sliver: SliverToBoxAdapter(
-          child: _EmptyProfileState(
-            icon: Icons.photo_camera_outlined,
-            text: 'No photos yet.',
-          ),
-        ),
-      );
-    }
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-      sliver: SliverGrid.builder(
-        itemCount: media.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisSpacing: 6,
-          crossAxisSpacing: 6,
-        ),
-        itemBuilder: (context, index) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(PremiumRadii.sm),
-            child: Image.network(media[index].url, fit: BoxFit.cover),
-          );
-        },
+    return SliverToBoxAdapter(
+      child: ProfilePhotoGrid(
+        media: media,
+        heroTagPrefix: 'own-photo',
       ),
     );
   }
 }
 
-class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.profile, required this.onEdit});
+class _ProfileSheetChrome extends StatelessWidget {
+  const _ProfileSheetChrome({
+    required this.onClose,
+    required this.onEdit,
+  });
 
-  final UserProfile profile;
+  final VoidCallback onClose;
   final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
-    final topPad = MediaQuery.viewPaddingOf(context).top;
-    return SliverToBoxAdapter(
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            height: 176 + topPad,
-            decoration: BoxDecoration(
-              color: PremiumColors.surface,
-              image: profile.coverUrl.isEmpty
-                  ? null
-                  : DecorationImage(
-                      image: NetworkImage(profile.coverUrl),
-                      fit: BoxFit.cover,
-                      colorFilter: ColorFilter.mode(
-                        Colors.black.withValues(alpha: 0.25),
-                        BlendMode.darken,
-                      ),
-                    ),
-            ),
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        Container(
+          width: 40,
+          height: 4,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.22),
+            borderRadius: BorderRadius.circular(PremiumRadii.pill),
           ),
-          Positioned(
-            right: 12,
-            top: topPad + 8,
-            child: FilledButton.icon(
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_rounded, size: 18),
-              label: const Text('Edit'),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: -42,
-            child: Center(
-              child: SocialAvatar(
-                name: profile.displayName,
-                imageUrl: profile.avatarUrl,
-                size: 96,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(6, 4, 6, 0),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: onClose,
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 28),
+                color: PremiumColors.textSecondary,
+                tooltip: 'Close',
               ),
-            ),
+              const Expanded(
+                child: Text(
+                  'Profile',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_rounded, size: 18),
+                label: const Text('Edit'),
+                style: TextButton.styleFrom(
+                  foregroundColor: PremiumColors.accentBlue,
+                  textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-class _ProfileTabs extends StatelessWidget {
-  const _ProfileTabs({required this.selected, required this.onSelected});
+class _ProfileCover extends StatelessWidget {
+  const _ProfileCover({required this.profile});
 
-  final int selected;
-  final ValueChanged<int> onSelected;
-
-  static const labels = ['Photos', 'About', 'Feed', 'Settings'];
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 38,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        itemCount: labels.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 6),
-        itemBuilder: (context, index) {
-          final active = selected == index;
-          return Padding(
-            padding: EdgeInsets.only(right: index == labels.length - 1 ? 4 : 0),
-            child: ChoiceChip(
-              label: Text(
-                labels[index],
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              visualDensity: VisualDensity.compact,
-              selected: active,
-              onSelected: (_) => onSelected(index),
-              selectedColor: PremiumColors.accentBlue,
-              backgroundColor: PremiumColors.surface,
-              labelStyle: TextStyle(
-                color: active ? Colors.white : PremiumColors.textSecondary,
-                fontWeight: FontWeight.w700,
-              ),
-              side: BorderSide(color: active ? PremiumColors.accentBlue : PremiumColors.glassBorder),
-              showCheckmark: false,
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _EmptyProfileState extends StatelessWidget {
-  const _EmptyProfileState({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        children: [
-          Icon(icon, color: PremiumColors.textMuted.withValues(alpha: 0.45), size: 78),
-          const SizedBox(height: 18),
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: PremiumColors.textSecondary, fontSize: 15),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniPostCard extends StatelessWidget {
-  const _MiniPostCard({required this.post});
-
-  final FeedPost post;
+  final UserProfile profile;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: PremiumColors.surface,
-        borderRadius: BorderRadius.circular(PremiumRadii.lg),
-        border: Border.all(color: PremiumColors.glassBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (post.caption.isNotEmpty)
-            Text(post.caption, style: const TextStyle(color: Colors.white, height: 1.35)),
-          if (post.media.isNotEmpty) ...[
-            if (post.caption.isNotEmpty) const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(PremiumRadii.md),
-              child: AspectRatio(
-                aspectRatio: 1.45,
-                child: Image.network(post.media.first.url, fit: BoxFit.cover),
-              ),
-            ),
-          ],
-          const SizedBox(height: 10),
-          Text(
-            '${post.likeCount} likes · ${post.commentCount} comments',
-            style: const TextStyle(color: PremiumColors.textMuted, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.title, required this.body, required this.icon});
-
-  final String title;
-  final String body;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
+      height: 132,
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: PremiumColors.surface,
-        borderRadius: BorderRadius.circular(PremiumRadii.lg),
-        border: Border.all(color: PremiumColors.glassBorder),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: PremiumColors.accentBlue),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 6),
-                Text(body, style: const TextStyle(color: PremiumColors.textSecondary, height: 1.35)),
-              ],
-            ),
-          ),
-        ],
+        image: profile.coverUrl.isEmpty
+            ? null
+            : DecorationImage(
+                image: NetworkImage(profile.coverUrl),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  Colors.black.withValues(alpha: 0.25),
+                  BlendMode.darken,
+                ),
+              ),
       ),
     );
   }
@@ -965,33 +855,6 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
           child: Text(l10n.save),
         ),
       ],
-    );
-  }
-}
-
-class _MetricChip extends StatelessWidget {
-  const _MetricChip({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: BoxDecoration(
-        color: PremiumColors.surface,
-        borderRadius: BorderRadius.circular(PremiumRadii.lg),
-        border: Border.all(color: PremiumColors.glassBorder),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(color: PremiumColors.textMuted, fontSize: 11)),
-        ],
-      ),
     );
   }
 }
