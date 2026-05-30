@@ -9,41 +9,118 @@ import '../../../plans/domain/workout_plan.dart';
 class HomeReferenceHeader extends StatelessWidget {
   const HomeReferenceHeader({
     super.key,
-    required this.title,
-    required this.onClockTap,
-    required this.onEditTap,
-    required this.onMenuTap,
+    required this.greeting,
+    required this.displayName,
+    required this.avatarUrl,
+    required this.onStreakTap,
+    required this.onProfileTap,
   });
 
-  final String title;
-  final VoidCallback onClockTap;
-  final VoidCallback onEditTap;
-  final VoidCallback onMenuTap;
+  final String greeting;
+  final String displayName;
+  final String avatarUrl;
+  final VoidCallback onStreakTap;
+  final VoidCallback onProfileTap;
+
+  static String _initials(String raw) {
+    final parts = raw.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) {
+      final p = parts.first;
+      return p.length >= 2 ? p.substring(0, 2).toUpperCase() : p.toUpperCase();
+    }
+    return '${parts.first[0]}${parts[1][0]}'.toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final name = displayName.trim().isEmpty ? '—' : displayName.trim();
+
     return SizedBox(
-      height: 44,
+      height: 52,
       child: Row(
         children: [
-          _HeaderIconButton(icon: Icons.schedule_rounded, onTap: onClockTap),
+          _HeaderIconButton(
+            icon: Icons.local_fire_department_rounded,
+            iconColor: const Color(0xFFFF8A50),
+            onTap: onStreakTap,
+          ),
+          const SizedBox(width: 4),
           Expanded(
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.2,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  greeting,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: PremiumColors.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onProfileTap,
+              borderRadius: BorderRadius.circular(999),
+              child: Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [PremiumColors.accentBlue, PremiumColors.accentBlueSoft],
+                  ),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: avatarUrl.trim().isEmpty
+                    ? Text(
+                        _initials(name),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
+                      )
+                    : Image.network(
+                        avatarUrl,
+                        width: 44,
+                        height: 44,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Text(
+                          _initials(name),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
               ),
             ),
           ),
-          _HeaderIconButton(icon: Icons.edit_outlined, onTap: onEditTap),
-          const SizedBox(width: 4),
-          _HeaderIconButton(icon: Icons.menu_rounded, onTap: onMenuTap),
         ],
       ),
     );
@@ -51,10 +128,15 @@ class HomeReferenceHeader extends StatelessWidget {
 }
 
 class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({required this.icon, required this.onTap});
+  const _HeaderIconButton({
+    required this.icon,
+    required this.onTap,
+    this.iconColor = PremiumColors.textSecondary,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
+  final Color iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +148,7 @@ class _HeaderIconButton extends StatelessWidget {
         child: SizedBox(
           width: 36,
           height: 36,
-          child: Icon(icon, size: 20, color: PremiumColors.textSecondary),
+          child: Icon(icon, size: 22, color: iconColor),
         ),
       ),
     );

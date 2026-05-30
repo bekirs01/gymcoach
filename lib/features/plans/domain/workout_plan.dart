@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'plan_exercise.dart';
+
 enum PlanDifficulty { beginner, intermediate, advanced }
 
 enum PlanStatus { planned, completed, missed }
@@ -12,9 +14,13 @@ class WorkoutPlan {
     required this.scheduledTime,
     required this.durationMinutes,
     required this.difficulty,
-    required this.exerciseNames,
+    List<PlanExercise>? exercises,
+    List<String>? exerciseNames,
     required this.status,
-  });
+  }) : exercises = exercises ??
+            (exerciseNames ?? const [])
+                .map((n) => PlanExercise(name: n))
+                .toList();
 
   final String id;
   final String name;
@@ -22,8 +28,10 @@ class WorkoutPlan {
   final TimeOfDay scheduledTime;
   final int durationMinutes;
   final PlanDifficulty difficulty;
-  final List<String> exerciseNames;
+  final List<PlanExercise> exercises;
   final PlanStatus status;
+
+  List<String> get exerciseNames => exercises.map((e) => e.name).toList();
 
   String get formattedDate {
     final m = scheduledDate.month.toString().padLeft(2, '0');
@@ -62,7 +70,7 @@ class WorkoutPlan {
     TimeOfDay? scheduledTime,
     int? durationMinutes,
     PlanDifficulty? difficulty,
-    List<String>? exerciseNames,
+    List<PlanExercise>? exercises,
     PlanStatus? status,
   }) {
     return WorkoutPlan(
@@ -72,9 +80,8 @@ class WorkoutPlan {
       scheduledTime: scheduledTime ?? this.scheduledTime,
       durationMinutes: durationMinutes ?? this.durationMinutes,
       difficulty: difficulty ?? this.difficulty,
-      exerciseNames: exerciseNames ?? List<String>.from(this.exerciseNames),
+      exercises: exercises ?? List<PlanExercise>.from(this.exercises),
       status: status ?? this.status,
     );
   }
-
 }

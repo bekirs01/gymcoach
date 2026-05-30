@@ -4,6 +4,7 @@ import 'package:gym/l10n/app_localizations.dart';
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/floating_tab_bar.dart';
 import '../../../app/widgets/premium_background.dart';
+import '../../../core/training_stats.dart';
 import '../../plans/domain/workout_plan.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../workout/domain/workout_completion.dart';
@@ -38,7 +39,7 @@ class HomePage extends StatefulWidget {
     required this.weekCompleted,
     required this.onAddPlan,
     required this.onNavigateToProgress,
-    required this.onNavigateToProfile,
+    required this.onOpenProfile,
     required this.onOpenPlanDetail,
     required this.onStartSession,
     required this.onOpenCompletion,
@@ -52,7 +53,7 @@ class HomePage extends StatefulWidget {
   final List<bool> weekCompleted;
   final ValueChanged<WorkoutPlan> onAddPlan;
   final VoidCallback onNavigateToProgress;
-  final VoidCallback onNavigateToProfile;
+  final VoidCallback onOpenProfile;
   final ValueChanged<WorkoutPlan> onOpenPlanDetail;
   final ValueChanged<WorkoutPlan> onStartSession;
   final ValueChanged<WorkoutCompletion> onOpenCompletion;
@@ -81,18 +82,8 @@ class _HomePageState extends State<HomePage> {
       .map((p) => WorkoutPlan.dateOnly(p.scheduledDate))
       .toSet();
 
-  Set<DateTime> get _completedDays {
-    final out = <DateTime>{};
-    for (final p in widget.plans) {
-      if (p.status == PlanStatus.completed) {
-        out.add(WorkoutPlan.dateOnly(p.scheduledDate));
-      }
-    }
-    for (final c in widget.completions) {
-      out.add(WorkoutPlan.dateOnly(c.completedAt));
-    }
-    return out;
-  }
+  Set<DateTime> get _completedDays =>
+      TrainingStats.completedDays(widget.plans, widget.completions);
 
   void _shiftMonth(int delta) =>
       setState(() => _month = DateTime(_month.year, _month.month + delta));
@@ -117,10 +108,11 @@ class _HomePageState extends State<HomePage> {
             children: [
               // ── Header ──────────────────────────────────────────
               HomeReferenceHeader(
-                title: l10n.homeScreenTitle,
-                onClockTap: widget.onOpenStreak,
-                onEditTap: () => setState(() => _topTab = 1),
-                onMenuTap: () => setState(() => _topTab = 1),
+                greeting: l10n.homeWelcomeBack,
+                displayName: widget.profile.displayName,
+                avatarUrl: widget.profile.avatarUrl,
+                onStreakTap: widget.onOpenStreak,
+                onProfileTap: widget.onOpenProfile,
               ),
               const SizedBox(height: AppSpacing.sm),
 
@@ -161,14 +153,6 @@ class _HomePageState extends State<HomePage> {
                   onStartPlan: widget.onStartSession,
                 ),
               ] else ...[
-
-              // ── Single compact banner ────────────────────────────
-              HomeSubtleBanner(
-                icon: Icons.fitness_center_rounded,
-                text: l10n.homeBannerStartHint,
-                onTap: () => setState(() => _topTab = 1),
-              ),
-              const SizedBox(height: AppSpacing.md),
 
               // ── My Training card ─────────────────────────────────
               HomeFeaturedTrainingCard(

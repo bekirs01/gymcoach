@@ -2,6 +2,22 @@ import '../features/plans/domain/workout_plan.dart';
 import '../features/workout/domain/workout_completion.dart';
 
 abstract final class TrainingStats {
+  static bool completionMatchesPlans(WorkoutCompletion completion, List<WorkoutPlan> plans) {
+    for (final plan in plans) {
+      if (plan.name == completion.title &&
+          WorkoutPlan.isSameDay(plan.scheduledDate, completion.completedAt)) {
+        return true;
+      }
+    }
+    for (final log in completion.exerciseLogs) {
+      final sep = log.exerciseId.indexOf('_');
+      if (sep <= 0) continue;
+      final planId = log.exerciseId.substring(0, sep);
+      if (plans.any((p) => p.id == planId)) return true;
+    }
+    return false;
+  }
+
   static Set<DateTime> completedDays(
     List<WorkoutPlan> plans,
     List<WorkoutCompletion> completions,
@@ -13,6 +29,7 @@ abstract final class TrainingStats {
       }
     }
     for (final c in completions) {
+      if (!completionMatchesPlans(c, plans)) continue;
       out.add(WorkoutPlan.dateOnly(c.completedAt));
     }
     return out;

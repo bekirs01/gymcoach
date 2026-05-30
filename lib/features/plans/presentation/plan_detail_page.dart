@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/premium_tokens.dart';
@@ -140,7 +140,9 @@ class PlanDetailPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       FilledButton(
-                        onPressed: plan.status == PlanStatus.planned ? onBeginSession : null,
+                        onPressed: plan.status == PlanStatus.planned && plan.exerciseNames.isNotEmpty
+                            ? onBeginSession
+                            : null,
                         style: FilledButton.styleFrom(
                           backgroundColor: PremiumColors.accentBlue,
                           disabledBackgroundColor: PremiumColors.surfaceRaised,

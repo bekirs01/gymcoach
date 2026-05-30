@@ -3,7 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/device_user_id.dart';
+import '../../features/plans/domain/plan_exercise.dart';
 import '../../features/plans/domain/workout_plan.dart';
+import '../../features/plans/domain/workout_template.dart';
 import '../../features/profile/domain/user_profile.dart';
 import '../../features/workout/domain/completed_exercise_log.dart';
 import '../../features/workout/domain/workout_completion.dart';
@@ -46,10 +48,13 @@ final class SupabaseTrainingPersistence implements TrainingPersistenceRepository
           .eq('user_id', uid)
           .order('completed_at', ascending: false);
 
+      final templates = await _loadTemplates(uid);
+
       return TrainingSnapshot(
         profile: _profileFromRow(profileRow),
         plans: planRows.map(_planFromRow).toList(),
         completions: completionRows.map(_completionFromRow).toList(),
+        templates: templates,
       );
     } catch (e, st) {
       debugPrint('Supabase load failed: $e\n$st');
@@ -71,6 +76,11 @@ final class SupabaseTrainingPersistence implements TrainingPersistenceRepository
         'fitness_goal': profile.fitnessGoal,
         'membership_level': profile.membershipLevel,
         'notifications_enabled': profile.notificationsEnabled,
+        'bio': profile.bio,
+        'private_notes': profile.privateNotes,
+        'avatar_url': profile.avatarUrl,
+        'cover_url': profile.coverUrl,
+        'is_public': profile.isPublic,
       });
 
       final userPlans = snapshot.plans;
@@ -83,11 +93,14 @@ final class SupabaseTrainingPersistence implements TrainingPersistenceRepository
 
         final planExercises = <Map<String, dynamic>>[];
         for (final plan in userPlans) {
-          for (var i = 0; i < plan.exerciseNames.length; i++) {
+          for (var i = 0; i < plan.exercises.length; i++) {
+            final ex = plan.exercises[i];
             planExercises.add({
               'plan_id': plan.id,
               'sort_order': i,
-              'exercise_name': plan.exerciseNames[i],
+              'exercise_name': ex.name,
+              'default_sets': ex.defaultSets,
+              'default_reps': ex.defaultReps,
             });
           }
         }
@@ -114,6 +127,8 @@ final class SupabaseTrainingPersistence implements TrainingPersistenceRepository
       if (exerciseLogs.isNotEmpty) {
         await _client.from('workout_completion_exercises').insert(exerciseLogs);
       }
+
+      await _saveTemplates(uid, snapshot.templates);
     } catch (e, st) {
       debugPrint('Supabase save failed: $e\n$st');
       rethrow;
@@ -128,6 +143,11 @@ final class SupabaseTrainingPersistence implements TrainingPersistenceRepository
       fitnessGoal: row['fitness_goal'] as String? ?? '',
       membershipLevel: row['membership_level'] as String? ?? '',
       notificationsEnabled: row['notifications_enabled'] as bool? ?? true,
+      bio: row['bio'] as String? ?? '',
+      privateNotes: row['private_notes'] as String? ?? '',
+      avatarUrl: row['avatar_url'] as String? ?? '',
+      coverUrl: row['cover_url'] as String? ?? '',
+      isPublic: row['is_public'] as bool? ?? true,
     );
   }
 
@@ -153,9 +173,92 @@ final class SupabaseTrainingPersistence implements TrainingPersistenceRepository
       ),
       durationMinutes: row['duration_minutes'] as int,
       difficulty: PlanDifficulty.values.byName(row['difficulty'] as String),
-      exerciseNames: sorted.map((e) => e['exercise_name'] as String).toList(),
+      exercises: sorted
+          .map(
+            (e) => PlanExercise(
+              name: e['exercise_name'] as String,
+              defaultSets: e['default_sets'] as int? ?? 3,
+              defaultReps: e['default_reps'] as int? ?? 10,
+            ),
+          )
+          .toList(),
       status: PlanStatus.values.byName(row['status'] as String),
     );
+  }
+
+  Future<List<WorkoutTemplate>> _loadTemplates(String uid) async {
+    try {
+      final rows = await _client
+          .from('workout_templates')
+          .select('*, workout_template_exercises(sort_order, exercise_name, default_sets, default_reps)')
+          .eq('user_id', uid)
+          .order('created_at', ascending: false);
+      return rows.map(_templateFromRow).toList();
+    } catch (e) {
+      debugPrint('Templates load skipped (run migration?): $e');
+      return const [];
+    }
+  }
+
+  WorkoutTemplate _templateFromRow(Map<String, dynamic> row) {
+    final exercisesRaw = row['workout_template_exercises'] as List<dynamic>? ?? const [];
+    final sorted = exercisesRaw.map((e) => e as Map<String, dynamic>).toList()
+      ..sort((a, b) => (a['sort_order'] as int).compareTo(b['sort_order'] as int));
+    return WorkoutTemplate(
+      id: row['id'] as String,
+      name: row['name'] as String,
+      durationMinutes: row['duration_minutes'] as int,
+      difficulty: PlanDifficulty.values.byName(row['difficulty'] as String),
+      exercises: sorted
+          .map(
+            (e) => PlanExercise(
+              name: e['exercise_name'] as String,
+              defaultSets: e['default_sets'] as int? ?? 3,
+              defaultReps: e['default_reps'] as int? ?? 10,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Future<void> _saveTemplates(String uid, List<WorkoutTemplate> templates) async {
+    try {
+      await _client.from('workout_templates').delete().eq('user_id', uid);
+      if (templates.isEmpty) return;
+
+      await _client.from('workout_templates').insert(
+        templates
+            .map(
+              (t) => {
+                'id': t.id,
+                'user_id': uid,
+                'name': t.name,
+                'duration_minutes': t.durationMinutes,
+                'difficulty': t.difficulty.name,
+              },
+            )
+            .toList(),
+      );
+
+      final rows = <Map<String, dynamic>>[];
+      for (final template in templates) {
+        for (var i = 0; i < template.exercises.length; i++) {
+          final ex = template.exercises[i];
+          rows.add({
+            'template_id': template.id,
+            'sort_order': i,
+            'exercise_name': ex.name,
+            'default_sets': ex.defaultSets,
+            'default_reps': ex.defaultReps,
+          });
+        }
+      }
+      if (rows.isNotEmpty) {
+        await _client.from('workout_template_exercises').insert(rows);
+      }
+    } catch (e) {
+      debugPrint('Templates save skipped (run migration?): $e');
+    }
   }
 
   WorkoutCompletion _completionFromRow(Map<String, dynamic> row) {

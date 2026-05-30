@@ -17,8 +17,7 @@ Future<void> _loadEnv() async {
 }
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await _loadEnv();
+  WidgetsFlutterBinding.ensureInitialized();  await _loadEnv();
   await Supabase.initialize(
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,

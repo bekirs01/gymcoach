@@ -21,6 +21,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navCalendar => 'Calendar';
 
   @override
+  String get navFeed => 'Feed';
+
+  @override
   String get navMap => 'Map';
 
   @override
@@ -28,6 +31,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get navProfile => 'Profile';
+
+  @override
+  String get navLeaderboard => 'Leaderboard';
+
+  @override
+  String get leaderboardSubtitle =>
+      'Ranked by total captured territory on the map';
+
+  @override
+  String get leaderboardYou => 'You';
 
   @override
   String get closeTooltip => 'Close';
@@ -737,6 +750,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get logSave => 'Save log';
+
+  @override
+  String get quickLogTitle => 'Log past workout';
+
+  @override
+  String get quickLogDate => 'Workout date';
+
+  @override
+  String get quickLogYesterday => 'Yesterday';
+
+  @override
+  String get quickLogDayBefore => '2 days ago';
+
+  @override
+  String get quickLogAddExercise => 'Add exercise';
+
+  @override
+  String get templateFromLabel => 'From template';
+
+  @override
+  String get templateSave => 'Save as template';
+
+  @override
+  String get templateSaved => 'Template saved';
+
+  @override
+  String get copyPlanTitle => 'Copy workout to';
+
+  @override
+  String get copyPlanConfirm => 'Copy';
+
+  @override
+  String get snackbarPlanCopied => 'Workout copied to calendar';
+
+  @override
+  String get sessionManageExercises => 'Manage exercises';
+
+  @override
+  String get sessionAddExercise => 'Add exercise';
 
   @override
   String get validationLogName => 'Enter a workout name.';

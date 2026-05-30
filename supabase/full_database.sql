@@ -42,7 +42,11 @@ drop policy if exists "workout_plan_exercises: device access" on public.workout_
 drop policy if exists "workout_completions: device access" on public.workout_completions;
 drop policy if exists "workout_completion_exercises: device access" on public.workout_completion_exercises;
 drop policy if exists "camera_tracking_sessions: device access" on public.camera_tracking_sessions;
+drop policy if exists "workout_templates: device access" on public.workout_templates;
+drop policy if exists "workout_template_exercises: device access" on public.workout_template_exercises;
 
+drop table if exists public.workout_template_exercises cascade;
+drop table if exists public.workout_templates cascade;
 drop table if exists public.camera_tracking_sessions cascade;
 drop table if exists public.territory_events cascade;
 drop table if exists public.territory_capture_points cascade;
@@ -109,7 +113,27 @@ create table public.workout_plan_exercises (
   plan_id text not null references public.workout_plans (id) on delete cascade,
   sort_order integer not null check (sort_order >= 0),
   exercise_name text not null,
+  default_sets smallint not null default 3,
+  default_reps smallint not null default 10,
   primary key (plan_id, sort_order)
+);
+
+create table public.workout_templates (
+  id text primary key,
+  user_id text not null references public.profiles (id) on delete cascade,
+  name text not null,
+  duration_minutes integer not null check (duration_minutes > 0),
+  difficulty text not null check (difficulty in ('beginner', 'intermediate', 'advanced')),
+  created_at timestamptz not null default now()
+);
+
+create table public.workout_template_exercises (
+  template_id text not null references public.workout_templates (id) on delete cascade,
+  sort_order integer not null check (sort_order >= 0),
+  exercise_name text not null,
+  default_sets smallint not null default 3,
+  default_reps smallint not null default 10,
+  primary key (template_id, sort_order)
 );
 
 -- завершённые тренировки
@@ -185,6 +209,8 @@ alter table public.workout_plan_exercises enable row level security;
 alter table public.workout_completions enable row level security;
 alter table public.workout_completion_exercises enable row level security;
 alter table public.camera_tracking_sessions enable row level security;
+alter table public.workout_templates enable row level security;
+alter table public.workout_template_exercises enable row level security;
 
 create policy "profiles: device access" on public.profiles
   for all to anon, authenticated using (true) with check (true);
@@ -205,6 +231,12 @@ create policy "workout_completion_exercises: device access" on public.workout_co
   for all to anon, authenticated using (true) with check (true);
 
 create policy "camera_tracking_sessions: device access" on public.camera_tracking_sessions
+  for all to anon, authenticated using (true) with check (true);
+
+create policy "workout_templates: device access" on public.workout_templates
+  for all to anon, authenticated using (true) with check (true);
+
+create policy "workout_template_exercises: device access" on public.workout_template_exercises
   for all to anon, authenticated using (true) with check (true);
 
 -- =============================================================================

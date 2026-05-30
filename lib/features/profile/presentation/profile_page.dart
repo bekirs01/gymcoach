@@ -1,7 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gym/l10n/app_localizations.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/premium_tokens.dart';
+import '../../../app/widgets/premium_background.dart';
+import '../../feed/presentation/social_avatar.dart';
+import '../../social/data/social_api_client.dart';
+import '../../social/domain/feed_post.dart';
 import '../domain/user_profile.dart';
 
 double? _parsePositiveMetric(String raw) {
@@ -30,11 +39,16 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late UserProfile _profile;
+  SocialApiClient? _client;
+  List<FeedPost> _posts = const [];
+  var _loadingSocial = true;
+  var _tab = 0;
 
   @override
   void initState() {
     super.initState();
     _profile = widget.profile;
+    unawaited(_bootstrapSocial());
   }
 
   @override
@@ -45,25 +59,64 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _bootstrapSocial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final client = SocialApiClient(prefs: prefs);
+    await client.ensureProfile(_profile);
+    if (!mounted) return;
+    setState(() => _client = client);
+    await _loadSocial();
+  }
+
+  Future<void> _loadSocial() async {
+    final client = _client;
+    if (client == null) return;
+    try {
+      final uid = await client.currentUserId();
+      final social = await client.getCurrentProfile();
+      final posts = await client.fetchUserPosts(uid);
+      if (!mounted) return;
+      setState(() {
+        _posts = posts;
+        _loadingSocial = false;
+        if (social != null) {
+          _profile = _profile.copyWith(
+            displayName: social.displayName.isEmpty ? _profile.displayName : social.displayName,
+            bio: social.bio,
+            privateNotes: social.privateNotes,
+            avatarUrl: social.avatarUrl,
+            coverUrl: social.coverUrl,
+            isPublic: social.isPublic,
+          );
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingSocial = false);
+    }
+  }
+
   Future<void> _editProfile() async {
-    final l10n = AppLocalizations.of(context)!;
-    final result = await showDialog<UserProfile>(
+    final client = _client;
+    if (client == null) return;
+    final result = await showModalBottomSheet<UserProfile>(
       context: context,
-      builder: (dialogContext) => _EditProfileDialog(initial: _profile, l10n: l10n),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditSocialProfileSheet(initial: _profile, client: client),
     );
     if (!mounted || result == null) return;
     setState(() => _profile = result);
     widget.onProfileChanged(result);
-  }
-
-  void _preferences() {
-    final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(l10n.profilePreferencesSnack),
-      ),
+    await client.updateProfile(
+      displayName: result.displayName,
+      bio: result.bio,
+      privateNotes: result.privateNotes,
+      avatarUrl: result.avatarUrl,
+      coverUrl: result.coverUrl,
+      isPublic: result.isPublic,
     );
+    await _loadSocial();
   }
 
   void _pickLanguage() {
@@ -72,40 +125,36 @@ class _ProfilePageState extends State<ProfilePage> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      backgroundColor: PremiumColors.surface,
       builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    l10n.languagePickerTitle,
-                    style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
+        return Material(
+          color: PremiumColors.surface,
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                  child: Text(l10n.languagePickerTitle, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                 ),
-              ),
-              ListTile(
-                title: Text(l10n.languageEnglish),
-                trailing: code == 'en' ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  widget.onLocaleChanged(const Locale('en'));
-                },
-              ),
-              ListTile(
-                title: Text(l10n.languageRussian),
-                trailing: code == 'ru' ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  widget.onLocaleChanged(const Locale('ru'));
-                },
-              ),
-            ],
+                ListTile(
+                  title: Text(l10n.languageEnglish, style: const TextStyle(color: Colors.white)),
+                  trailing: code == 'en' ? const Icon(Icons.check_rounded, color: PremiumColors.accentBlue) : null,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    widget.onLocaleChanged(const Locale('en'));
+                  },
+                ),
+                ListTile(
+                  title: Text(l10n.languageRussian, style: const TextStyle(color: Colors.white)),
+                  trailing: code == 'ru' ? const Icon(Icons.check_rounded, color: PremiumColors.accentBlue) : null,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    widget.onLocaleChanged(const Locale('ru'));
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -124,218 +173,639 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
-    final topPadding = MediaQuery.of(context).padding.top;
     final l10n = AppLocalizations.of(context)!;
     final langLabel =
         Localizations.localeOf(context).languageCode == 'ru' ? l10n.languageRussian : l10n.languageEnglish;
 
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(20, topPadding + 12, 20, 0),
-          sliver: SliverToBoxAdapter(
-            child: Text(
-              l10n.profileTitle,
-              style: theme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-          sliver: SliverToBoxAdapter(
-            child: Material(
-              color: AppColors.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: const BorderSide(color: AppColors.borderSubtle),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [AppColors.heroGradientStart, AppColors.heroGradientEnd],
-                        ),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+        child: PremiumBackground(
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _ProfileHeader(profile: _profile, onEdit: _editProfile),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 54, 20, 0),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        _profile.displayName,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800),
                       ),
-                      child: const Icon(Icons.person_rounded, color: Colors.white, size: 34),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 6),
+                      Text(
+                        _profile.bio.isEmpty ? 'No public bio yet.' : _profile.bio,
+                        textAlign: TextAlign.center,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: PremiumColors.textSecondary, height: 1.35),
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
                         children: [
-                          Text(
-                            _profile.displayName,
-                            style: theme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _profile.membershipLevel,
-                            style: theme.titleSmall?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            _profile.fitnessGoal,
-                            style: theme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                              height: 1.35,
+                          Expanded(child: _MetricChip(value: '${_posts.length}', label: 'Posts')),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _MetricChip(
+                              value: '${_posts.fold<int>(0, (sum, p) => sum + p.media.length)}',
+                              label: 'Photos',
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 18),
+                      _ProfileTabs(
+                        selected: _tab,
+                        onSelected: (v) => setState(() => _tab = v),
+                      ),
+                    ],
+                  ),
                 ),
+              ),
+              if (_loadingSocial)
+                const SliverPadding(
+                  padding: EdgeInsets.all(24),
+                  sliver: SliverToBoxAdapter(
+                    child: Center(child: CircularProgressIndicator(color: PremiumColors.accentBlue)),
+                  ),
+                )
+              else
+                ..._tabSlivers(langLabel),
+              SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 24)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _tabSlivers(String langLabel) {
+    switch (_tab) {
+      case 0:
+        return [_photosSliver()];
+      case 1:
+        return [_aboutSliver()];
+      case 2:
+        return [_postsSliver()];
+      default:
+        return [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: _SettingsCard(
+                langLabel: langLabel,
+                notifications: _profile.notificationsEnabled,
+                onEdit: _editProfile,
+                onLanguage: _pickLanguage,
+                onNotifications: (v) {
+                  final next = _profile.copyWith(notificationsEnabled: v);
+                  setState(() => _profile = next);
+                  widget.onProfileChanged(next);
+                },
+                onLogout: _logout,
               ),
             ),
           ),
+        ];
+    }
+  }
+
+  Widget _aboutSliver() {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+      sliver: SliverToBoxAdapter(
+        child: Column(
+          children: [
+            _InfoCard(
+              title: 'About me',
+              body: _profile.bio.isEmpty ? 'This user has not added public info yet.' : _profile.bio,
+              icon: Icons.article_outlined,
+            ),
+            const SizedBox(height: 14),
+            _InfoCard(
+              title: 'Private notes',
+              body: _profile.privateNotes.isEmpty
+                  ? 'Add private notes only you can see.'
+                  : _profile.privateNotes,
+              icon: Icons.lock_outline_rounded,
+            ),
+            const SizedBox(height: 14),
+            _InfoCard(
+              title: 'Fitness',
+              body: '${_profile.fitnessGoal}\n${_profile.weightKg} kg · ${_profile.heightCm} cm',
+              icon: Icons.fitness_center_rounded,
+            ),
+          ],
         ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-          sliver: SliverToBoxAdapter(
-            child: Row(
+      ),
+    );
+  }
+
+  Widget _postsSliver() {
+    if (_posts.isEmpty) {
+      return const SliverPadding(
+        padding: EdgeInsets.fromLTRB(20, 90, 20, 0),
+        sliver: SliverToBoxAdapter(
+          child: _EmptyProfileState(
+            icon: Icons.feed_outlined,
+            text: 'No feed posts yet.',
+          ),
+        ),
+      );
+    }
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+      sliver: SliverList.separated(
+        itemCount: _posts.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final post = _posts[index];
+          return _MiniPostCard(post: post);
+        },
+      ),
+    );
+  }
+
+  Widget _photosSliver() {
+    final media = _posts.expand((p) => p.media).toList();
+    if (media.isEmpty) {
+      return const SliverPadding(
+        padding: EdgeInsets.fromLTRB(20, 90, 20, 0),
+        sliver: SliverToBoxAdapter(
+          child: _EmptyProfileState(
+            icon: Icons.photo_camera_outlined,
+            text: 'No photos yet.',
+          ),
+        ),
+      );
+    }
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+      sliver: SliverGrid.builder(
+        itemCount: media.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          mainAxisSpacing: 6,
+          crossAxisSpacing: 6,
+        ),
+        itemBuilder: (context, index) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(PremiumRadii.sm),
+            child: Image.network(media[index].url, fit: BoxFit.cover),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({required this.profile, required this.onEdit});
+
+  final UserProfile profile;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final topPad = MediaQuery.viewPaddingOf(context).top;
+    return SliverToBoxAdapter(
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            height: 176 + topPad,
+            decoration: BoxDecoration(
+              color: PremiumColors.surface,
+              image: profile.coverUrl.isEmpty
+                  ? null
+                  : DecorationImage(
+                      image: NetworkImage(profile.coverUrl),
+                      fit: BoxFit.cover,
+                      colorFilter: ColorFilter.mode(
+                        Colors.black.withValues(alpha: 0.25),
+                        BlendMode.darken,
+                      ),
+                    ),
+            ),
+          ),
+          Positioned(
+            right: 12,
+            top: topPad + 8,
+            child: FilledButton.icon(
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_rounded, size: 18),
+              label: const Text('Edit'),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: -42,
+            child: Center(
+              child: SocialAvatar(
+                name: profile.displayName,
+                imageUrl: profile.avatarUrl,
+                size: 96,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileTabs extends StatelessWidget {
+  const _ProfileTabs({required this.selected, required this.onSelected});
+
+  final int selected;
+  final ValueChanged<int> onSelected;
+
+  static const labels = ['Photos', 'About', 'Feed', 'Settings'];
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        itemCount: labels.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 6),
+        itemBuilder: (context, index) {
+          final active = selected == index;
+          return Padding(
+            padding: EdgeInsets.only(right: index == labels.length - 1 ? 4 : 0),
+            child: ChoiceChip(
+              label: Text(
+                labels[index],
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              visualDensity: VisualDensity.compact,
+              selected: active,
+              onSelected: (_) => onSelected(index),
+              selectedColor: PremiumColors.accentBlue,
+              backgroundColor: PremiumColors.surface,
+              labelStyle: TextStyle(
+                color: active ? Colors.white : PremiumColors.textSecondary,
+                fontWeight: FontWeight.w700,
+              ),
+              side: BorderSide(color: active ? PremiumColors.accentBlue : PremiumColors.glassBorder),
+              showCheckmark: false,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _EmptyProfileState extends StatelessWidget {
+  const _EmptyProfileState({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        children: [
+          Icon(icon, color: PremiumColors.textMuted.withValues(alpha: 0.45), size: 78),
+          const SizedBox(height: 18),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: PremiumColors.textSecondary, fontSize: 15),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniPostCard extends StatelessWidget {
+  const _MiniPostCard({required this.post});
+
+  final FeedPost post;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: PremiumColors.surface,
+        borderRadius: BorderRadius.circular(PremiumRadii.lg),
+        border: Border.all(color: PremiumColors.glassBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (post.caption.isNotEmpty)
+            Text(post.caption, style: const TextStyle(color: Colors.white, height: 1.35)),
+          if (post.media.isNotEmpty) ...[
+            if (post.caption.isNotEmpty) const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(PremiumRadii.md),
+              child: AspectRatio(
+                aspectRatio: 1.45,
+                child: Image.network(post.media.first.url, fit: BoxFit.cover),
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Text(
+            '${post.likeCount} likes · ${post.commentCount} comments',
+            style: const TextStyle(color: PremiumColors.textMuted, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({required this.title, required this.body, required this.icon});
+
+  final String title;
+  final String body;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: PremiumColors.surface,
+        borderRadius: BorderRadius.circular(PremiumRadii.lg),
+        border: Border.all(color: PremiumColors.glassBorder),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: PremiumColors.accentBlue),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: _MetricChip(label: l10n.profileWeight, value: '${_profile.weightKg} kg'),
+                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Text(body, style: const TextStyle(color: PremiumColors.textSecondary, height: 1.35)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsCard extends StatelessWidget {
+  const _SettingsCard({
+    required this.langLabel,
+    required this.notifications,
+    required this.onEdit,
+    required this.onLanguage,
+    required this.onNotifications,
+    required this.onLogout,
+  });
+
+  final String langLabel;
+  final bool notifications;
+  final VoidCallback onEdit;
+  final VoidCallback onLanguage;
+  final ValueChanged<bool> onNotifications;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: PremiumColors.surface,
+        borderRadius: BorderRadius.circular(PremiumRadii.lg),
+        border: Border.all(color: PremiumColors.glassBorder),
+      ),
+            child: Column(
+              children: [
+                Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    leading: const Icon(Icons.edit_rounded, color: PremiumColors.accentBlue),
+                    title: const Text('Edit profile', style: TextStyle(color: Colors.white)),
+                    onTap: onEdit,
+                  ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _MetricChip(label: l10n.profileHeight, value: '${_profile.heightCm} cm'),
+                Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    leading: const Icon(Icons.language_rounded, color: PremiumColors.accentBlue),
+                    title: const Text('Language', style: TextStyle(color: Colors.white)),
+                    subtitle: Text(langLabel, style: const TextStyle(color: PremiumColors.textMuted)),
+                    onTap: onLanguage,
+                  ),
+                ),
+                Material(
+                  color: Colors.transparent,
+                  child: SwitchListTile(
+                    value: notifications,
+                    activeThumbColor: PremiumColors.accentBlue,
+                    title: const Text('Workout reminders', style: TextStyle(color: Colors.white)),
+                    subtitle: const Text('Keep training notifications enabled', style: TextStyle(color: PremiumColors.textMuted)),
+                    onChanged: onNotifications,
+                  ),
+                ),
+                Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+                    title: const Text('Log out', style: TextStyle(color: Colors.white)),
+                    onTap: onLogout,
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+class _EditSocialProfileSheet extends StatefulWidget {
+  const _EditSocialProfileSheet({required this.initial, required this.client});
+
+  final UserProfile initial;
+  final SocialApiClient client;
+
+  @override
+  State<_EditSocialProfileSheet> createState() => _EditSocialProfileSheetState();
+}
+
+class _EditSocialProfileSheetState extends State<_EditSocialProfileSheet> {
+  final _picker = ImagePicker();
+  late final TextEditingController _name;
+  late final TextEditingController _bio;
+  late final TextEditingController _notes;
+  late String _avatarUrl;
+  late String _coverUrl;
+  late bool _isPublic;
+  var _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController(text: widget.initial.displayName);
+    _bio = TextEditingController(text: widget.initial.bio);
+    _notes = TextEditingController(text: widget.initial.privateNotes);
+    _avatarUrl = widget.initial.avatarUrl;
+    _coverUrl = widget.initial.coverUrl;
+    _isPublic = widget.initial.isPublic;
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _bio.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickAvatar() async {
+    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 86, maxWidth: 1200);
+    if (image == null) return;
+    setState(() => _saving = true);
+    final url = await widget.client.uploadImage(image, 'avatars');
+    if (!mounted) return;
+    setState(() {
+      _avatarUrl = url;
+      _saving = false;
+    });
+  }
+
+  Future<void> _pickCover() async {
+    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 86, maxWidth: 1600);
+    if (image == null) return;
+    setState(() => _saving = true);
+    final url = await widget.client.uploadImage(image, 'covers');
+    if (!mounted) return;
+    setState(() {
+      _coverUrl = url;
+      _saving = false;
+    });
+  }
+
+  void _save() {
+    final name = _name.text.trim();
+    if (name.isEmpty) return;
+    Navigator.pop(
+      context,
+      widget.initial.copyWith(
+        displayName: name,
+        bio: _bio.text.trim(),
+        privateNotes: _notes.text.trim(),
+        avatarUrl: _avatarUrl,
+        coverUrl: _coverUrl,
+        isPublic: _isPublic,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: Material(
+        color: PremiumColors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(PremiumRadii.xl)),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Edit profile',
+                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    SocialAvatar(name: _name.text, imageUrl: _avatarUrl, size: 64),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _saving ? null : _pickAvatar,
+                        icon: const Icon(Icons.person_rounded),
+                        label: const Text('Avatar'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _saving ? null : _pickCover,
+                        icon: const Icon(Icons.image_rounded),
+                        label: const Text('Cover'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _DarkField(controller: _name, label: 'Name'),
+                const SizedBox(height: 10),
+                _DarkField(controller: _bio, label: 'Public bio', maxLines: 3),
+                const SizedBox(height: 10),
+                _DarkField(controller: _notes, label: 'Private notes', maxLines: 4),
+                SwitchListTile(
+                  value: _isPublic,
+                  title: const Text('Public profile', style: TextStyle(color: Colors.white)),
+                  subtitle: const Text('Visible in Feed and Leaderboard', style: TextStyle(color: PremiumColors.textMuted)),
+                  onChanged: (v) => setState(() => _isPublic = v),
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Save'),
                 ),
               ],
             ),
           ),
         ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-          sliver: SliverToBoxAdapter(
-            child: Text(
-              l10n.profileAccount,
-              style: theme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
+      ),
+    );
+  }
+}
+
+class _DarkField extends StatelessWidget {
+  const _DarkField({required this.controller, required this.label, this.maxLines = 1});
+
+  final TextEditingController controller;
+  final String label;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: PremiumColors.textSecondary),
+        filled: true,
+        fillColor: PremiumColors.midnightBottom,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(PremiumRadii.lg),
+          borderSide: const BorderSide(color: PremiumColors.glassBorder),
         ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-          sliver: SliverToBoxAdapter(
-            child: Material(
-              color: AppColors.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: AppColors.borderSubtle),
-              ),
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.edit_rounded, color: AppColors.primary),
-                    title: Text(l10n.profileEditProfile),
-                    trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-                    onTap: _editProfile,
-                  ),
-                  const Divider(height: 1, color: AppColors.borderSubtle),
-                  ListTile(
-                    leading: const Icon(Icons.tune_rounded, color: AppColors.primary),
-                    title: Text(l10n.profileAppPreferences),
-                    trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-                    onTap: _preferences,
-                  ),
-                  const Divider(height: 1, color: AppColors.borderSubtle),
-                  ListTile(
-                    leading: const Icon(Icons.language_rounded, color: AppColors.primary),
-                    title: Text(l10n.languageTitle),
-                    subtitle: Text(l10n.languageSubtitle),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(langLabel, style: theme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
-                        const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-                      ],
-                    ),
-                    onTap: _pickLanguage,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-          sliver: SliverToBoxAdapter(
-            child: Text(
-              l10n.profileNotificationsSection,
-              style: theme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-          sliver: SliverToBoxAdapter(
-            child: Material(
-              color: AppColors.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: AppColors.borderSubtle),
-              ),
-              child: SwitchListTile(
-                title: Text(l10n.profileRemindersTitle),
-                subtitle: Text(l10n.profileRemindersSubtitle),
-                value: _profile.notificationsEnabled,
-                activeThumbColor: AppColors.primary,
-                onChanged: (v) {
-                  final next = _profile.copyWith(notificationsEnabled: v);
-                  setState(() => _profile = next);
-                  widget.onProfileChanged(next);
-                },
-              ),
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-          sliver: SliverToBoxAdapter(
-            child: SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _logout,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primaryDark,
-                  side: const BorderSide(color: AppColors.borderSubtle),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(l10n.profileLogOut, style: const TextStyle(fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -507,26 +977,19 @@ class _MetricChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderSubtle),
+        color: PremiumColors.surface,
+        borderRadius: BorderRadius.circular(PremiumRadii.lg),
+        border: Border.all(color: PremiumColors.glassBorder),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(label, style: theme.labelSmall?.copyWith(color: AppColors.textMuted)),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: theme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
+          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(color: PremiumColors.textMuted, fontSize: 11)),
         ],
       ),
     );

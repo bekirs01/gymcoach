@@ -2,7 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../../features/plans/domain/plan_exercise.dart';
 import '../../features/plans/domain/workout_plan.dart';
+import '../../features/plans/domain/workout_template.dart';
 import '../../features/profile/domain/user_profile.dart';
 import '../../features/workout/domain/completed_exercise_log.dart';
 import '../../features/workout/domain/workout_completion.dart';
@@ -12,18 +14,21 @@ final class TrainingSnapshot {
     required this.plans,
     required this.completions,
     required this.profile,
+    this.templates = const [],
   });
 
   final List<WorkoutPlan> plans;
   final List<WorkoutCompletion> completions;
   final UserProfile profile;
+  final List<WorkoutTemplate> templates;
 
   String encode() {
     return jsonEncode({
-      'v': 1,
+      'v': 2,
       'plans': plans.map(_encodePlan).toList(),
       'completions': completions.map(_encodeCompletion).toList(),
       'profile': _encodeProfile(profile),
+      'templates': templates.map(_encodeTemplate).toList(),
     });
   }
 
@@ -36,8 +41,42 @@ final class TrainingSnapshot {
         .map((e) => _decodeCompletion(e as Map<String, dynamic>))
         .toList();
     final profile = _decodeProfile(o['profile'] as Map<String, dynamic>);
-    return TrainingSnapshot(plans: plans, completions: completions, profile: profile);
+    final templatesRaw = o['templates'] as List<dynamic>?;
+    final templates = templatesRaw == null
+        ? const <WorkoutTemplate>[]
+        : templatesRaw.map((e) => _decodeTemplate(e as Map<String, dynamic>)).toList();
+    return TrainingSnapshot(
+      plans: plans,
+      completions: completions,
+      profile: profile,
+      templates: templates,
+    );
   }
+}
+
+Map<String, dynamic> _encodePlanExercise(PlanExercise e) {
+  return {
+    'name': e.name,
+    'defaultSets': e.defaultSets,
+    'defaultReps': e.defaultReps,
+  };
+}
+
+PlanExercise _decodePlanExercise(Map<String, dynamic> m) {
+  return PlanExercise(
+    name: m['name'] as String,
+    defaultSets: m['defaultSets'] as int? ?? 3,
+    defaultReps: m['defaultReps'] as int? ?? 10,
+  );
+}
+
+List<PlanExercise> _decodePlanExercises(Map<String, dynamic> m) {
+  final exercisesRaw = m['exercises'] as List<dynamic>?;
+  if (exercisesRaw != null) {
+    return exercisesRaw.map((e) => _decodePlanExercise(e as Map<String, dynamic>)).toList();
+  }
+  final names = (m['exerciseNames'] as List<dynamic>?)?.cast<String>() ?? const <String>[];
+  return names.map((n) => PlanExercise(name: n)).toList();
 }
 
 Map<String, dynamic> _encodePlan(WorkoutPlan p) {
@@ -49,7 +88,7 @@ Map<String, dynamic> _encodePlan(WorkoutPlan p) {
     'scheduledMinute': p.scheduledTime.minute,
     'durationMinutes': p.durationMinutes,
     'difficulty': p.difficulty.name,
-    'exerciseNames': p.exerciseNames,
+    'exercises': p.exercises.map(_encodePlanExercise).toList(),
     'status': p.status.name,
   };
 }
@@ -70,8 +109,29 @@ WorkoutPlan _decodePlan(Map<String, dynamic> m) {
     ),
     durationMinutes: m['durationMinutes'] as int,
     difficulty: PlanDifficulty.values.byName(m['difficulty'] as String),
-    exerciseNames: (m['exerciseNames'] as List<dynamic>).cast<String>(),
+    exercises: _decodePlanExercises(m),
     status: PlanStatus.values.byName(m['status'] as String),
+  );
+}
+
+Map<String, dynamic> _encodeTemplate(WorkoutTemplate t) {
+  return {
+    'id': t.id,
+    'name': t.name,
+    'durationMinutes': t.durationMinutes,
+    'difficulty': t.difficulty.name,
+    'exercises': t.exercises.map(_encodePlanExercise).toList(),
+  };
+}
+
+WorkoutTemplate _decodeTemplate(Map<String, dynamic> m) {
+  final exercisesRaw = m['exercises'] as List<dynamic>;
+  return WorkoutTemplate(
+    id: m['id'] as String,
+    name: m['name'] as String,
+    durationMinutes: m['durationMinutes'] as int,
+    difficulty: PlanDifficulty.values.byName(m['difficulty'] as String),
+    exercises: exercisesRaw.map((e) => _decodePlanExercise(e as Map<String, dynamic>)).toList(),
   );
 }
 
@@ -139,6 +199,11 @@ Map<String, dynamic> _encodeProfile(UserProfile p) {
     'fitnessGoal': p.fitnessGoal,
     'membershipLevel': p.membershipLevel,
     'notificationsEnabled': p.notificationsEnabled,
+    'bio': p.bio,
+    'privateNotes': p.privateNotes,
+    'avatarUrl': p.avatarUrl,
+    'coverUrl': p.coverUrl,
+    'isPublic': p.isPublic,
   };
 }
 
@@ -150,5 +215,10 @@ UserProfile _decodeProfile(Map<String, dynamic> m) {
     fitnessGoal: m['fitnessGoal'] as String,
     membershipLevel: m['membershipLevel'] as String,
     notificationsEnabled: m['notificationsEnabled'] as bool,
+    bio: m['bio'] as String? ?? '',
+    privateNotes: m['privateNotes'] as String? ?? '',
+    avatarUrl: m['avatarUrl'] as String? ?? '',
+    coverUrl: m['coverUrl'] as String? ?? '',
+    isPublic: m['isPublic'] as bool? ?? true,
   );
 }

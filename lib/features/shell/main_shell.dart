@@ -9,7 +9,7 @@ import '../../app/theme/premium_tokens.dart';
 import '../../app/training_app_state.dart';
 import '../../app/widgets/floating_tab_bar.dart';
 import '../../core/training_stats.dart';
-import '../calendar/presentation/calendar_page.dart';
+import '../feed/presentation/feed_page.dart';
 import '../history/presentation/completed_workout_detail_page.dart';
 import '../home/presentation/home_page.dart';
 import '../plans/domain/workout_plan.dart';
@@ -17,11 +17,12 @@ import '../plans/presentation/create_plan_sheet.dart';
 import '../plans/presentation/plan_detail_page.dart';
 import '../profile/domain/user_profile.dart';
 import '../profile/presentation/profile_page.dart';
+import '../leaderboard/presentation/leaderboard_page.dart';
 import '../progress/presentation/progress_page.dart';
 import '../progress/presentation/streak_detail_page.dart';
 import '../territory_map/presentation/territory_map_page.dart';
 import '../workout/domain/workout_completion.dart';
-import '../workout/presentation/workout_log_sheet.dart';
+import '../workout/presentation/quick_log_sheet.dart';
 import '../workout/presentation/workout_session_page.dart';
 
 class MainShell extends StatefulWidget {
@@ -53,8 +54,17 @@ class _MainShellState extends State<MainShell> {
     setState(() => _selectedIndex = 3);
   }
 
-  void _goToProfileTab() {
-    setState(() => _selectedIndex = 4);
+  void _openProfile(BuildContext context) {
+    final profile = _t.profile;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => ProfilePage(
+          profile: profile,
+          onProfileChanged: (p) => unawaited(_t.updateProfile(p)),
+          onLocaleChanged: widget.onLocaleChanged,
+        ),
+      ),
+    );
   }
 
   Future<void> _handleSessionComplete(WorkoutPlan plan, WorkoutCompletion completion) =>
@@ -151,7 +161,7 @@ class _MainShellState extends State<MainShell> {
 
   void _logWorkout(BuildContext messengerContext) {
     final l10n = AppLocalizations.of(messengerContext)!;
-    showWorkoutLogSheet(
+    showQuickLogSheet(
       context: messengerContext,
       profile: _t.profile,
       onSaved: (c) {
@@ -185,14 +195,14 @@ class _MainShellState extends State<MainShell> {
         label: l10n.navHome,
       ),
       FloatingTabItem(
+        icon: Icons.dynamic_feed_outlined,
+        activeIcon: Icons.dynamic_feed_rounded,
+        label: l10n.navFeed,
+      ),
+      FloatingTabItem(
         icon: Icons.map_outlined,
         activeIcon: Icons.map_rounded,
         label: l10n.navMap,
-      ),
-      FloatingTabItem(
-        icon: Icons.calendar_month_outlined,
-        activeIcon: Icons.calendar_month_rounded,
-        label: l10n.navCalendar,
       ),
       FloatingTabItem(
         icon: Icons.insights_outlined,
@@ -200,15 +210,15 @@ class _MainShellState extends State<MainShell> {
         label: l10n.navProgress,
       ),
       FloatingTabItem(
-        icon: Icons.person_outline_rounded,
-        activeIcon: Icons.person_rounded,
-        label: l10n.navProfile,
+        icon: Icons.leaderboard_outlined,
+        activeIcon: Icons.leaderboard_rounded,
+        label: l10n.navLeaderboard,
       ),
     ];
 
     final bottomNavReserve = FloatingTabBar.reservedBottomSpace(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
-    final isMapTab = _selectedIndex == 1;
+    final isMapTab = _selectedIndex == 2;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
@@ -221,7 +231,9 @@ class _MainShellState extends State<MainShell> {
       extendBody: true,
       backgroundColor: switch (_selectedIndex) {
         0 => Colors.transparent,
-        1 => PremiumColors.midnightMid,
+        1 => Colors.transparent,
+        2 => PremiumColors.midnightMid,
+        4 => Colors.transparent,
         _ => AppColors.background,
       },
       body: Stack(
@@ -229,7 +241,9 @@ class _MainShellState extends State<MainShell> {
         children: [
           Padding(
             padding: EdgeInsets.only(
-              bottom: (_selectedIndex == 0 || _selectedIndex == 1) ? 0 : bottomNavReserve,
+              bottom: (_selectedIndex == 0 || _selectedIndex == 1 || _selectedIndex == 2 || _selectedIndex == 4)
+                  ? 0
+                  : bottomNavReserve,
             ),
             child: _buildActiveTab(
               plans: plans,
@@ -279,7 +293,7 @@ class _MainShellState extends State<MainShell> {
           weekCompleted: weekFlags,
           onAddPlan: (p) => unawaited(_addPlan(p)),
           onNavigateToProgress: _goToProgressTab,
-          onNavigateToProfile: _goToProfileTab,
+          onOpenProfile: () => _openProfile(context),
           onOpenPlanDetail: (p) => _openPlanDetail(context, p),
           onStartSession: (p) => _pushSession(context, p),
           onOpenCompletion: (c) => _openCompletion(context, c),
@@ -287,22 +301,9 @@ class _MainShellState extends State<MainShell> {
           onLogWorkout: () => _logWorkout(context),
         );
       case 1:
-        return TerritoryMapPage(displayName: profile.displayName);
+        return FeedPage(profile: profile);
       case 2:
-        return CalendarPage(
-          plans: plans,
-          completions: completions,
-          onAddPlan: (plan) {
-            unawaited(_addPlan(plan));
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                behavior: SnackBarBehavior.floating,
-                content: Text(l10n.snackbarCalendarAdded),
-              ),
-            );
-          },
-          onOpenPlan: (p) => _openPlanDetail(context, p),
-        );
+        return TerritoryMapPage(displayName: profile.displayName);
       case 3:
         return ProgressPage(
           plans: plans,
@@ -310,13 +311,7 @@ class _MainShellState extends State<MainShell> {
           onOpenStreak: () => _openStreak(context),
         );
       case 4:
-        return ProfilePage(
-          profile: profile,
-          onProfileChanged: (p) {
-            unawaited(_t.updateProfile(p));
-          },
-          onLocaleChanged: widget.onLocaleChanged,
-        );
+        return LeaderboardPage(displayName: profile.displayName);
       default:
         return const SizedBox.shrink();
     }

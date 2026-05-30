@@ -269,6 +269,28 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
 
     final l10n = AppLocalizations.of(context)!;
     final names = widget.plan.exerciseNames;
+    if (names.isEmpty) {
+      return PremiumBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            title: Text(l10n.sessionActiveTitle),
+          ),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                l10n.validationPickExercise,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: PremiumColors.textSecondary),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     final current = names[_index];
     final entry = WorkoutExerciseCatalog.entryForName(current);
     final imageAsset = entry?.imageAsset;

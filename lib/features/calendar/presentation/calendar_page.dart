@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../core/training_stats.dart';
 import '../../plans/domain/workout_plan.dart';
+import '../../plans/domain/workout_template.dart';
+import '../../plans/presentation/copy_plan_date_sheet.dart';
 import '../../plans/presentation/create_plan_sheet.dart';
 import '../../plans/presentation/plans_widgets.dart';
 import '../../workout/domain/workout_completion.dart';
@@ -14,12 +17,16 @@ class CalendarPage extends StatefulWidget {
     required this.completions,
     required this.onAddPlan,
     required this.onOpenPlan,
+    this.onCopyPlan,
+    this.templates = const [],
   });
 
   final List<WorkoutPlan> plans;
   final List<WorkoutCompletion> completions;
   final ValueChanged<WorkoutPlan> onAddPlan;
   final ValueChanged<WorkoutPlan> onOpenPlan;
+  final void Function(WorkoutPlan plan, DateTime date)? onCopyPlan;
+  final List<WorkoutTemplate> templates;
 
   @override
   State<CalendarPage> createState() => _CalendarPageState();
@@ -43,18 +50,7 @@ class _CalendarPageState extends State<CalendarPage> {
     });
   }
 
-  Set<DateTime> _completedDays() {
-    final out = <DateTime>{};
-    for (final p in widget.plans) {
-      if (p.status == PlanStatus.completed) {
-        out.add(WorkoutPlan.dateOnly(p.scheduledDate));
-      }
-    }
-    for (final c in widget.completions) {
-      out.add(WorkoutPlan.dateOnly(c.completedAt));
-    }
-    return out;
-  }
+  Set<DateTime> _completedDays() => TrainingStats.completedDays(widget.plans, widget.completions);
 
   Set<DateTime> _plannedDays() {
     final out = <DateTime>{};
@@ -253,6 +249,16 @@ class _CalendarPageState extends State<CalendarPage> {
                   ),
                   child: InkWell(
                     onTap: () => widget.onOpenPlan(plan),
+                    onLongPress: widget.onCopyPlan == null
+                        ? null
+                        : () async {
+                            final date = await showCopyPlanDateSheet(
+                              context: context,
+                              plan: plan,
+                              initialDate: _selected,
+                            );
+                            if (date != null) widget.onCopyPlan!(plan, date);
+                          },
                     borderRadius: BorderRadius.circular(16),
                     child: Padding(
                       padding: const EdgeInsets.all(16),

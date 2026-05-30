@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
 import '../data/local/training_snapshot_codec.dart';
+import '../core/plan_factory.dart';
 import '../features/plans/domain/workout_plan.dart';
+import '../features/plans/domain/workout_template.dart';
 import '../features/profile/domain/user_profile.dart';
 import '../features/workout/domain/workout_completion.dart';
 import '../shared/repositories/training_persistence_repository.dart';
@@ -20,10 +22,12 @@ final class TrainingAppState extends ChangeNotifier {
 
   List<WorkoutPlan> _plans = [];
   List<WorkoutCompletion> _completions = [];
+  List<WorkoutTemplate> _templates = [];
   late UserProfile _profile;
 
   List<WorkoutPlan> get plans => List.unmodifiable(_plans);
   List<WorkoutCompletion> get completions => List.unmodifiable(_completions);
+  List<WorkoutTemplate> get templates => List.unmodifiable(_templates);
   UserProfile get profile => _profile;
 
   Future<void> ensureBootstrapped(AppLocalizations l10n) async {
@@ -42,6 +46,7 @@ final class TrainingAppState extends ChangeNotifier {
       if (existing != null) {
         _plans = List<WorkoutPlan>.from(existing.plans);
         _completions = List<WorkoutCompletion>.from(existing.completions);
+        _templates = List<WorkoutTemplate>.from(existing.templates);
         if (existing.profile.displayName.trim().isEmpty) {
           _profile = _defaultProfile(l10n);
           await _persist();
@@ -51,6 +56,7 @@ final class TrainingAppState extends ChangeNotifier {
       } else {
         _plans = [];
         _completions = [];
+        _templates = [];
         _profile = _defaultProfile(l10n);
         await _persist();
       }
@@ -58,6 +64,7 @@ final class TrainingAppState extends ChangeNotifier {
       debugPrint('Training bootstrap failed: $e\n$st');
       _plans = [];
       _completions = [];
+      _templates = [];
       _profile = _defaultProfile(l10n);
     }
 
@@ -100,6 +107,7 @@ final class TrainingAppState extends ChangeNotifier {
           plans: _plans,
           completions: _completions,
           profile: _profile,
+          templates: _templates,
         ),
       );
     } catch (e, st) {
@@ -126,6 +134,12 @@ final class TrainingAppState extends ChangeNotifier {
 
   Future<void> removePlan(WorkoutPlan plan) async {
     _plans.removeWhere((p) => p.id == plan.id);
+    _completions.removeWhere((c) {
+      if (c.title == plan.name && WorkoutPlan.isSameDay(c.completedAt, plan.scheduledDate)) {
+        return true;
+      }
+      return c.exerciseLogs.any((log) => log.exerciseId.startsWith('${plan.id}_'));
+    });
     notifyListeners();
     await _persist();
   }
@@ -150,5 +164,21 @@ final class TrainingAppState extends ChangeNotifier {
     _profile = next;
     notifyListeners();
     await _persist();
+  }
+
+  Future<void> addTemplate(WorkoutTemplate template) async {
+    _templates.insert(0, template);
+    notifyListeners();
+    await _persist();
+  }
+
+  Future<void> removeTemplate(WorkoutTemplate template) async {
+    _templates.removeWhere((t) => t.id == template.id);
+    notifyListeners();
+    await _persist();
+  }
+
+  Future<void> duplicatePlanToDate(WorkoutPlan plan, DateTime date) async {
+    await addPlan(PlanFactory.duplicateForDate(plan, scheduledDate: date));
   }
 }

@@ -122,6 +122,12 @@ abstract class AppLocalizations {
   /// **'Calendar'**
   String get navCalendar;
 
+  /// No description provided for @navFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Feed'**
+  String get navFeed;
+
   /// No description provided for @navMap.
   ///
   /// In en, this message translates to:
@@ -139,6 +145,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Profile'**
   String get navProfile;
+
+  /// No description provided for @navLeaderboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaderboard'**
+  String get navLeaderboard;
+
+  /// No description provided for @leaderboardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ranked by total captured territory on the map'**
+  String get leaderboardSubtitle;
+
+  /// No description provided for @leaderboardYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get leaderboardYou;
 
   /// No description provided for @closeTooltip.
   ///
@@ -1423,6 +1447,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save log'**
   String get logSave;
+
+  /// No description provided for @quickLogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log past workout'**
+  String get quickLogTitle;
+
+  /// No description provided for @quickLogDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout date'**
+  String get quickLogDate;
+
+  /// No description provided for @quickLogYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get quickLogYesterday;
+
+  /// No description provided for @quickLogDayBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'2 days ago'**
+  String get quickLogDayBefore;
+
+  /// No description provided for @quickLogAddExercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Add exercise'**
+  String get quickLogAddExercise;
+
+  /// No description provided for @templateFromLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'From template'**
+  String get templateFromLabel;
+
+  /// No description provided for @templateSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as template'**
+  String get templateSave;
+
+  /// No description provided for @templateSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Template saved'**
+  String get templateSaved;
+
+  /// No description provided for @copyPlanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy workout to'**
+  String get copyPlanTitle;
+
+  /// No description provided for @copyPlanConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copyPlanConfirm;
+
+  /// No description provided for @snackbarPlanCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout copied to calendar'**
+  String get snackbarPlanCopied;
+
+  /// No description provided for @sessionManageExercises.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage exercises'**
+  String get sessionManageExercises;
+
+  /// No description provided for @sessionAddExercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Add exercise'**
+  String get sessionAddExercise;
 
   /// No description provided for @validationLogName.
   ///
