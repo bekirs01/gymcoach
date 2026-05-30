@@ -5,6 +5,7 @@ import 'package:gym/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/premium_tokens.dart';
 import '../data/territory_api_factory.dart';
 import '../services/location_permission_service.dart';
 import '../services/user_location_service.dart';
@@ -240,7 +241,10 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
     final topPadding = MediaQuery.of(context).padding.top;
 
     if (controller == null) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const ColoredBox(
+        color: PremiumColors.midnightMid,
+        child: Center(child: CircularProgressIndicator(color: PremiumColors.accentBlue)),
+      );
     }
 
     return ListenableBuilder(
@@ -256,7 +260,9 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
 
         final permissionGranted = controller.permissionState == LocationPermissionState.granted;
 
-        return Stack(
+        return ColoredBox(
+          color: PremiumColors.midnightMid,
+          child: Stack(
           fit: StackFit.expand,
           children: [
             if (permissionGranted)
@@ -271,7 +277,7 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
                 },
               )
             else
-              const ColoredBox(color: AppColors.background),
+              const ColoredBox(color: PremiumColors.midnightMid),
             if (!permissionGranted)
               MapPermissionCard(
                 state: controller.permissionState ?? LocationPermissionState.denied,
@@ -335,15 +341,19 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
               child: Text(
                 l10n.mapTitle,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.3,
                       shadows: permissionGranted
-                          ? const [Shadow(color: Colors.white, blurRadius: 8)]
+                          ? const [
+                              Shadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, 1)),
+                            ]
                           : null,
                     ),
               ),
             ),
           ],
+          ),
         );
       },
     );

@@ -6,7 +6,7 @@ import 'package:geolocator/geolocator.dart' as geo;
 import 'package:gym/l10n/app_localizations.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 
-import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/premium_tokens.dart';
 import '../../config/territory_config.dart';
 import '../../domain/territory.dart';
 import '../../services/user_location_service.dart';
@@ -154,12 +154,12 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
         FillOptions(
           geometry: [ring],
           fillColor: territory.isOwnedByCurrentUser
-              ? _colorHex(AppColors.primary)
+              ? _colorHex(PremiumColors.accentBlue)
               : _mutedColorHex(territory.ownerId),
           fillOpacity: territory.isOwnedByCurrentUser ? 0.35 : 0.28,
           fillOutlineColor: territory.isOwnedByCurrentUser
-              ? _colorHex(AppColors.primaryDark)
-              : _colorHex(AppColors.textSecondary),
+              ? _colorHex(PremiumColors.accentBlueSoft)
+              : _colorHex(PremiumColors.textSecondary),
         ),
         {'territoryId': territory.id},
       );
@@ -171,7 +171,7 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
           geometry: widget.controller.capturePoints
               .map((point) => LatLng(point.latitude, point.longitude))
               .toList(growable: false),
-          lineColor: _colorHex(AppColors.accent),
+          lineColor: _colorHex(PremiumColors.accentBlue),
           lineWidth: 4,
         ),
       );
@@ -212,12 +212,12 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
   }
 
   String _mutedColorHex(String ownerId) {
-    const palette = [
-      AppColors.textMuted,
-      AppColors.textSecondary,
-      Color(0xFF6366F1),
-      Color(0xFF8B5CF6),
-      Color(0xFF0EA5E9),
+    final palette = <Color>[
+      PremiumColors.textMuted,
+      PremiumColors.textSecondary,
+      const Color(0xFF6366F1),
+      const Color(0xFF8B5CF6),
+      const Color(0xFF0EA5E9),
     ];
     return _colorHex(palette[ownerId.hashCode.abs() % palette.length]);
   }
@@ -311,33 +311,40 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
   Widget build(BuildContext context) {
     final initialTarget = _resolvedInitialTarget ?? const LatLng(41.015, 28.979);
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        MapLibreMap(
-          key: ValueKey(MapStyleConfig.styleUrlFor(widget.controller.mapMode)),
-          styleString: MapStyleConfig.styleUrlFor(widget.controller.mapMode),
-          initialCameraPosition: CameraPosition(
-            target: initialTarget,
-            zoom: _resolvedInitialTarget == null ? 4 : 15,
-          ),
-          myLocationEnabled: true,
-          myLocationRenderMode:
-              Platform.isIOS ? MyLocationRenderMode.compass : MyLocationRenderMode.normal,
-          myLocationTrackingMode: MyLocationTrackingMode.none,
-          compassEnabled: true,
-          onMapCreated: _onMapCreated,
-          onStyleLoadedCallback: _onStyleLoaded,
-        ),
-        if (_isLocating)
-          Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 56),
-              child: _LocatingBanner(isLocating: _isLocating),
+    return ColoredBox(
+      color: PremiumColors.midnightMid,
+      child: MediaQuery.removePadding(
+        context: context,
+        removeBottom: true,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            MapLibreMap(
+              key: ValueKey(MapStyleConfig.styleUrlFor(widget.controller.mapMode)),
+              styleString: MapStyleConfig.styleUrlFor(widget.controller.mapMode),
+              initialCameraPosition: CameraPosition(
+                target: initialTarget,
+                zoom: _resolvedInitialTarget == null ? 4 : 15,
+              ),
+              myLocationEnabled: true,
+              myLocationRenderMode:
+                  Platform.isIOS ? MyLocationRenderMode.compass : MyLocationRenderMode.normal,
+              myLocationTrackingMode: MyLocationTrackingMode.none,
+              compassEnabled: true,
+              onMapCreated: _onMapCreated,
+              onStyleLoadedCallback: _onStyleLoaded,
             ),
-          ),
-      ],
+            if (_isLocating)
+              Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 56),
+                  child: _LocatingBanner(isLocating: _isLocating),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -353,10 +360,12 @@ class _LocatingBanner extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderSubtle),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
+        color: PremiumColors.surfaceRaised.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(PremiumRadii.md),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -366,12 +375,15 @@ class _LocatingBanner extends StatelessWidget {
             const SizedBox(
               width: 16,
               height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+              child: CircularProgressIndicator(strokeWidth: 2, color: PremiumColors.accentBlue),
             ),
             const SizedBox(width: 10),
             Text(
               AppLocalizations.of(context)!.mapLocating,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: PremiumColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ],
         ),

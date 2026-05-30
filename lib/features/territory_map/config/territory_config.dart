@@ -1,8 +1,9 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 abstract final class MapStyleConfig {
-  static const standardStyleUrl = 'https://tiles.openfreemap.org/styles/liberty';
+  static const standardStyleUrl = 'https://tiles.openfreemap.org/styles/fiord';
   static const positronStyleUrl = 'https://tiles.openfreemap.org/styles/positron';
+  static const darkStyleUrl = 'https://tiles.openfreemap.org/styles/fiord';
 
   static String styleUrlFor(TerritoryMapVisualMode mode) {
     return switch (mode) {

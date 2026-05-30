@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gym/l10n/app_localizations.dart';
@@ -59,7 +60,7 @@ class _CreatePlanSheetState extends State<CreatePlanSheet> {
   String? _validationMessage;
   var _hydratedExercises = false;
 
-  static const List<int> _durationPresets = [15, 30, 45, 60, 75, 90, 120];
+  static const List<int> _durationPresets = [30, 45, 60, 90];
 
   @override
   void initState() {
@@ -104,25 +105,57 @@ class _CreatePlanSheetState extends State<CreatePlanSheet> {
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+    var temp = _selectedDate;
+    await showModalBottomSheet<void>(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _CupertinoPickerSheet(
+          title: AppLocalizations.of(sheetContext)!.dateLabel,
+          onDone: () {
+            setState(() => _selectedDate = WorkoutPlan.dateOnly(temp));
+            Navigator.of(sheetContext).pop();
+          },
+          child: CupertinoDatePicker(
+            mode: CupertinoDatePickerMode.date,
+            initialDateTime: _selectedDate,
+            minimumDate: DateTime.now().subtract(const Duration(days: 365)),
+            maximumDate: DateTime.now().add(const Duration(days: 365 * 2)),
+            onDateTimeChanged: (value) => temp = value,
+          ),
+        );
+      },
     );
-    if (picked != null) {
-      setState(() => _selectedDate = WorkoutPlan.dateOnly(picked));
-    }
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime,
+    final base = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
     );
-    if (picked != null) {
-      setState(() => _selectedTime = picked);
-    }
+    var temp = base;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _CupertinoPickerSheet(
+          title: AppLocalizations.of(sheetContext)!.timeLabel,
+          onDone: () {
+            setState(() => _selectedTime = TimeOfDay(hour: temp.hour, minute: temp.minute));
+            Navigator.of(sheetContext).pop();
+          },
+          child: CupertinoDatePicker(
+            mode: CupertinoDatePickerMode.time,
+            use24hFormat: true,
+            initialDateTime: base,
+            onDateTimeChanged: (value) => temp = value,
+          ),
+        );
+      },
+    );
   }
 
   void _toggleExercise(String name) {
@@ -281,7 +314,7 @@ class _CreatePlanSheetState extends State<CreatePlanSheet> {
                     controller: _durationController,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
                     textAlign: TextAlign.center,
                     decoration: InputDecoration(
                       hintText: '45',
@@ -289,38 +322,30 @@ class _CreatePlanSheetState extends State<CreatePlanSheet> {
                       suffixStyle: const TextStyle(color: PremiumColors.textMuted, fontWeight: FontWeight.w600),
                       filled: true,
                       fillColor: PremiumColors.surface,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(PremiumRadii.md),
                         borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(PremiumRadii.md),
-                        borderSide: const BorderSide(color: PremiumColors.accentBlue, width: 1.4),
+                        borderSide: const BorderSide(color: PremiumColors.accentBlue, width: 1.2),
                       ),
                     ),
                     onChanged: (_) => setState(() => _validationMessage = null),
                   ),
                   const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                  Row(
                     children: _durationPresets.map((m) {
                       final selected = _parsedDuration == m;
-                      return ChoiceChip(
-                        label: Text(l10n.chipMinutes(m)),
-                        selected: selected,
-                        onSelected: (_) => _selectDurationPreset(m),
-                        backgroundColor: PremiumColors.surface,
-                        selectedColor: PremiumColors.accentBlue.withValues(alpha: 0.24),
-                        labelStyle: TextStyle(
-                          color: selected ? Colors.white : PremiumColors.textSecondary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                        side: BorderSide(
-                          color: selected
-                              ? PremiumColors.accentBlue
-                              : Colors.white.withValues(alpha: 0.1),
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(right: m == _durationPresets.last ? 0 : 8),
+                          child: _DurationChip(
+                            label: l10n.chipMinutes(m),
+                            selected: selected,
+                            onTap: () => _selectDurationPreset(m),
+                          ),
                         ),
                       );
                     }).toList(),
@@ -416,6 +441,133 @@ class _CreatePlanSheetState extends State<CreatePlanSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CupertinoPickerSheet extends StatelessWidget {
+  const _CupertinoPickerSheet({
+    required this.title,
+    required this.onDone,
+    required this.child,
+  });
+
+  final String title;
+  final VoidCallback onDone;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: PremiumColors.midnightMid,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+              child: Row(
+                children: [
+                  CupertinoButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      l10n.cancel,
+                      style: const TextStyle(color: PremiumColors.textSecondary),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  CupertinoButton(
+                    onPressed: onDone,
+                    child: Text(
+                      l10n.mapDone,
+                      style: const TextStyle(
+                        color: PremiumColors.accentBlue,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              height: 220,
+              child: CupertinoTheme(
+                data: const CupertinoThemeData(
+                  brightness: Brightness.dark,
+                  primaryColor: PremiumColors.accentBlue,
+                  textTheme: CupertinoTextThemeData(
+                    dateTimePickerTextStyle: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                child: child,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DurationChip extends StatelessWidget {
+  const _DurationChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? PremiumColors.accentBlue.withValues(alpha: 0.16)
+              : PremiumColors.surface,
+          borderRadius: BorderRadius.circular(PremiumRadii.pill),
+          border: Border.all(
+            color: selected
+                ? PremiumColors.accentBlue.withValues(alpha: 0.75)
+                : Colors.white.withValues(alpha: 0.1),
+          ),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: selected ? PremiumColors.accentBlue : PremiumColors.textSecondary,
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
+          ),
+        ),
       ),
     );
   }

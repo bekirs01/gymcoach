@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/premium_tokens.dart';
 import '../../app/training_app_state.dart';
 import '../../app/widgets/floating_tab_bar.dart';
 import '../../core/training_stats.dart';
@@ -205,15 +207,30 @@ class _MainShellState extends State<MainShell> {
     ];
 
     final bottomNavReserve = FloatingTabBar.reservedBottomSpace(context);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final isMapTab = _selectedIndex == 1;
 
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarBrightness: isMapTab ? Brightness.dark : Brightness.light,
+        statusBarIconBrightness: isMapTab ? Brightness.light : Brightness.dark,
+        systemNavigationBarColor: isMapTab ? PremiumColors.midnightMid : AppColors.background,
+        systemNavigationBarIconBrightness: isMapTab ? Brightness.light : Brightness.dark,
+      ),
+      child: Scaffold(
       extendBody: true,
-      backgroundColor: _selectedIndex == 0 ? Colors.transparent : AppColors.background,
+      backgroundColor: switch (_selectedIndex) {
+        0 => Colors.transparent,
+        1 => PremiumColors.midnightMid,
+        _ => AppColors.background,
+      },
       body: Stack(
         fit: StackFit.expand,
         children: [
           Padding(
-            padding: EdgeInsets.only(bottom: _selectedIndex == 0 ? 0 : bottomNavReserve),
+            padding: EdgeInsets.only(
+              bottom: (_selectedIndex == 0 || _selectedIndex == 1) ? 0 : bottomNavReserve,
+            ),
             child: _buildActiveTab(
               plans: plans,
               completions: completions,
@@ -222,6 +239,14 @@ class _MainShellState extends State<MainShell> {
               l10n: l10n,
             ),
           ),
+          if (isMapTab && bottomInset > 0)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: bottomInset,
+              child: const ColoredBox(color: PremiumColors.midnightMid),
+            ),
           Positioned(
             left: 0,
             right: 0,
@@ -234,6 +259,7 @@ class _MainShellState extends State<MainShell> {
           ),
         ],
       ),
+    ),
     );
   }
 
