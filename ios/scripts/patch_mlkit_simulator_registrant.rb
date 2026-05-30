@@ -3,11 +3,11 @@
 # Flutter regenerates this file on `flutter pub get`; re-apply before each build.
 
 def correctly_patched?(registrant)
-  registrant.include?('#if !TARGET_OS_SIMULATOR') &&
+  registrant.include?('#import <TargetConditionals.h>') &&
     registrant.include?("#if !TARGET_OS_SIMULATOR\n#if __has_include(<google_mlkit_commons/GoogleMlKitCommonsPlugin.h>)") &&
     registrant.include?("#if !TARGET_OS_SIMULATOR\n  [GoogleMlKitCommonsPlugin registerWithRegistrar") &&
     registrant.match?(
-      %r{#endif\n\n#if __has_include\(<maplibre_gl/MapLibreMapsPlugin\.h>\)}m
+      %r{@import google_mlkit_pose_detection;\n#endif\n#endif\n\n#if __has_include\(<image_picker_ios/FLTImagePickerPlugin\.h>\)}m
     )
 end
 
@@ -19,8 +19,14 @@ def strip_patch(registrant)
   )
   out = out.gsub("#import <TargetConditionals.h>\n", '')
   out = out.gsub("#if !TARGET_OS_SIMULATOR\n#if __has_include(<google_mlkit_commons/", '#if __has_include(<google_mlkit_commons/')
-  out = out.gsub("#endif\n#endif\n\n#if __has_include(<maplibre_gl/", "#endif\n\n#if __has_include(<maplibre_gl/")
-  out = out.gsub("#endif\n#endif\n#endif\n\n#if __has_include(<maplibre_gl/", "#endif\n\n#if __has_include(<maplibre_gl/")
+  out = out.gsub(
+    "@import google_mlkit_pose_detection;\n#endif\n#endif\n\n#if __has_include(<image_picker_ios/",
+    "@import google_mlkit_pose_detection;\n#endif\n\n#if __has_include(<image_picker_ios/"
+  )
+  out = out.gsub(
+    "@import google_mlkit_pose_detection;\n#endif\n#endif\n#endif\n\n#if __has_include(<maplibre_gl/",
+    "@import google_mlkit_pose_detection;\n#endif\n\n#if __has_include(<maplibre_gl/"
+  )
   out = out.gsub("#if !TARGET_OS_SIMULATOR\n  [GoogleMlKitCommonsPlugin", '  [GoogleMlKitCommonsPlugin')
   out = out.gsub(
     "  [GoogleMlKitPoseDetectionPlugin registerWithRegistrar:[registry registrarForPlugin:@\"GoogleMlKitPoseDetectionPlugin\"]];\n#endif\n",
@@ -40,8 +46,8 @@ def apply_patch(registrant)
     "#if !TARGET_OS_SIMULATOR\n#if __has_include(<google_mlkit_commons/GoogleMlKitCommonsPlugin.h>)"
   )
   out = out.sub(
-    "#endif\n\n#if __has_include(<maplibre_gl/MapLibreMapsPlugin.h>)",
-    "#endif\n#endif\n\n#if __has_include(<maplibre_gl/MapLibreMapsPlugin.h>)"
+    "@import google_mlkit_pose_detection;\n#endif\n\n#if __has_include(<image_picker_ios/FLTImagePickerPlugin.h>)",
+    "@import google_mlkit_pose_detection;\n#endif\n#endif\n\n#if __has_include(<image_picker_ios/FLTImagePickerPlugin.h>)"
   )
   out = out.sub(
     '  [GoogleMlKitCommonsPlugin registerWithRegistrar:[registry registrarForPlugin:@"GoogleMlKitCommonsPlugin"]];',

@@ -310,28 +310,8 @@ class _CreatePlanSheetState extends State<CreatePlanSheet> {
                   const SizedBox(height: 14),
                   _SectionLabel(l10n.durationLabel),
                   const SizedBox(height: 8),
-                  TextField(
+                  _DurationInput(
                     controller: _durationController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
-                    textAlign: TextAlign.center,
-                    decoration: InputDecoration(
-                      hintText: '45',
-                      suffixText: 'min',
-                      suffixStyle: const TextStyle(color: PremiumColors.textMuted, fontWeight: FontWeight.w600),
-                      filled: true,
-                      fillColor: PremiumColors.surface,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(PremiumRadii.md),
-                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(PremiumRadii.md),
-                        borderSide: const BorderSide(color: PremiumColors.accentBlue, width: 1.2),
-                      ),
-                    ),
                     onChanged: (_) => setState(() => _validationMessage = null),
                   ),
                   const SizedBox(height: 10),
@@ -342,7 +322,7 @@ class _CreatePlanSheetState extends State<CreatePlanSheet> {
                         child: Padding(
                           padding: EdgeInsets.only(right: m == _durationPresets.last ? 0 : 8),
                           child: _DurationChip(
-                            label: l10n.chipMinutes(m),
+                            minutes: m,
                             selected: selected,
                             onTap: () => _selectDurationPreset(m),
                           ),
@@ -531,23 +511,97 @@ class _CupertinoPickerSheet extends StatelessWidget {
   }
 }
 
+class _DurationInput extends StatelessWidget {
+  const _DurationInput({
+    required this.controller,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: PremiumColors.surface,
+        borderRadius: BorderRadius.circular(PremiumRadii.md),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IntrinsicWidth(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 36, maxWidth: 80),
+              child: TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22,
+                  height: 1.2,
+                ),
+                decoration: const InputDecoration(
+                  hintText: '45',
+                  hintStyle: TextStyle(
+                    color: PremiumColors.textMuted,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 22,
+                  ),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(vertical: 8),
+                ),
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 1),
+            child: Text(
+              'min',
+              style: TextStyle(
+                color: PremiumColors.textSecondary,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                height: 1.2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DurationChip extends StatelessWidget {
   const _DurationChip({
-    required this.label,
+    required this.minutes,
     required this.selected,
     required this.onTap,
   });
 
-  final String label;
+  final int minutes;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final accent = selected ? PremiumColors.accentBlue : PremiumColors.textSecondary;
+    final unitColor = selected
+        ? PremiumColors.accentBlue.withValues(alpha: 0.8)
+        : PremiumColors.textMuted;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 11),
         decoration: BoxDecoration(
           color: selected
               ? PremiumColors.accentBlue.withValues(alpha: 0.16)
@@ -559,14 +613,28 @@ class _DurationChip extends StatelessWidget {
                 : Colors.white.withValues(alpha: 0.1),
           ),
         ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: selected ? PremiumColors.accentBlue : PremiumColors.textSecondary,
-            fontWeight: FontWeight.w700,
-            fontSize: 12,
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '$minutes',
+              style: TextStyle(
+                color: accent,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+                height: 1,
+              ),
+            ),
+            Text(
+              ' min',
+              style: TextStyle(
+                color: unitColor,
+                fontWeight: FontWeight.w600,
+                fontSize: 11,
+                height: 1,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
+import '../../../app/widgets/premium_ios_alert.dart';
 import '../../../core/workout_exercise_catalog.dart';
 import '../domain/workout_plan.dart';
 
@@ -22,29 +23,13 @@ class PlanDetailPage extends StatelessWidget {
 
   Future<void> _confirmDelete(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final ok = await showDialog<bool>(
+    final ok = await showPremiumIosConfirmDialog(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: PremiumColors.surfaceRaised,
-          title: Text(l10n.deletePlanTitle, style: const TextStyle(color: Colors.white)),
-          content: Text(
-            l10n.deletePlanConfirm(plan.name),
-            style: const TextStyle(color: PremiumColors.textSecondary),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(l10n.cancel, style: const TextStyle(color: PremiumColors.textSecondary)),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFF453A)),
-              child: Text(l10n.delete),
-            ),
-          ],
-        );
-      },
+      title: l10n.deletePlanTitle,
+      message: l10n.deletePlanConfirm(plan.name),
+      cancelLabel: l10n.cancel,
+      confirmLabel: l10n.delete,
+      isDestructive: true,
     );
     if (ok == true && context.mounted) {
       onDeleted();
