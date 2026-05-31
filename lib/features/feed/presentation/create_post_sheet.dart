@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../app/theme/premium_tokens.dart';
@@ -160,7 +161,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                               height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Publish'),
+                          : Text(AppLocalizations.of(context)!.feedPublish),
                     ),
                   ],
                 ),

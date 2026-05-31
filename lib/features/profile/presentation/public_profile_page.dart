@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
@@ -36,8 +37,6 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   String? _error;
   SocialProfile? _profile;
   List<FeedPost> _posts = const [];
-
-  static const _tabLabels = ['Photos', 'About', 'Feed'];
 
   @override
   void initState() {
@@ -130,6 +129,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   }
 
   List<Widget> _buildSlivers() {
+    final l10n = AppLocalizations.of(context)!;
     final profile = _profile!;
     final topPad = MediaQuery.of(context).padding.top;
     final name = profile.displayName.isEmpty ? 'Athlete' : profile.displayName;
@@ -170,10 +170,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                   left: 0,
                   right: 0,
                   top: topPad + 6,
-                  child: const Text(
-                    'Profile',
+                  child: Text(
+                    l10n.profileTitle,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
@@ -238,7 +238,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: ProfileSegmentTabs(
-                labels: _tabLabels,
+                labels: [l10n.profileTabPhotos, l10n.profileTabAbout, l10n.profileTabFeed],
                 selected: _tab,
                 onSelected: (v) => setState(() => _tab = v),
               ),
@@ -254,11 +254,11 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           ),
         )
       else
-        SliverToBoxAdapter(child: _tabContent(profile)),
+        SliverToBoxAdapter(child: _tabContent(l10n, profile)),
     ];
   }
 
-  Widget _tabContent(SocialProfile profile) {
+  Widget _tabContent(AppLocalizations l10n, SocialProfile profile) {
     switch (_tab) {
       case 0:
         return ProfilePhotoGrid(
@@ -272,6 +272,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         return ProfileFeedSection(
           posts: _posts,
           heroTagPrefix: 'public-feed-${widget.userId}',
+          emptyMessage: l10n.profilePostsEmpty,
         );
     }
   }

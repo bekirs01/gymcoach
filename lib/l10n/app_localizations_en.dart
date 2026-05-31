@@ -270,6 +270,79 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get homeAddWorkout => 'Add workout';
+
+  @override
+  String get workoutListEmptyTitle => 'Your workout list is empty';
+
+  @override
+  String get workoutListEmptyBody =>
+      'Start by adding exercises to a new training day.';
+
+  @override
+  String get workoutAddTrainingDay => 'Add training day';
+
+  @override
+  String get workoutChooseMuscleGroup => 'Choose muscle group';
+
+  @override
+  String get workoutChooseExercises => 'Choose exercises';
+
+  @override
+  String get workoutNameYourWorkout => 'Name your workout';
+
+  @override
+  String get workoutMuscleGroupHint =>
+      'Select one or more areas you want to train.';
+
+  @override
+  String get workoutContinue => 'Continue';
+
+  @override
+  String workoutContinueGroups(int count) {
+    return 'Continue ($count groups)';
+  }
+
+  @override
+  String get workoutSelectExercises => 'Select exercises';
+
+  @override
+  String workoutContinueExercises(int count) {
+    return 'Continue ($count)';
+  }
+
+  @override
+  String get workoutSaveWorkout => 'Save workout';
+
+  @override
+  String workoutExerciseHintSingle(String category) {
+    return 'Choose $category exercises. Tap a row to select and read the details.';
+  }
+
+  @override
+  String get workoutExerciseHintMulti =>
+      'Choose exercises from your selected muscle groups.';
+
+  @override
+  String get workoutNameHint => 'e.g. Upper Body Power';
+
+  @override
+  String get workoutSelected => 'Selected';
+
+  @override
+  String get workoutBack => 'Back';
+
+  @override
+  String get planRepeatWorkout => 'Repeat workout';
+
+  @override
+  String get planCustomizeRepeat => 'Customize and schedule';
+
+  @override
+  String get planCompletedHint =>
+      'This workout is finished. Repeat it on another day or adjust exercises first.';
+
+  @override
   String exercisesCount(int count) {
     return '$count exercises';
   }
@@ -350,9 +423,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workoutNameLabel => 'Workout name';
 
   @override
-  String get workoutNameHint => 'e.g. Upper Body Power';
-
-  @override
   String get dateLabel => 'Date';
 
   @override
@@ -423,6 +493,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progressWeeklyVolume => 'Weekly volume';
 
   @override
+  String get progressTotalSessions => 'Total sessions';
+
+  @override
+  String get progressWeeklyMinutes => 'Training time this week';
+
+  @override
+  String get progressWeeklyCalories => 'Calories this week';
+
+  @override
+  String get progressWeekActivity => 'Calories by day';
+
+  @override
+  String get progressWeekActivityHint => 'Calories burned each day this week';
+
+  @override
+  String get progressMonthSessions => 'Sessions this month';
+
+  @override
+  String get progressPlannedUpcoming => 'Upcoming workouts';
+
+  @override
   String get progressAchievements => 'Achievements';
 
   @override
@@ -470,6 +561,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileTitle => 'Profile';
+
+  @override
+  String get profileTabPhotos => 'Photos';
+
+  @override
+  String get profileTabAbout => 'About';
+
+  @override
+  String get profileTabFeed => 'Feed';
+
+  @override
+  String get profileTabSaved => 'Saved';
+
+  @override
+  String get profileTabSettings => 'Settings';
+
+  @override
+  String get profileEditShort => 'Edit';
+
+  @override
+  String get profileClose => 'Close';
+
+  @override
+  String get profileNoBio => 'No public bio yet.';
+
+  @override
+  String get profileAboutEmpty =>
+      'This user has not added information about themselves yet.';
+
+  @override
+  String get profilePhotosEmpty => 'This user has not added any photos yet.';
+
+  @override
+  String get profilePostsEmpty => 'This user has not shared any posts yet.';
+
+  @override
+  String get profileSavedEmpty =>
+      'No saved posts yet. Tap bookmark on a feed post to save it here.';
+
+  @override
+  String get profilePrivateNotes => 'Private notes';
+
+  @override
+  String get profilePrivateNotesEmpty => 'Add private notes only you can see.';
+
+  @override
+  String get profileFitnessSummary => 'Fitness summary';
 
   @override
   String get profileWeight => 'Weight';
@@ -592,6 +730,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get labelReps => 'Reps';
 
   @override
+  String get labelRest => 'Rest';
+
+  @override
   String get sessionAllExercises => 'All exercises';
 
   @override
@@ -611,6 +752,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sessionSummaryCalories => 'Calories';
+
+  @override
+  String sessionSummaryVolumeLine(int logKcal, int totalKcal) {
+    return 'Exercise volume: $logKcal kcal · Session total: $totalKcal kcal';
+  }
+
+  @override
+  String sessionDurationSecondsOnly(int count) {
+    return '${count}s';
+  }
+
+  @override
+  String sessionDurationMinutesOnly(int count) {
+    return '$count min';
+  }
+
+  @override
+  String sessionDurationMinutesSeconds(int minutes, int seconds) {
+    return '${minutes}m ${seconds}s';
+  }
 
   @override
   String sessionCaloriesUnit(int count) {
@@ -776,10 +937,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get templateSaved => 'Template saved';
 
   @override
-  String get copyPlanTitle => 'Copy workout to';
+  String get copyPlanTitle => 'Schedule on another day';
 
   @override
-  String get copyPlanConfirm => 'Copy';
+  String get copyPlanConfirm => 'Schedule';
 
   @override
   String get snackbarPlanCopied => 'Workout copied to calendar';
@@ -1262,4 +1423,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String mapLeaderboardMeta(String area, int count) {
     return '$area · $count territories';
   }
+
+  @override
+  String get feedSubtitle => 'Progress photos and training updates';
+
+  @override
+  String get feedPost => 'Post';
+
+  @override
+  String get feedPublish => 'Publish';
+
+  @override
+  String get feedDeletePost => 'Delete post';
+
+  @override
+  String get feedBlockUser => 'Block user';
+
+  @override
+  String get feedReportPost => 'Report post';
 }

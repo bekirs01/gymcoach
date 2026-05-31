@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
 import '../../../../core/workout_exercise_catalog.dart';
+import '../../../../core/workout_exercise_l10n.dart';
 import '../../../plans/domain/workout_plan.dart';
 
 class HomeReferenceHeader extends StatelessWidget {
@@ -395,20 +396,20 @@ class HomeFeaturedTrainingCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     title,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 22,
+                      fontSize: 18,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.4,
-                      height: 1.05,
+                      height: 1.1,
                     ),
                   ),
                   const Spacer(),
                   Text(
                     subtitle,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.84),
@@ -757,6 +758,7 @@ class _HomeWorkoutBuilderPanelState extends State<HomeWorkoutBuilderPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -766,6 +768,7 @@ class _HomeWorkoutBuilderPanelState extends State<HomeWorkoutBuilderPanel> {
           for (final plan in widget.plans.take(4)) ...[
             _WorkoutPlanTile(
               plan: plan,
+              l10n: l10n,
               onOpen: () => widget.onOpenPlan(plan),
               onStart: () => widget.onStartPlan(plan),
             ),
@@ -777,7 +780,7 @@ class _HomeWorkoutBuilderPanelState extends State<HomeWorkoutBuilderPanel> {
             child: FilledButton.icon(
               onPressed: _openComposer,
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Add workout'),
+              label: Text(l10n.homeAddWorkout),
               style: FilledButton.styleFrom(
                 backgroundColor: PremiumColors.accentBlue,
                 foregroundColor: Colors.white,
@@ -820,13 +823,13 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
         .toList();
   }
 
-  String get _title {
+  String _title(AppLocalizations l10n) {
     return switch (_step) {
-      _WorkoutBuildStep.category => 'Choose muscle group',
+      _WorkoutBuildStep.category => l10n.workoutChooseMuscleGroup,
       _WorkoutBuildStep.exercises => _selectedCategories.length == 1
-          ? _selectedCategories.first.title
-          : 'Choose exercises',
-      _WorkoutBuildStep.details => 'Name your workout',
+          ? WorkoutExerciseL10n.categoryTitle(l10n, _selectedCategories.first.title)
+          : l10n.workoutChooseExercises,
+      _WorkoutBuildStep.details => l10n.workoutNameYourWorkout,
     };
   }
 
@@ -880,6 +883,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final height = MediaQuery.sizeOf(context).height * 0.92;
 
     return Container(
@@ -911,7 +915,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
                   const SizedBox(width: 48),
                 Expanded(
                   child: Text(
-                    _title,
+                    _title(l10n),
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -936,14 +940,14 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              child: _buildStep(),
+              child: _buildStep(l10n),
             ),
           ),
           SafeArea(
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
-              child: _buildBottomAction(),
+              child: _buildBottomAction(l10n),
             ),
           ),
         ],
@@ -951,15 +955,15 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
     );
   }
 
-  Widget _buildStep() {
+  Widget _buildStep(AppLocalizations l10n) {
     return switch (_step) {
-      _WorkoutBuildStep.category => _buildCategoryStep(),
-      _WorkoutBuildStep.exercises => _buildExerciseStep(),
-      _WorkoutBuildStep.details => _buildDetailsStep(),
+      _WorkoutBuildStep.category => _buildCategoryStep(l10n),
+      _WorkoutBuildStep.exercises => _buildExerciseStep(l10n),
+      _WorkoutBuildStep.details => _buildDetailsStep(l10n),
     };
   }
 
-  Widget _buildBottomAction() {
+  Widget _buildBottomAction(AppLocalizations l10n) {
     return switch (_step) {
       _WorkoutBuildStep.category => FilledButton(
           onPressed: _selectedCategoryTitles.isEmpty
@@ -968,8 +972,8 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
           style: _primaryButtonStyle(),
           child: Text(
             _selectedCategoryTitles.length <= 1
-                ? 'Continue'
-                : 'Continue (${_selectedCategoryTitles.length} groups)',
+                ? l10n.workoutContinue
+                : l10n.workoutContinueGroups(_selectedCategoryTitles.length),
           ),
         ),
       _WorkoutBuildStep.exercises => FilledButton(
@@ -979,8 +983,8 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
           style: _primaryButtonStyle(),
           child: Text(
             _selectedExerciseNames.isEmpty
-                ? 'Select exercises'
-                : 'Continue (${_selectedExerciseNames.length})',
+                ? l10n.workoutSelectExercises
+                : l10n.workoutContinueExercises(_selectedExerciseNames.length),
           ),
         ),
       _WorkoutBuildStep.details => FilledButton.icon(
@@ -988,7 +992,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
               ? null
               : _saveWorkout,
           icon: const Icon(Icons.check_rounded),
-          label: const Text('Save workout'),
+          label: Text(l10n.workoutSaveWorkout),
           style: _primaryButtonStyle(),
         ),
     };
@@ -1008,13 +1012,13 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
     );
   }
 
-  Widget _buildCategoryStep() {
+  Widget _buildCategoryStep(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Select one or more areas you want to train.',
-          style: TextStyle(
+        Text(
+          l10n.workoutMuscleGroupHint,
+          style: const TextStyle(
             color: PremiumColors.textSecondary,
             fontSize: 14,
             height: 1.35,
@@ -1024,6 +1028,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
         for (final category in WorkoutExerciseCatalog.categories) ...[
           _MuscleCategoryCard(
             category: category,
+            l10n: l10n,
             selected: _selectedCategoryTitles.contains(category.title),
             onTap: () => _toggleCategory(category),
           ),
@@ -1033,14 +1038,16 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
     );
   }
 
-  Widget _buildExerciseStep() {
+  Widget _buildExerciseStep(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           _selectedCategories.length == 1
-              ? 'Choose ${_selectedCategories.first.title.toLowerCase()} exercises. Tap a row to select and read the details.'
-              : 'Choose exercises from your selected muscle groups.',
+              ? l10n.workoutExerciseHintSingle(
+                  WorkoutExerciseL10n.categoryTitle(l10n, _selectedCategories.first.title),
+                )
+              : l10n.workoutExerciseHintMulti,
           style: const TextStyle(
             color: PremiumColors.textSecondary,
             fontSize: 14,
@@ -1051,7 +1058,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
         for (final category in _selectedCategories) ...[
           if (_selectedCategories.length > 1) ...[
             Text(
-              category.title,
+              WorkoutExerciseL10n.categoryTitle(l10n, category.title),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -1063,6 +1070,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
           for (final exercise in category.exercises) ...[
             _ExercisePhotoCard(
               exercise: exercise,
+              l10n: l10n,
               selected: _selectedExerciseNames.contains(exercise.name),
               onTap: () => _toggleExercise(exercise),
             ),
@@ -1074,7 +1082,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
     );
   }
 
-  Widget _buildDetailsStep() {
+  Widget _buildDetailsStep(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1088,7 +1096,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
             fontWeight: FontWeight.w700,
           ),
           decoration: InputDecoration(
-            hintText: 'Enter workout name...',
+            hintText: l10n.workoutNameHint,
             hintStyle: TextStyle(
               color: PremiumColors.textMuted.withValues(alpha: 0.8),
             ),
@@ -1114,7 +1122,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
         ),
         const SizedBox(height: 16),
         for (final exercise in _selectedExercises) ...[
-          _SelectedExerciseSummary(exercise: exercise),
+          _SelectedExerciseSummary(exercise: exercise, l10n: l10n),
           const SizedBox(height: 10),
         ],
       ],
@@ -1131,6 +1139,7 @@ class _WorkoutEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 28, 18, 22),
       decoration: BoxDecoration(
@@ -1146,20 +1155,20 @@ class _WorkoutEmptyState extends StatelessWidget {
             color: PremiumColors.accentBlue.withValues(alpha: 0.2),
           ),
           const SizedBox(height: 14),
-          const Text(
-            'Your workout list is empty',
+          Text(
+            l10n.workoutListEmptyTitle,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 17,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Start by adding exercises to a new training day.',
+          Text(
+            l10n.workoutListEmptyBody,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: PremiumColors.textSecondary,
               fontSize: 13,
               height: 1.35,
@@ -1169,7 +1178,7 @@ class _WorkoutEmptyState extends StatelessWidget {
           FilledButton.icon(
             onPressed: onCreate,
             icon: const Icon(Icons.add_rounded),
-            label: const Text('Add training day'),
+            label: Text(l10n.workoutAddTrainingDay),
             style: FilledButton.styleFrom(
               backgroundColor: PremiumColors.accentBlue,
               foregroundColor: Colors.white,
@@ -1233,11 +1242,13 @@ class _WorkoutProgressRing extends StatelessWidget {
 class _WorkoutPlanTile extends StatelessWidget {
   const _WorkoutPlanTile({
     required this.plan,
+    required this.l10n,
     required this.onOpen,
     required this.onStart,
   });
 
   final WorkoutPlan plan;
+  final AppLocalizations l10n;
   final VoidCallback onOpen;
   final VoidCallback onStart;
 
@@ -1307,7 +1318,7 @@ class _WorkoutPlanTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${plan.exerciseNames.length} exercises · ${plan.formattedTime}',
+                      '${l10n.exercisesCount(plan.exerciseNames.length)} · ${plan.formattedTime}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -1334,16 +1345,20 @@ class _WorkoutPlanTile extends StatelessWidget {
 class _ExercisePhotoCard extends StatelessWidget {
   const _ExercisePhotoCard({
     required this.exercise,
+    required this.l10n,
     required this.selected,
     required this.onTap,
   });
 
   final WorkoutExerciseEntry exercise;
+  final AppLocalizations l10n;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final displayName = WorkoutExerciseL10n.name(l10n, exercise.name);
+    final displayDescription = WorkoutExerciseL10n.description(l10n, exercise.name, exercise.description);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -1391,7 +1406,7 @@ class _ExercisePhotoCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          exercise.name,
+                          displayName,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -1428,7 +1443,7 @@ class _ExercisePhotoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 7),
                   Text(
-                    exercise.description,
+                    displayDescription,
                     maxLines: selected ? 4 : 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -1439,9 +1454,9 @@ class _ExercisePhotoCard extends StatelessWidget {
                   ),
                   if (selected) ...[
                     const SizedBox(height: 8),
-                    const Text(
-                      'Selected',
-                      style: TextStyle(
+                    Text(
+                      l10n.workoutSelected,
+                      style: const TextStyle(
                         color: PremiumColors.accentBlue,
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -1459,12 +1474,15 @@ class _ExercisePhotoCard extends StatelessWidget {
 }
 
 class _SelectedExerciseSummary extends StatelessWidget {
-  const _SelectedExerciseSummary({required this.exercise});
+  const _SelectedExerciseSummary({required this.exercise, required this.l10n});
 
   final WorkoutExerciseEntry exercise;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
+    final displayName = WorkoutExerciseL10n.name(l10n, exercise.name);
+    final displayDescription = WorkoutExerciseL10n.description(l10n, exercise.name, exercise.description);
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -1498,7 +1516,7 @@ class _SelectedExerciseSummary extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  exercise.name,
+                  displayName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -1509,7 +1527,7 @@ class _SelectedExerciseSummary extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  exercise.description,
+                  displayDescription,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -1530,16 +1548,19 @@ class _SelectedExerciseSummary extends StatelessWidget {
 class _MuscleCategoryCard extends StatelessWidget {
   const _MuscleCategoryCard({
     required this.category,
+    required this.l10n,
     required this.selected,
     required this.onTap,
   });
 
   final WorkoutExerciseCategory category;
+  final AppLocalizations l10n;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final title = WorkoutExerciseL10n.categoryTitle(l10n, category.title);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -1599,7 +1620,7 @@ class _MuscleCategoryCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                category.title,
+                title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(

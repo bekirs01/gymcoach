@@ -5,6 +5,7 @@ import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
 import '../../../app/widgets/premium_ios_alert.dart';
 import '../../../core/workout_exercise_catalog.dart';
+import '../../../core/workout_exercise_l10n.dart';
 import '../domain/workout_plan.dart';
 
 class PlanDetailPage extends StatelessWidget {
@@ -14,12 +15,16 @@ class PlanDetailPage extends StatelessWidget {
     required this.onBeginSession,
     required this.onEdit,
     required this.onDeleted,
+    this.onRepeatWorkout,
+    this.onCustomizeRepeat,
   });
 
   final WorkoutPlan plan;
   final VoidCallback onBeginSession;
   final VoidCallback onEdit;
   final VoidCallback onDeleted;
+  final VoidCallback? onRepeatWorkout;
+  final VoidCallback? onCustomizeRepeat;
 
   Future<void> _confirmDelete(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
@@ -43,6 +48,7 @@ class PlanDetailPage extends StatelessWidget {
     final heroImage = WorkoutExerciseCatalog.imageForName(
       plan.exerciseNames.isEmpty ? null : plan.exerciseNames.first,
     );
+    final isCompleted = plan.status == PlanStatus.completed;
 
     return PremiumBackground(
       child: Scaffold(
@@ -110,7 +116,7 @@ class PlanDetailPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       for (final name in plan.exerciseNames) ...[
-                        _ExerciseRow(name: name),
+                        _ExerciseRow(name: name, l10n: l10n),
                         const SizedBox(height: 8),
                       ],
                     ],
@@ -124,48 +130,74 @@ class PlanDetailPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      FilledButton(
-                        onPressed: plan.status == PlanStatus.planned && plan.exerciseNames.isNotEmpty
-                            ? onBeginSession
-                            : null,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: PremiumColors.accentBlue,
-                          disabledBackgroundColor: PremiumColors.surfaceRaised,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size.fromHeight(54),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(PremiumRadii.md),
+                      if (isCompleted) ...[
+                        Text(
+                          l10n.planCompletedHint,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: PremiumColors.textMuted, fontSize: 12, height: 1.35),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton.icon(
+                          onPressed: onRepeatWorkout,
+                          icon: const Icon(Icons.event_repeat_rounded),
+                          label: Text(l10n.planRepeatWorkout),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: PremiumColors.accentBlue,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(54),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(PremiumRadii.md),
+                            ),
                           ),
                         ),
-                        child: Text(
-                          l10n.beginSession,
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          onPressed: onCustomizeRepeat,
+                          icon: const Icon(Icons.tune_rounded),
+                          label: Text(l10n.planCustomizeRepeat),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: PremiumColors.accentBlue,
+                            side: BorderSide(color: PremiumColors.accentBlue.withValues(alpha: 0.7)),
+                            minimumSize: const Size.fromHeight(52),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(PremiumRadii.md),
+                            ),
+                          ),
                         ),
-                      ),
-                      if (plan.status != PlanStatus.planned) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          l10n.planSessionOnlyPlanned,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: PremiumColors.textMuted, fontSize: 12),
+                      ] else ...[
+                        FilledButton(
+                          onPressed: plan.exerciseNames.isNotEmpty ? onBeginSession : null,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: PremiumColors.accentBlue,
+                            disabledBackgroundColor: PremiumColors.surfaceRaised,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(54),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(PremiumRadii.md),
+                            ),
+                          ),
+                          child: Text(
+                            l10n.beginSession,
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton(
+                          onPressed: onEdit,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: PremiumColors.accentBlue,
+                            side: BorderSide(color: PremiumColors.accentBlue.withValues(alpha: 0.7)),
+                            minimumSize: const Size.fromHeight(52),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(PremiumRadii.md),
+                            ),
+                          ),
+                          child: Text(
+                            l10n.editPlan,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
                         ),
                       ],
-                      const SizedBox(height: 10),
-                      OutlinedButton(
-                        onPressed: onEdit,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: PremiumColors.accentBlue,
-                          side: BorderSide(color: PremiumColors.accentBlue.withValues(alpha: 0.7)),
-                          minimumSize: const Size.fromHeight(52),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(PremiumRadii.md),
-                          ),
-                        ),
-                        child: Text(
-                          l10n.editPlan,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -374,13 +406,15 @@ class _DetailRow extends StatelessWidget {
 }
 
 class _ExerciseRow extends StatelessWidget {
-  const _ExerciseRow({required this.name});
+  const _ExerciseRow({required this.name, required this.l10n});
 
   final String name;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
     final imageAsset = WorkoutExerciseCatalog.imageForName(name);
+    final displayName = WorkoutExerciseL10n.name(l10n, name);
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -407,7 +441,7 @@ class _ExerciseRow extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              name,
+              displayName,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 15,

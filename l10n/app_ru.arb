@@ -1,1 +1,678 @@
-﻿{"@@locale":"ru","appTitle":"GymCoach","navHome":"Главная","navPlans":"Планы","navCalendar":"Календарь","navProgress":"Прогресс","navProfile":"Профиль","closeTooltip":"Закрыть","cancel":"Отмена","save":"Сохранить","delete":"Удалить","add":"Добавить","today":"Сегодня","tomorrow":"Завтра","scheduleToday":"Сегодня · {time}","@scheduleToday":{"placeholders":{"time":{"type":"String"}}},"scheduleTomorrow":"Завтра · {time}","@scheduleTomorrow":{"placeholders":{"time":{"type":"String"}}},"scheduleDateTime":"{date} · {time}","@scheduleDateTime":{"placeholders":{"date":{"type":"String"},"time":{"type":"String"}}},"activityYesterday":"Вчера","activityDaysAgo":"{count} дн. назад","@activityDaysAgo":{"placeholders":{"count":{"type":"int"}}},"activityToday":"Сегодня","homeWelcomeBack":"С возвращением","homeStayConsistent":"Сохраняйте регулярность и продолжайте двигаться.","homeTodaysFocus":"Фокус на сегодня","homeTrainingFocus":"Тренировочный фокус","homeSchedulePlanPrompt":"Запланируйте тренировку, чтобы сохранять регулярность.","homeOneWorkoutToday":"Сегодня запланирована 1 тренировка","homeNWorkoutsToday":"Сегодня запланировано тренировок: {count}","@homeNWorkoutsToday":{"placeholders":{"count":{"type":"int"}}},"homeMetricPlanned":"Запланированные тренировки","homeMetricCompleted":"Завершенные тренировки","homeMetricThisWeek":"На этой неделе","homeNextWorkout":"Следующая тренировка","homeNoneScheduled":"Ничего не запланировано","homeAddWorkoutPlan":"Добавить план тренировки","homeNextWorkoutEmptyHint":"Создайте план, чтобы увидеть здесь следующую тренировку.","homeOpenDetails":"Открыть детали","homeViewPlans":"Посмотреть планы","homeQuickActions":"Быстрые действия","homeWeeklyActivity":"Активность за неделю","homeExerciseCategories":"Категории упражнений","homeRecentActivity":"Недавняя активность","homeRecentEmpty":"Пока нет завершенных тренировок. Завершите тренировку, чтобы увидеть ее здесь.","homeStartWorkout":"Начать тренировку","homeViewPlanLink":"Открыть план","homeStreakTitle":"Сохраните серию","homeStreakSubtitle":"Завершите одну тренировку сегодня, чтобы не сбить темп.","homeQuickCreatePlan":"Создать план","homeQuickLogWorkout":"Записать тренировку","homeQuickStatistics":"Посмотреть статистику","homeNoWorkoutToday":"На сегодня тренировка не запланирована.","plansPageTitle":"Планы тренировок","plansPageSubtitle":"Планируйте тренировки и сохраняйте регулярность.","plansCreate":"Создать план","plansSectionYourPlans":"Ваши планы","plansTotalCount":"Всего: {count}","@plansTotalCount":{"placeholders":{"count":{"type":"int"}}},"plansEmptyTitle":"Планов тренировок пока нет","plansEmptyBody":"Создайте первый план и начните формировать регулярность.","plansSnackbarCreated":"План тренировки создан","plansSnackbarOnlyPlanned":"Начать живую сессию можно только для запланированных тренировок.","minutesShort":"{count} мин","@minutesShort":{"placeholders":{"count":{"type":"int"}}},"minutesPlanShort":"План на {count} мин","@minutesPlanShort":{"placeholders":{"count":{"type":"int"}}},"durationMinutesLabel":"{count} минут","@durationMinutesLabel":{"placeholders":{"count":{"type":"int"}}},"exercisesCount":"Упражнений: {count}","@exercisesCount":{"placeholders":{"count":{"type":"int"}}},"difficultyBeginner":"Начальный","difficultyIntermediate":"Средний","difficultyAdvanced":"Продвинутый","statusPlanned":"Запланировано","statusCompleted":"Завершено","statusMissed":"Пропущено","planCardDetails":"Детали","planCardStart":"Старт","planDetailTitle":"Детали плана","planDetailSchedule":"Расписание","planDetailExercises":"Упражнения","labelDate":"Дата","labelTime":"Время","labelDuration":"Длительность","beginSession":"Начать сессию","editPlan":"Изменить план","planSessionOnlyPlanned":"Новую сессию можно начать только для запланированной тренировки.","deletePlanTitle":"Удалить план","deletePlanConfirm":"Удалить «{name}» навсегда?","@deletePlanConfirm":{"placeholders":{"name":{"type":"String"}}},"createPlanTitle":"Создать план","editPlanSheetTitle":"Изменить план","savePlan":"Сохранить план","updatePlan":"Обновить план","workoutNameLabel":"Название тренировки","workoutNameHint":"Например: силовая на верх","dateLabel":"Дата","timeLabel":"Время","durationLabel":"Длительность","difficultyLabel":"Сложность","exercisesLabel":"Упражнения","exercisesSelected":"Выбрано: {count}","@exercisesSelected":{"placeholders":{"count":{"type":"int"}}},"validationWorkoutName":"Введите название тренировки.","validationPickExercise":"Выберите хотя бы одно упражнение.","chipMinutes":"{count} мин","@chipMinutes":{"placeholders":{"count":{"type":"int"}}},"calendarTitle":"Календарь","calendarWorkoutsOn":"Тренировки на {date}","@calendarWorkoutsOn":{"placeholders":{"date":{"type":"String"}}},"calendarEmptyDay":"В этот день нет тренировок. Добавьте сессию, чтобы держать график.","progressTitle":"Прогресс","progressSubtitle":"Обзор результатов и история","progressWeeklySessions":"Сессии за неделю","progressActiveStreak":"Активная серия","progressStreakDays":"{count} дн.","@progressStreakDays":{"placeholders":{"count":{"type":"int"}}},"progressMonthlyConsistency":"Регулярность за месяц","progressMonthlyHint":"Завершенные сессии относительно планов на месяц","progressWeeklyVolume":"Объем за неделю","progressAchievements":"Достижения","progressSessionHighlights":"Лучшие сессии","progressHighlightLongest":"Самая длинная сессия","progressHighlightCalories":"Максимум калорий","progressHighlightMoves":"Больше всего упражнений","progressHighlightsEmpty":"Записывайте тренировки, чтобы увидеть здесь лучшие сессии.","progressWorkoutHistory":"История тренировок","progressHistoryEmpty":"Завершенных сессий пока нет. Завершите тренировку, чтобы увидеть ее здесь.","streakDetailsTitle":"Детали серии","streakDayStreak":"Серия: {count} дн.","@streakDayStreak":{"placeholders":{"count":{"type":"int"}}},"streakMomentum":"Тренируйтесь сегодня, чтобы сохранить темп.","streakRecentDays":"Последние тренировочные дни","streakEmpty":"Завершите тренировку, чтобы начать серию.","streakOpenProgress":"Открыть прогресс","profileTitle":"Профиль","profileWeight":"Вес","profileHeight":"Рост","profileAccount":"Аккаунт","profileEditProfile":"Изменить профиль","profileAppPreferences":"Настройки приложения","profileNotificationsSection":"Уведомления","profileRemindersTitle":"Напоминания о тренировках","profileRemindersSubtitle":"Получайте уведомления о предстоящих сессиях","profileLogOut":"Выйти","profileEditSheetTitle":"Изменить профиль","labelName":"Имя","labelWeightKg":"Вес (кг)","labelHeightCm":"Рост (см)","labelFitnessGoal":"Цель тренировок","labelMembership":"Подписка","validationProfileName":"Введите имя.","validationProfileWeight":"Введите корректный вес (точка или запятая для дробной части).","validationProfileHeight":"Введите корректный рост (точка или запятая для дробной части).","membershipFree":"Базовый","membershipPlus":"Плюс","membershipPremium":"Премиум","languageTitle":"Язык","languageSubtitle":"Язык интерфейса приложения","languageEnglish":"Английский","languageRussian":"Русский","languagePickerTitle":"Выберите язык","profilePreferencesSnack":"Настройки будут подключены в будущей версии.","profileLogoutSnack":"Выход будет доступен после запуска аккаунтов.","profileDefaultGoal":"Сила и общая подготовка","sessionActiveTitle":"Активная сессия","sessionStartTitle":"Готовы тренироваться?","sessionStartBody":"Начните сессию, когда приступите к тренировке. Длительность и калории будут считаться с этого момента.","sessionStartButton":"Начать сессию","sessionStartFirst":"Сначала начните сессию, затем записывайте упражнения.","sessionTimerRunning":"Таймер идет","sessionCurrentExercise":"Текущее упражнение","labelSets":"Подходы","labelReps":"Повторения","sessionAllExercises":"Все упражнения","sessionCompleteExercise":"Завершить упражнение","sessionCompleteFinal":"Завершить последнее упражнение","sessionFinishWorkout":"Завершить тренировку","sessionSummaryTitle":"Итоги сессии","sessionSummaryDuration":"Длительность","sessionSummaryCalories":"Калории","sessionCaloriesUnit":"{count} ккал","@sessionCaloriesUnit":{"placeholders":{"count":{"type":"int"}}},"sessionCaloriesEstimateNote":"Калории рассчитаны примерно на основе веса в профиле, типа упражнения, подходов, повторений и длительности сессии.","sessionValidationSetsReps":"Введите положительное число подходов и повторений.","sessionExerciseAlreadyLogged":"Это упражнение уже записано. Выберите другое из списка.","sessionCameraTrackingComingSoon":"Отслеживание камерой (скоро)","sessionCameraTracking":"Отслеживать камерой","cameraTrackingTitle":"Отслеживание камерой","cameraStartTracking":"Начать отслеживание","cameraApplyCount":"Применить счёт","cameraRepCount":"Повторения","cameraHoldSeconds":"Удержание (сек)","cameraBodyNotVisible":"Встаньте в кадр так, чтобы тело было видно","cameraSafetyDisclaimer":"Это не заменяет тренера. Остановитесь при боли.","cameraPermissionDenied":"Для отслеживания нужен доступ к камере.","cameraPlatformUnsupported":"Отслеживание камерой работает на Android и iOS.","cameraManualFallback":"Можно считать повторения вручную на экране тренировки.","cameraUseManual":"Считать вручную","cameraOpenSettings":"Открыть настройки","cameraRetry":"Попробовать снова","cameraPreviewLoading":"Запуск камеры…","cameraTrackingLive":"Live","cameraInvalidAttempts":"Ошибки","cameraUnsupportedExercise":"Отслеживание камерой для этого упражнения пока недоступно.","cameraInitFailed":"Не удалось запустить камеру. Попробуйте снова или считайте вручную.","cameraFeedbackSaggingHips":"Держите бёдра на линии — не провисайте","cameraFeedbackRaiseHigher":"Поднимите руки выше до уровня плеч","cameraFeedbackIncompletePress":"Нужно полное разгибание над головой","cameraFeedbackPullHigher":"Тяните выше — подбородок над кистями","cameraFeedbackHipsSagging":"Поднимите бёдра — держите тело прямо","cameraFeedbackAdjustForm":"Скорректируйте технику и повторите","cameraAppliedReps":"Применено {count} повторений с камеры","@cameraAppliedReps":{"placeholders":{"count":{"type":"int"}}},"cameraAppliedHold":"Применено {count} сек удержания с камеры","@cameraAppliedHold":{"placeholders":{"count":{"type":"int"}}},"sessionCompletedExercises":"Завершенные упражнения","sessionDone":"Готово","workoutTypePlannedSession":"Запланированная сессия","logWorkoutTitle":"Записать тренировку","logWorkoutName":"Название тренировки","logWorkoutType":"Тип тренировки","logWorkoutTypeDefault":"Своя тренировка","logDuration":"Длительность","logSave":"Сохранить запись","validationLogName":"Введите название тренировки.","historyWorkoutSummary":"Итоги тренировки","historyCompletedOn":"Завершено","historyExercisesCompleted":"Завершенные упражнения","historySetsRepsDetail":"{sets} подходов · {reps} повторений","@historySetsRepsDetail":{"placeholders":{"sets":{"type":"int"},"reps":{"type":"int"}}},"historyCaloriesEstimateNote":"Калории рассчитаны примерно на основе записанной сессии.","snackbarWorkoutSavedHistory":"Тренировка сохранена в историю","snackbarPlanUpdated":"План обновлен","snackbarPlanDeleted":"План удален","snackbarWorkoutLogged":"Тренировка записана","snackbarCalendarAdded":"Тренировка добавлена в календарь","categorySubtitle":"Упражнений: {count}","@categorySubtitle":{"placeholders":{"count":{"type":"int"}}},"catStrengthTitle":"Сила","catStrengthDesc":"Тяжелые базовые и вспомогательные упражнения для развития силы.","catCardioTitle":"Кардио","catCardioDesc":"Интервалы и ровные сессии для развития выносливости.","catMobilityTitle":"Мобильность","catMobilityDesc":"Мягкие движения для улучшения амплитуды.","catCoreTitle":"Кор","catCoreDesc":"Упражнения на стабилизацию и сопротивление вращению для крепкого корпуса.","catRecoveryTitle":"Восстановление","catRecoveryDesc":"Низкоинтенсивные сессии для восстановления качества движений.","catSectionExercises":"Доступные упражнения","catSectionExamplePlans":"Примеры планов","exPushUps":"Отжимания","exSquats":"Приседания","exPlank":"Планка","exLunges":"Выпады","exJumpingJacks":"Прыжки Jumping Jack","exPullUps":"Подтягивания","exShoulderPress":"Жим плечами","exRunning":"Бег","exBackSquat":"Присед со штангой","exBenchPress":"Жим лежа","exDeadlift":"Становая тяга","exRomanianDeadlift":"Румынская тяга","exTempoRun":"Темповый бег","exCycleIntervals":"Велоинтервалы","exRowingSprint":"Спринт на гребле","exJumpRope":"Скакалка","exThoracicRotation":"Ротация грудного отдела","exHipCars":"Hip CARs","exAnkleMobility":"Мобильность голеностопа","exShoulderDislocates":"Плечевая мобилизация","exPlankVariations":"Вариации планки","exPallofPress":"Жим Паллофа","exHangingLegRaise":"Подъем ног в висе","exDeadBug":"Dead Bug","exLightWalk":"Легкая прогулка","exBreathwork":"Дыхательная практика","exFoamRolling":"Миофасциальный ролл","exLegPress":"Жим ногами","exCalfRaises":"Подъемы на носки","exBicycleCrunches":"Велосипедные скручивания","exRussianTwists":"Русские скручивания","exDynamicWarmUp":"Динамическая разминка","seedPlanPushDay":"Жимовой день","seedPlanLowerBody":"Нижняя часть тела","seedPlanCardio":"Кардио-сессия","seedPlanCore":"Стабилизация корпуса","sampleCompletionLegDay":"День ног","sampleCompletionCore":"Сессия на кор","sampleCompletionRun":"Утренний бег","sampleTypeLowerBody":"Нижняя часть тела","sampleTypeCore":"Кор","sampleTypeOutdoorCardio":"Кардио на улице","sampleTypeCustomLog":"Записанная сессия","planUpperPower":"Сила верха","planLowerStrength":"Сила низа","planFullBodyA":"Все тело A","planHiit20":"HIIT 20","planSteadyZone2":"Ровная зона 2","planSprintLadder":"Спринтовая лестница","planMorningReset":"Утренний рестарт","planPreTrainingPrep":"Подготовка к тренировке","planAbsFinishers":"Финишеры на пресс","planAntiRotation":"Антиротационный блок","planDeloadWeek":"Разгрузочная неделя","planSundayReset":"Воскресное восстановление","badgeFirstSession":"Первая сессия","badgeWeekWarrior":"Воин недели","badgeStreakStarter":"Начало серии","badgeConsistency":"Регулярность","weekdayMon":"Пн","weekdayTue":"Вт","weekdayWed":"Ср","weekdayThu":"Чт","weekdayFri":"Пт","weekdaySat":"Сб","weekdaySun":"Вс","progressWeeklyBarsDow1":"П","progressWeeklyBarsDow2":"В","progressWeeklyBarsDow3":"С","progressWeeklyBarsDow4":"Ч","progressWeeklyBarsDow5":"П","progressWeeklyBarsDow6":"С","progressWeeklyBarsDow7":"В","calendarDow1":"П","calendarDow2":"В","calendarDow3":"С","calendarDow4":"Ч","calendarDow5":"П","calendarDow6":"С","calendarDow7":"В"}
+{
+  "@@locale": "ru",
+  "appTitle": "GymCoach",
+  "navHome": "Главная",
+  "navPlans": "Планы",
+  "navCalendar": "Календарь",
+  "navFeed": "Лента",
+  "navMap": "Карта",
+  "navProgress": "Прогресс",
+  "navProfile": "Профиль",
+  "navLeaderboard": "Рейтинг",
+  "leaderboardSubtitle": "Рейтинг по захваченной территории на карте",
+  "leaderboardYou": "Вы",
+  "closeTooltip": "Закрыть",
+  "cancel": "Отмена",
+  "save": "Сохранить",
+  "delete": "Удалить",
+  "add": "Добавить",
+  "today": "Сегодня",
+  "tomorrow": "Завтра",
+  "scheduleToday": "Today · {time}",
+  "@scheduleToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleTomorrow": "Tomorrow · {time}",
+  "@scheduleTomorrow": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "scheduleDateTime": "{date} · {time}",
+  "@scheduleDateTime": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "activityYesterday": "Вчера",
+  "activityDaysAgo": "{count} days ago",
+  "@activityDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityToday": "Сегодня",
+  "homeWelcomeBack": "С возвращением",
+  "homeStayConsistent": "Сохраняйте регулярность и продолжайте двигаться.",
+  "homeTodaysFocus": "Фокус на сегодня",
+  "homeTrainingFocus": "Тренировочный фокус",
+  "homeSchedulePlanPrompt": "Запланируйте тренировку, чтобы сохранять регулярность.",
+  "homeOneWorkoutToday": "Сегодня запланирована 1 тренировка",
+  "homeNWorkoutsToday": "{count} workouts planned for today",
+  "@homeNWorkoutsToday": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeMetricPlanned": "Запланированные тренировки",
+  "homeMetricCompleted": "Завершенные тренировки",
+  "homeMetricThisWeek": "На этой неделе",
+  "homeNextWorkout": "Следующая тренировка",
+  "homeNoneScheduled": "Ничего не запланировано",
+  "homeAddWorkoutPlan": "Добавить план тренировки",
+  "homeNextWorkoutEmptyHint": "Создайте план, чтобы увидеть здесь следующую тренировку.",
+  "homeOpenDetails": "Открыть детали",
+  "homeViewPlans": "Посмотреть планы",
+  "homeQuickActions": "Быстрые действия",
+  "homeWeeklyActivity": "Активность за неделю",
+  "homeExerciseCategories": "Категории упражнений",
+  "homeRecentActivity": "Недавняя активность",
+  "homeRecentEmpty": "Пока нет завершенных тренировок. Завершите тренировку, чтобы увидеть ее здесь.",
+  "homeStartWorkout": "Начать тренировку",
+  "homeViewPlanLink": "Открыть план",
+  "homeStreakTitle": "Сохраните серию",
+  "homeStreakSubtitle": "Завершите одну тренировку сегодня, чтобы не сбить темп.",
+  "homeQuickCreatePlan": "Создать план",
+  "homeQuickLogWorkout": "Записать тренировку",
+  "homeQuickStatistics": "Посмотреть статистику",
+  "homeNoWorkoutToday": "На сегодня тренировка не запланирована.",
+  "homeScreenTitle": "Тренировки",
+  "homeTabDashboard": "Обзор",
+  "homeTabWorkouts": "Тренировки",
+  "homeTabDiet": "Diet",
+  "homeBannerCreateHint": "See how to create new workouts",
+  "homeBannerStartHint": "Start by adding a new training day",
+  "homeMyTraining": "Мои тренировки",
+  "homeCompletedSessions": "{count} завершённых сессий",
+  "@homeCompletedSessions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeTrainingSchedule": "Расписание",
+  "homeMore": "Ещё",
+  "homeNoWorkoutsOnDate": "No workouts scheduled for this date",
+  "homeFeaturedEmptyTitle": "Нет планов",
+  "homeFeaturedEmptySubtitle": "Создайте первую тренировку",
+  "plansPageTitle": "Планы тренировок",
+  "plansPageSubtitle": "Планируйте тренировки и сохраняйте регулярность.",
+  "plansCreate": "Создать план",
+  "plansSectionYourPlans": "Ваши планы",
+  "plansTotalCount": "{count} total",
+  "@plansTotalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "plansEmptyTitle": "Планов тренировок пока нет",
+  "plansEmptyBody": "Создайте первый план и начните формировать регулярность.",
+  "plansSnackbarCreated": "План тренировки создан",
+  "plansSnackbarOnlyPlanned": "Начать живую сессию можно только для запланированных тренировок.",
+  "minutesShort": "{count} мин",
+  "@minutesShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "minutesPlanShort": "{count} min plan",
+  "@minutesPlanShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "durationMinutesLabel": "{count} мин",
+  "@durationMinutesLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeAddWorkout": "Добавить тренировку",
+  "workoutListEmptyTitle": "Список тренировок пуст",
+  "workoutListEmptyBody": "Создайте тренировку с упражнениями на новый день.",
+  "workoutAddTrainingDay": "Добавить день",
+  "workoutChooseMuscleGroup": "Выберите группу мышц",
+  "workoutChooseExercises": "Выберите упражнения",
+  "workoutNameYourWorkout": "Название тренировки",
+  "workoutMuscleGroupHint": "Выберите одну или несколько зон для тренировки.",
+  "workoutContinue": "Продолжить",
+  "workoutContinueGroups": "Продолжить ({count} групп)",
+  "@workoutContinueGroups": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "workoutSelectExercises": "Выберите упражнения",
+  "workoutContinueExercises": "Продолжить ({count})",
+  "@workoutContinueExercises": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "workoutSaveWorkout": "Сохранить тренировку",
+  "workoutExerciseHintSingle": "Упражнения для «{category}». Нажмите на карточку, чтобы выбрать и прочитать описание.",
+  "@workoutExerciseHintSingle": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "workoutExerciseHintMulti": "Выберите упражнения из выбранных групп мышц.",
+  "workoutNameHint": "Введите название…",
+  "workoutSelected": "Выбрано",
+  "workoutBack": "Назад",
+  "planRepeatWorkout": "Повторить тренировку",
+  "planCustomizeRepeat": "Настроить и запланировать",
+  "planCompletedHint": "Тренировка завершена. Повторите в другой день или измените упражнения.",
+  "exercisesCount": "{count} упр.",
+  "@exercisesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "difficultyBeginner": "Начальный",
+  "difficultyIntermediate": "Средний",
+  "difficultyAdvanced": "Продвинутый",
+  "statusPlanned": "Запланировано",
+  "statusCompleted": "Завершено",
+  "statusMissed": "Пропущено",
+  "planCardDetails": "Детали",
+  "planCardStart": "Старт",
+  "planDetailTitle": "Детали плана",
+  "planDetailSchedule": "Расписание",
+  "planDetailExercises": "Упражнения",
+  "labelDate": "Дата",
+  "labelTime": "Время",
+  "labelDuration": "Длительность",
+  "beginSession": "Начать сессию",
+  "editPlan": "Изменить план",
+  "planSessionOnlyPlanned": "Новую сессию можно начать только для запланированной тренировки.",
+  "deletePlanTitle": "Удалить план",
+  "deletePlanConfirm": "Delete \"{name}\" permanently?",
+  "@deletePlanConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "createPlanTitle": "Создать план",
+  "editPlanSheetTitle": "Изменить план",
+  "savePlan": "Сохранить план",
+  "updatePlan": "Обновить план",
+  "workoutNameLabel": "Название тренировки",
+  "dateLabel": "Дата",
+  "timeLabel": "Время",
+  "durationLabel": "Длительность",
+  "difficultyLabel": "Сложность",
+  "exercisesLabel": "Упражнения",
+  "exercisesSelected": "Выбрано: {count}",
+  "@exercisesSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "validationWorkoutName": "Введите название тренировки.",
+  "validationPickExercise": "Выберите хотя бы одно упражнение.",
+  "chipMinutes": "{count} min",
+  "@chipMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarTitle": "Календарь",
+  "calendarWorkoutsOn": "Workouts on {date}",
+  "@calendarWorkoutsOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarEmptyDay": "В этот день нет тренировок. Добавьте сессию, чтобы держать график.",
+  "progressTitle": "Прогресс",
+  "progressSubtitle": "Обзор результатов и история",
+  "progressWeeklySessions": "Сессии за неделю",
+  "progressActiveStreak": "Активная серия",
+  "progressStreakDays": "{count} дн.",
+  "@progressStreakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "progressMonthlyConsistency": "Регулярность за месяц",
+  "progressMonthlyHint": "Завершенные сессии относительно планов на месяц",
+  "progressWeeklyVolume": "Объем за неделю",
+  "progressTotalSessions": "Всего сессий",
+  "progressWeeklyMinutes": "Время за неделю",
+  "progressWeeklyCalories": "Калории за неделю",
+  "progressWeekActivity": "Калории по дням",
+  "progressWeekActivityHint": "Сожжённые калории по дням недели",
+  "progressMonthSessions": "Сессий в месяце",
+  "progressPlannedUpcoming": "Предстоящие",
+  "progressAchievements": "Достижения",
+  "progressSessionHighlights": "Лучшие сессии",
+  "progressHighlightLongest": "Самая длинная сессия",
+  "progressHighlightCalories": "Максимум калорий",
+  "progressHighlightMoves": "Больше всего упражнений",
+  "progressHighlightsEmpty": "Записывайте тренировки, чтобы увидеть здесь лучшие сессии.",
+  "progressWorkoutHistory": "История тренировок",
+  "progressHistoryEmpty": "Завершенных сессий пока нет. Завершите тренировку, чтобы увидеть ее здесь.",
+  "streakDetailsTitle": "Детали серии",
+  "streakDayStreak": "{count} day streak",
+  "@streakDayStreak": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "streakMomentum": "Тренируйтесь сегодня, чтобы сохранить темп.",
+  "streakRecentDays": "Последние тренировочные дни",
+  "streakEmpty": "Завершите тренировку, чтобы начать серию.",
+  "streakOpenProgress": "Открыть прогресс",
+  "profileTitle": "Профиль",
+  "profileTabPhotos": "Фото",
+  "profileTabAbout": "О себе",
+  "profileTabFeed": "Лента",
+  "profileTabSaved": "Сохранённое",
+  "profileTabSettings": "Настройки",
+  "profileEditShort": "Изменить",
+  "profileClose": "Закрыть",
+  "profileNoBio": "Публичное описание пока пустое.",
+  "profileAboutEmpty": "Пользователь ещё не добавил информацию о себе.",
+  "profilePhotosEmpty": "Пользователь ещё не добавил фото.",
+  "profilePostsEmpty": "Пользователь ещё не опубликовал посты.",
+  "profileSavedEmpty": "Нет сохранённых постов. Нажмите закладку в ленте, чтобы сохранить.",
+  "profilePrivateNotes": "Личные заметки",
+  "profilePrivateNotesEmpty": "Добавьте заметки, видимые только вам.",
+  "profileFitnessSummary": "Сводка",
+  "profileWeight": "Вес",
+  "profileHeight": "Рост",
+  "profileAccount": "Аккаунт",
+  "profileEditProfile": "Редактировать профиль",
+  "profileAppPreferences": "Настройки приложения",
+  "profileNotificationsSection": "Уведомления",
+  "profileRemindersTitle": "Напоминания о тренировках",
+  "profileRemindersSubtitle": "Уведомления о предстоящих занятиях",
+  "profileLogOut": "Выйти",
+  "profileEditSheetTitle": "Изменить профиль",
+  "labelName": "Имя",
+  "labelWeightKg": "Вес (кг)",
+  "labelHeightCm": "Рост (см)",
+  "labelFitnessGoal": "Цель тренировок",
+  "labelMembership": "Подписка",
+  "validationProfileName": "Введите имя.",
+  "validationProfileWeight": "Введите корректный вес (точка или запятая для дробной части).",
+  "validationProfileHeight": "Введите корректный рост (точка или запятая для дробной части).",
+  "membershipFree": "Базовый",
+  "membershipPlus": "Плюс",
+  "membershipPremium": "Премиум",
+  "languageTitle": "Язык",
+  "languageSubtitle": "Язык интерфейса приложения",
+  "languageEnglish": "Английский",
+  "languageRussian": "Русский",
+  "languagePickerTitle": "Выберите язык",
+  "profilePreferencesSnack": "Настройки будут подключены в будущей версии.",
+  "profileLogoutSnack": "Выход будет доступен после запуска аккаунтов.",
+  "profileDefaultGoal": "Сила и общая подготовка",
+  "sessionActiveTitle": "Активная сессия",
+  "sessionStartTitle": "Готовы тренироваться?",
+  "sessionStartBody": "Начните сессию, когда приступите к тренировке. Длительность и калории будут считаться с этого момента.",
+  "sessionStartButton": "Начать сессию",
+  "sessionStartFirst": "Сначала начните сессию, затем записывайте упражнения.",
+  "sessionTimerRunning": "Таймер идет",
+  "sessionCurrentExercise": "Текущее упражнение",
+  "labelSets": "Подходы",
+  "labelReps": "Повторения",
+  "labelRest": "Отдых",
+  "sessionAllExercises": "Все упражнения",
+  "sessionCompleteExercise": "Завершить упражнение",
+  "sessionCompleteFinal": "Завершить последнее упражнение",
+  "sessionFinishWorkout": "Завершить тренировку",
+  "sessionSummaryTitle": "Итоги сессии",
+  "sessionSummaryDuration": "Длительность",
+  "sessionSummaryCalories": "Калории",
+  "sessionSummaryVolumeLine": "Объём упражнений: {logKcal} ккал · Итого за сессию: {totalKcal} ккал",
+  "@sessionSummaryVolumeLine": {
+    "placeholders": {
+      "logKcal": {
+        "type": "int"
+      },
+      "totalKcal": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionDurationSecondsOnly": "{count} с",
+  "@sessionDurationSecondsOnly": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionDurationMinutesOnly": "{count} мин",
+  "@sessionDurationMinutesOnly": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionDurationMinutesSeconds": "{minutes} мин {seconds} с",
+  "@sessionDurationMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionCaloriesUnit": "{count} ккал",
+  "@sessionCaloriesUnit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionCaloriesEstimateNote": "Калории рассчитаны примерно на основе веса в профиле, типа упражнения, подходов, повторений и длительности сессии.",
+  "sessionValidationSetsReps": "Введите положительное число подходов и повторений.",
+  "sessionExerciseAlreadyLogged": "Это упражнение уже записано. Выберите другое из списка.",
+  "sessionCameraTrackingComingSoon": "Отслеживание камерой (скоро)",
+  "sessionCameraTracking": "Отслеживать камерой",
+  "cameraTrackingTitle": "Отслеживание камерой",
+  "cameraStartTracking": "Начать отслеживание",
+  "cameraApplyCount": "Применить счёт",
+  "cameraRepCount": "Повторения",
+  "cameraHoldSeconds": "Удержание (сек)",
+  "cameraBodyNotVisible": "Встаньте в кадр так, чтобы тело было видно",
+  "cameraSafetyDisclaimer": "Это не заменяет тренера. Остановитесь при боли.",
+  "cameraPermissionDenied": "Для отслеживания нужен доступ к камере.",
+  "cameraPlatformUnsupported": "Отслеживание камерой работает на Android и iOS.",
+  "cameraManualFallback": "Можно считать повторения вручную на экране тренировки.",
+  "cameraUseManual": "Считать вручную",
+  "cameraOpenSettings": "Открыть настройки",
+  "cameraRetry": "Попробовать снова",
+  "cameraPreviewLoading": "Запуск камеры…",
+  "cameraTrackingLive": "Live",
+  "cameraInvalidAttempts": "Ошибки",
+  "cameraUnsupportedExercise": "Отслеживание камерой для этого упражнения пока недоступно.",
+  "cameraInitFailed": "Не удалось запустить камеру. Попробуйте снова или считайте вручную.",
+  "cameraFeedbackSaggingHips": "Держите бёдра на линии — не провисайте",
+  "cameraFeedbackRaiseHigher": "Поднимите руки выше до уровня плеч",
+  "cameraFeedbackIncompletePress": "Нужно полное разгибание над головой",
+  "cameraFeedbackPullHigher": "Тяните выше — подбородок над кистями",
+  "cameraFeedbackHipsSagging": "Поднимите бёдра — держите тело прямо",
+  "cameraFeedbackAdjustForm": "Скорректируйте технику и повторите",
+  "cameraAppliedReps": "Applied {count} reps from camera",
+  "@cameraAppliedReps": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cameraAppliedHold": "Applied {count}s hold from camera",
+  "@cameraAppliedHold": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionCompletedExercises": "Завершенные упражнения",
+  "sessionDone": "Готово",
+  "workoutTypePlannedSession": "Запланированная сессия",
+  "logWorkoutTitle": "Записать тренировку",
+  "logWorkoutName": "Название тренировки",
+  "logWorkoutType": "Тип тренировки",
+  "logWorkoutTypeDefault": "Своя тренировка",
+  "logDuration": "Длительность",
+  "logSave": "Сохранить запись",
+  "quickLogTitle": "Log past workout",
+  "quickLogDate": "Workout date",
+  "quickLogYesterday": "Yesterday",
+  "quickLogDayBefore": "2 days ago",
+  "quickLogAddExercise": "Add exercise",
+  "templateFromLabel": "From template",
+  "templateSave": "Save as template",
+  "templateSaved": "Template saved",
+  "copyPlanTitle": "Запланировать на другой день",
+  "copyPlanConfirm": "Запланировать",
+  "snackbarPlanCopied": "Тренировка добавлена в календарь",
+  "sessionManageExercises": "Manage exercises",
+  "sessionAddExercise": "Add exercise",
+  "validationLogName": "Введите название тренировки.",
+  "historyWorkoutSummary": "Итоги тренировки",
+  "historyCompletedOn": "Завершено",
+  "historyExercisesCompleted": "Завершенные упражнения",
+  "historySetsRepsDetail": "{sets} подх. · {reps} повт.",
+  "@historySetsRepsDetail": {
+    "placeholders": {
+      "sets": {
+        "type": "int"
+      },
+      "reps": {
+        "type": "int"
+      }
+    }
+  },
+  "historyCaloriesEstimateNote": "Калории рассчитаны примерно на основе записанной сессии.",
+  "snackbarWorkoutSavedHistory": "Тренировка сохранена в историю",
+  "snackbarPlanUpdated": "План обновлен",
+  "snackbarPlanDeleted": "План удален",
+  "snackbarWorkoutLogged": "Тренировка записана",
+  "snackbarCalendarAdded": "Тренировка добавлена в календарь",
+  "categorySubtitle": "{count} exercises",
+  "@categorySubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "catStrengthTitle": "Сила",
+  "catStrengthDesc": "Тяжелые базовые и вспомогательные упражнения для развития силы.",
+  "catCardioTitle": "Кардио",
+  "catCardioDesc": "Интервалы и ровные сессии для развития выносливости.",
+  "catMobilityTitle": "Мобильность",
+  "catMobilityDesc": "Мягкие движения для улучшения амплитуды.",
+  "catCoreTitle": "Кор",
+  "catCoreDesc": "Упражнения на стабилизацию и сопротивление вращению для крепкого корпуса.",
+  "catRecoveryTitle": "Восстановление",
+  "catRecoveryDesc": "Низкоинтенсивные сессии для восстановления качества движений.",
+  "catSectionExercises": "Доступные упражнения",
+  "catSectionExamplePlans": "Примеры планов",
+  "exPushUps": "Отжимания",
+  "exSquats": "Приседания",
+  "exPlank": "Планка",
+  "exLunges": "Выпады",
+  "exJumpingJacks": "Прыжки Jumping Jack",
+  "exPullUps": "Подтягивания",
+  "exShoulderPress": "Жим плечами",
+  "exRunning": "Бег",
+  "exBackSquat": "Присед со штангой",
+  "exBenchPress": "Жим лежа",
+  "exDeadlift": "Становая тяга",
+  "exRomanianDeadlift": "Румынская тяга",
+  "exTempoRun": "Темповый бег",
+  "exCycleIntervals": "Велоинтервалы",
+  "exRowingSprint": "Спринт на гребле",
+  "exJumpRope": "Скакалка",
+  "exThoracicRotation": "Ротация грудного отдела",
+  "exHipCars": "Hip CARs",
+  "exAnkleMobility": "Мобильность голеностопа",
+  "exShoulderDislocates": "Плечевая мобилизация",
+  "exPlankVariations": "Вариации планки",
+  "exPallofPress": "Жим Паллофа",
+  "exHangingLegRaise": "Подъем ног в висе",
+  "exDeadBug": "Dead Bug",
+  "exLightWalk": "Легкая прогулка",
+  "exBreathwork": "Дыхательная практика",
+  "exFoamRolling": "Миофасциальный ролл",
+  "exLegPress": "Жим ногами",
+  "exCalfRaises": "Подъемы на носки",
+  "exBicycleCrunches": "Велосипедные скручивания",
+  "exRussianTwists": "Русские скручивания",
+  "exDynamicWarmUp": "Динамическая разминка",
+  "seedPlanPushDay": "Жимовой день",
+  "seedPlanLowerBody": "Нижняя часть тела",
+  "seedPlanCardio": "Кардио-сессия",
+  "seedPlanCore": "Стабилизация корпуса",
+  "sampleCompletionLegDay": "День ног",
+  "sampleCompletionCore": "Сессия на кор",
+  "sampleCompletionRun": "Утренний бег",
+  "sampleTypeLowerBody": "Нижняя часть тела",
+  "sampleTypeCore": "Кор",
+  "sampleTypeOutdoorCardio": "Кардио на улице",
+  "sampleTypeCustomLog": "Записанная сессия",
+  "planUpperPower": "Сила верха",
+  "planLowerStrength": "Сила низа",
+  "planFullBodyA": "Все тело A",
+  "planHiit20": "HIIT 20",
+  "planSteadyZone2": "Ровная зона 2",
+  "planSprintLadder": "Спринтовая лестница",
+  "planMorningReset": "Утренний рестарт",
+  "planPreTrainingPrep": "Подготовка к тренировке",
+  "planAbsFinishers": "Финишеры на пресс",
+  "planAntiRotation": "Антиротационный блок",
+  "planDeloadWeek": "Разгрузочная неделя",
+  "planSundayReset": "Воскресное восстановление",
+  "badgeFirstSession": "Первая сессия",
+  "badgeWeekWarrior": "Воин недели",
+  "badgeStreakStarter": "Начало серии",
+  "badgeConsistency": "Регулярность",
+  "weekdayMon": "Пн",
+  "weekdayTue": "Вт",
+  "weekdayWed": "Ср",
+  "weekdayThu": "Чт",
+  "weekdayFri": "Пт",
+  "weekdaySat": "Сб",
+  "weekdaySun": "Вс",
+  "progressWeeklyBarsDow1": "П",
+  "progressWeeklyBarsDow2": "В",
+  "progressWeeklyBarsDow3": "С",
+  "progressWeeklyBarsDow4": "Ч",
+  "progressWeeklyBarsDow5": "П",
+  "progressWeeklyBarsDow6": "С",
+  "progressWeeklyBarsDow7": "В",
+  "calendarDow1": "П",
+  "calendarDow2": "В",
+  "calendarDow3": "С",
+  "calendarDow4": "Ч",
+  "calendarDow5": "П",
+  "calendarDow6": "С",
+  "calendarDow7": "В",
+  "mapTitle": "Карта территорий",
+  "mapLocateMe": "Моё местоположение",
+  "mapLocating": "Определяем местоположение…",
+  "mapLocationUnavailable": "Не удалось найти вас. Включите GPS и попробуйте снова.",
+  "mapLocationServiceDisabled": "Геолокация выключена. Включите GPS, чтобы видеть себя на карте.",
+  "mapLocationPermissionDenied": "Нужен доступ к геолокации для отображения на карте.",
+  "mapLocationTimeout": "GPS отвечает слишком долго. Выйдите на открытое место и нажмите снова.",
+  "mapOpenLocationSettings": "Открыть настройки",
+  "mapModeMap": "Карта",
+  "mapModeSatellite": "Спутник",
+  "mapLeaderboard": "Рейтинг",
+  "mapStartCapture": "Начать захват",
+  "mapCaptureActive": "Запись маршрута",
+  "mapElapsed": "Прошло",
+  "mapDistance": "Дистанция",
+  "mapEstimatedArea": "Площадь (оценка)",
+  "mapGpsAccuracy": "Точность GPS",
+  "mapFinishCapture": "Завершить",
+  "mapPermissionTitle": "Нужен доступ к геолокации",
+  "mapPermissionBody": "GymCoach использует геолокацию, пока приложение открыто, чтобы показывать вас на карте и записывать маршруты захвата.",
+  "mapPermissionServiceDisabled": "Включите геолокацию в настройках системы для карты территорий.",
+  "mapAllowLocation": "Разрешить геолокацию",
+  "mapOpenSettings": "Открыть настройки",
+  "mapPermissionDialogTitle": "Включите геолокацию для захвата",
+  "mapPermissionDialogBody": "GPS используется только во время активного захвата. Маршрут отправляется на сервер после завершения.",
+  "mapContinue": "Продолжить",
+  "mapSatelliteUnavailable": "Спутниковый вид требует платного провайдера карт. Бесплатно доступна стандартная карта OpenFreeMap.",
+  "mapEmptyTerritories": "Территории ещё не захвачены",
+  "mapGpsAccuracyWarning": "Точность GPS ниже нормы. Можно продолжить, но лучше выйти под открытое небо.",
+  "mapNameTerritoryTitle": "Назовите территорию",
+  "mapTerritoryNameLabel": "Название территории",
+  "mapCaptureSuccessTitle": "Территория захвачена",
+  "mapCaptureSuccessBody": "{name} is now yours at {area}.",
+  "@mapCaptureSuccessBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "area": {
+        "type": "String"
+      }
+    }
+  },
+  "mapDone": "Готово",
+  "mapValidationMinPoints": "Запишите минимум 4 точки GPS перед завершением.",
+  "mapValidationMinArea": "Площадь слишком мала. Пройдите больший маршрут и попробуйте снова.",
+  "mapCaptureFailed": "Не удалось завершить захват. Попробуйте снова.",
+  "mapOwner": "Владелец",
+  "mapArea": "Площадь",
+  "mapCapturedOn": "Захвачено",
+  "mapZoomToTerritory": "Показать территорию",
+  "mapMyTerritory": "Моя территория",
+  "mapLeaderboardTitle": "Рейтинг территорий",
+  "mapLeaderboardEmpty": "Данных рейтинга пока нет.",
+  "mapLeaderboardMeta": "{area} · {count} territories",
+  "@mapLeaderboardMeta": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "feedSubtitle": "Фото прогресса и записи о тренировках",
+  "feedPost": "Пост",
+  "feedPublish": "Опубликовать",
+  "feedDeletePost": "Удалить пост",
+  "feedBlockUser": "Заблокировать",
+  "feedReportPost": "Пожаловаться"
+}

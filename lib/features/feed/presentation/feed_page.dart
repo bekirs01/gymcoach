@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/premium_tokens.dart';
@@ -109,6 +110,7 @@ class _FeedPageState extends State<FeedPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final topPad = MediaQuery.viewPaddingOf(context).top;
     final bottomPad = FloatingTabBar.reservedBottomSpace(context) + AppSpacing.lg;
 
@@ -125,23 +127,23 @@ class _FeedPageState extends State<FeedPage> {
               sliver: SliverToBoxAdapter(
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Feed',
-                            style: TextStyle(
+                            l10n.navFeed,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 30,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.6,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            'Progress photos and training updates',
-                            style: TextStyle(color: PremiumColors.textSecondary),
+                            l10n.feedSubtitle,
+                            style: const TextStyle(color: PremiumColors.textSecondary),
                           ),
                         ],
                       ),
@@ -149,7 +151,7 @@ class _FeedPageState extends State<FeedPage> {
                     FilledButton.icon(
                       onPressed: _client == null ? null : _createPost,
                       icon: const Icon(Icons.add_photo_alternate_outlined),
-                      label: const Text('Post'),
+                      label: Text(l10n.feedPost),
                     ),
                   ],
                 ),
@@ -320,6 +322,7 @@ class _FeedPostCardState extends State<_FeedPostCard> {
   }
 
   Future<void> _menu() async {
+    final l10n = AppLocalizations.of(context)!;
     final current = await widget.client.currentUserId();
     if (!mounted) return;
     final isMine = current == widget.post.userId;
@@ -334,18 +337,18 @@ class _FeedPostCardState extends State<_FeedPostCard> {
             if (isMine)
               ListTile(
                 leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                title: const Text('Delete post', style: TextStyle(color: Colors.white)),
+                title: Text(l10n.feedDeletePost, style: const TextStyle(color: Colors.white)),
                 onTap: () => Navigator.pop(context, 'delete'),
               )
             else ...[
               ListTile(
                 leading: const Icon(Icons.block_rounded, color: Colors.redAccent),
-                title: const Text('Block user', style: TextStyle(color: Colors.white)),
+                title: Text(l10n.feedBlockUser, style: const TextStyle(color: Colors.white)),
                 onTap: () => Navigator.pop(context, 'block'),
               ),
               ListTile(
                 leading: const Icon(Icons.flag_outlined, color: PremiumColors.textSecondary),
-                title: const Text('Report post', style: TextStyle(color: Colors.white)),
+                title: Text(l10n.feedReportPost, style: const TextStyle(color: Colors.white)),
                 onTap: () => Navigator.pop(context, 'report'),
               ),
             ],

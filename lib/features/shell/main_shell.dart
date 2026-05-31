@@ -8,11 +8,13 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/premium_tokens.dart';
 import '../../app/training_app_state.dart';
 import '../../app/widgets/floating_tab_bar.dart';
+import '../../core/plan_factory.dart';
 import '../../core/training_stats.dart';
 import '../feed/presentation/feed_page.dart';
 import '../history/presentation/completed_workout_detail_page.dart';
 import '../home/presentation/home_page.dart';
 import '../plans/domain/workout_plan.dart';
+import '../plans/presentation/copy_plan_date_sheet.dart';
 import '../plans/presentation/create_plan_sheet.dart';
 import '../plans/presentation/plan_detail_page.dart';
 import '../profile/domain/user_profile.dart';
@@ -95,6 +97,43 @@ class _MainShellState extends State<MainShell> {
         builder: (ctx) => PlanDetailPage(
           plan: plan,
           onBeginSession: () => _pushSession(ctx, plan),
+          onRepeatWorkout: plan.status == PlanStatus.completed
+              ? () async {
+                  final date = await showCopyPlanDateSheet(context: ctx, plan: plan);
+                  if (date == null || !ctx.mounted) return;
+                  await _t.duplicatePlanToDate(plan, date);
+                  if (!ctx.mounted) return;
+                  Navigator.of(ctx).pop();
+                  messenger.showSnackBar(
+                    SnackBar(
+                      behavior: SnackBarBehavior.floating,
+                      content: Text(l10n.snackbarPlanCopied),
+                    ),
+                  );
+                }
+              : null,
+          onCustomizeRepeat: plan.status == PlanStatus.completed
+              ? () {
+                  final draft = PlanFactory.duplicateForDate(
+                    plan,
+                    scheduledDate: WorkoutPlan.dateOnly(DateTime.now().add(const Duration(days: 1))),
+                  );
+                  showCreatePlanSheet(
+                    context: ctx,
+                    existingPlan: draft,
+                    onSaved: (created) {
+                      unawaited(_addPlan(created));
+                      Navigator.of(ctx).pop();
+                      messenger.showSnackBar(
+                        SnackBar(
+                          behavior: SnackBarBehavior.floating,
+                          content: Text(l10n.plansSnackbarCreated),
+                        ),
+                      );
+                    },
+                  );
+                }
+              : null,
           onEdit: () {
             showCreatePlanSheet(
               context: ctx,
@@ -206,7 +245,6 @@ class _MainShellState extends State<MainShell> {
       ),
     ];
 
-    final bottomNavReserve = FloatingTabBar.reservedBottomSpace(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final isMapTab = _selectedIndex == 2;
 
@@ -214,15 +252,13 @@ class _MainShellState extends State<MainShell> {
       value: SystemUiOverlayStyle(
         statusBarBrightness: isMapTab ? Brightness.dark : Brightness.light,
         statusBarIconBrightness: isMapTab ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor: isMapTab ? PremiumColors.midnightMid : AppColors.background,
-        systemNavigationBarIconBrightness: isMapTab ? Brightness.light : Brightness.dark,
+        systemNavigationBarColor: PremiumColors.midnightMid,
+        systemNavigationBarIconBrightness: Brightness.light,
       ),
       child: Scaffold(
       extendBody: true,
       backgroundColor: switch (_selectedIndex) {
-        0 => Colors.transparent,
-        1 => Colors.transparent,
-        2 => PremiumColors.midnightMid,
+        0 || 1 || 2 || 3 => Colors.transparent,
         _ => AppColors.background,
       },
       body: Stack(
@@ -230,9 +266,7 @@ class _MainShellState extends State<MainShell> {
         children: [
           Padding(
             padding: EdgeInsets.only(
-              bottom: (_selectedIndex == 0 || _selectedIndex == 1 || _selectedIndex == 2)
-                  ? 0
-                  : bottomNavReserve,
+              bottom: 0,
             ),
             child: _buildActiveTab(
               plans: plans,

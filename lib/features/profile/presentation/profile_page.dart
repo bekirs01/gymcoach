@@ -219,6 +219,7 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           children: [
             _ProfileSheetChrome(
+              l10n: l10n,
               onClose: () => Navigator.of(context).pop(),
               onEdit: _editProfile,
             ),
@@ -261,7 +262,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  _profile.bio.isEmpty ? 'No public bio yet.' : _profile.bio,
+                                  _profile.bio.isEmpty ? l10n.profileNoBio : _profile.bio,
                                   textAlign: TextAlign.center,
                                   maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
@@ -269,7 +270,13 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                                 const SizedBox(height: 18),
                                 ProfileSegmentTabs(
-                                  labels: const ['Photos', 'About', 'Feed', 'Saved', 'Settings'],
+                                  labels: [
+                                    l10n.profileTabPhotos,
+                                    l10n.profileTabAbout,
+                                    l10n.profileTabFeed,
+                                    l10n.profileTabSaved,
+                                    l10n.profileTabSettings,
+                                  ],
                                   selected: _tab,
                                   onSelected: (v) {
                                     setState(() => _tab = v);
@@ -292,7 +299,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       )
                     else
-                      ..._tabSlivers(langLabel),
+                      ..._tabSlivers(l10n, langLabel),
                     SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 24)),
                   ],
                 ),
@@ -304,22 +311,23 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  List<Widget> _tabSlivers(String langLabel) {
+  List<Widget> _tabSlivers(AppLocalizations l10n, String langLabel) {
     switch (_tab) {
       case 0:
-        return [_photosSliver()];
+        return [_photosSliver(l10n)];
       case 1:
-        return [_aboutSliver()];
+        return [_aboutSliver(l10n)];
       case 2:
-        return [_postsSliver()];
+        return [_postsSliver(l10n)];
       case 3:
-        return [_savedSliver()];
+        return [_savedSliver(l10n)];
       default:
         return [
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
             sliver: SliverToBoxAdapter(
               child: _SettingsCard(
+                l10n: l10n,
                 langLabel: langLabel,
                 notifications: _profile.notificationsEnabled,
                 onEdit: _editProfile,
@@ -337,21 +345,21 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Widget _aboutSliver() {
+  Widget _aboutSliver(AppLocalizations l10n) {
     return SliverToBoxAdapter(
       child: ProfileAboutSection(
         bio: _profile.bio,
         extraSections: [
           ProfileAboutBlock(
-            title: 'Private notes',
+            title: l10n.profilePrivateNotes,
             body: _profile.privateNotes.isEmpty
-                ? 'Add private notes only you can see.'
+                ? l10n.profilePrivateNotesEmpty
                 : _profile.privateNotes,
             icon: Icons.lock_outline_rounded,
           ),
           ProfileAboutBlock(
-            title: 'Fitness',
-            body: '${_profile.fitnessGoal}\n${_profile.weightKg} kg · ${_profile.heightCm} cm',
+            title: l10n.profileFitnessSummary,
+            body: '${_profile.fitnessGoal}\n${_profile.weightKg} кг · ${_profile.heightCm} см',
             icon: Icons.fitness_center_rounded,
           ),
         ],
@@ -359,27 +367,28 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _postsSliver() {
+  Widget _postsSliver(AppLocalizations l10n) {
     return SliverToBoxAdapter(
       child: ProfileFeedSection(
         posts: _posts,
         heroTagPrefix: 'own-feed',
+        emptyMessage: l10n.profilePostsEmpty,
       ),
     );
   }
 
-  Widget _savedSliver() {
+  Widget _savedSliver(AppLocalizations l10n) {
     return SliverToBoxAdapter(
       child: ProfileFeedSection(
         posts: _savedPosts,
         heroTagPrefix: 'own-saved',
         emptyIcon: Icons.bookmark_border_rounded,
-        emptyMessage: 'No saved posts yet. Tap bookmark on a feed post to save it here.',
+        emptyMessage: l10n.profileSavedEmpty,
       ),
     );
   }
 
-  Widget _photosSliver() {
+  Widget _photosSliver(AppLocalizations l10n) {
     final media = _posts.expand((p) => p.media).toList();
     return SliverToBoxAdapter(
       child: ProfilePhotoGrid(
@@ -392,10 +401,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
 class _ProfileSheetChrome extends StatelessWidget {
   const _ProfileSheetChrome({
+    required this.l10n,
     required this.onClose,
     required this.onEdit,
   });
 
+  final AppLocalizations l10n;
   final VoidCallback onClose;
   final VoidCallback onEdit;
 
@@ -420,13 +431,13 @@ class _ProfileSheetChrome extends StatelessWidget {
                 onPressed: onClose,
                 icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 28),
                 color: PremiumColors.textSecondary,
-                tooltip: 'Close',
+                tooltip: l10n.profileClose,
               ),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Profile',
+                  l10n.profileTitle,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
@@ -437,7 +448,7 @@ class _ProfileSheetChrome extends StatelessWidget {
               TextButton.icon(
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_rounded, size: 18),
-                label: const Text('Edit'),
+                label: Text(l10n.profileEditShort),
                 style: TextButton.styleFrom(
                   foregroundColor: PremiumColors.accentBlue,
                   textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
@@ -480,6 +491,7 @@ class _ProfileCover extends StatelessWidget {
 
 class _SettingsCard extends StatelessWidget {
   const _SettingsCard({
+    required this.l10n,
     required this.langLabel,
     required this.notifications,
     required this.onEdit,
@@ -488,6 +500,7 @@ class _SettingsCard extends StatelessWidget {
     required this.onLogout,
   });
 
+  final AppLocalizations l10n;
   final String langLabel;
   final bool notifications;
   final VoidCallback onEdit;
@@ -509,7 +522,7 @@ class _SettingsCard extends StatelessWidget {
                   color: Colors.transparent,
                   child: ListTile(
                     leading: const Icon(Icons.edit_rounded, color: PremiumColors.accentBlue),
-                    title: const Text('Edit profile', style: TextStyle(color: Colors.white)),
+                    title: Text(l10n.profileEditProfile, style: const TextStyle(color: Colors.white)),
                     onTap: onEdit,
                   ),
                 ),
@@ -517,7 +530,7 @@ class _SettingsCard extends StatelessWidget {
                   color: Colors.transparent,
                   child: ListTile(
                     leading: const Icon(Icons.language_rounded, color: PremiumColors.accentBlue),
-                    title: const Text('Language', style: TextStyle(color: Colors.white)),
+                    title: Text(l10n.languageTitle, style: const TextStyle(color: Colors.white)),
                     subtitle: Text(langLabel, style: const TextStyle(color: PremiumColors.textMuted)),
                     onTap: onLanguage,
                   ),
@@ -527,8 +540,8 @@ class _SettingsCard extends StatelessWidget {
                   child: SwitchListTile(
                     value: notifications,
                     activeThumbColor: PremiumColors.accentBlue,
-                    title: const Text('Workout reminders', style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Keep training notifications enabled', style: TextStyle(color: PremiumColors.textMuted)),
+                    title: Text(l10n.profileRemindersTitle, style: const TextStyle(color: Colors.white)),
+                    subtitle: Text(l10n.profileRemindersSubtitle, style: const TextStyle(color: PremiumColors.textMuted)),
                     onChanged: onNotifications,
                   ),
                 ),
@@ -536,7 +549,7 @@ class _SettingsCard extends StatelessWidget {
                   color: Colors.transparent,
                   child: ListTile(
                     leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-                    title: const Text('Log out', style: TextStyle(color: Colors.white)),
+                    title: Text(l10n.profileLogOut, style: const TextStyle(color: Colors.white)),
                     onTap: onLogout,
                   ),
                 ),

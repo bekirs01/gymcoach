@@ -401,7 +401,7 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
               myLocationRenderMode:
                   Platform.isIOS ? MyLocationRenderMode.compass : MyLocationRenderMode.normal,
               myLocationTrackingMode: MyLocationTrackingMode.none,
-              compassEnabled: true,
+              compassEnabled: false,
               onMapCreated: _onMapCreated,
               onStyleLoadedCallback: _onStyleLoaded,
             ),

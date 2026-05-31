@@ -566,6 +566,132 @@ abstract class AppLocalizations {
   /// **'{count} minutes'**
   String durationMinutesLabel(int count);
 
+  /// No description provided for @homeAddWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Add workout'**
+  String get homeAddWorkout;
+
+  /// No description provided for @workoutListEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your workout list is empty'**
+  String get workoutListEmptyTitle;
+
+  /// No description provided for @workoutListEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Start by adding exercises to a new training day.'**
+  String get workoutListEmptyBody;
+
+  /// No description provided for @workoutAddTrainingDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Add training day'**
+  String get workoutAddTrainingDay;
+
+  /// No description provided for @workoutChooseMuscleGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose muscle group'**
+  String get workoutChooseMuscleGroup;
+
+  /// No description provided for @workoutChooseExercises.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose exercises'**
+  String get workoutChooseExercises;
+
+  /// No description provided for @workoutNameYourWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Name your workout'**
+  String get workoutNameYourWorkout;
+
+  /// No description provided for @workoutMuscleGroupHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select one or more areas you want to train.'**
+  String get workoutMuscleGroupHint;
+
+  /// No description provided for @workoutContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get workoutContinue;
+
+  /// No description provided for @workoutContinueGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue ({count} groups)'**
+  String workoutContinueGroups(int count);
+
+  /// No description provided for @workoutSelectExercises.
+  ///
+  /// In en, this message translates to:
+  /// **'Select exercises'**
+  String get workoutSelectExercises;
+
+  /// No description provided for @workoutContinueExercises.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue ({count})'**
+  String workoutContinueExercises(int count);
+
+  /// No description provided for @workoutSaveWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Save workout'**
+  String get workoutSaveWorkout;
+
+  /// No description provided for @workoutExerciseHintSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose {category} exercises. Tap a row to select and read the details.'**
+  String workoutExerciseHintSingle(String category);
+
+  /// No description provided for @workoutExerciseHintMulti.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose exercises from your selected muscle groups.'**
+  String get workoutExerciseHintMulti;
+
+  /// No description provided for @workoutNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Upper Body Power'**
+  String get workoutNameHint;
+
+  /// No description provided for @workoutSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected'**
+  String get workoutSelected;
+
+  /// No description provided for @workoutBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get workoutBack;
+
+  /// No description provided for @planRepeatWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat workout'**
+  String get planRepeatWorkout;
+
+  /// No description provided for @planCustomizeRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Customize and schedule'**
+  String get planCustomizeRepeat;
+
+  /// No description provided for @planCompletedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This workout is finished. Repeat it on another day or adjust exercises first.'**
+  String get planCompletedHint;
+
   /// No description provided for @exercisesCount.
   ///
   /// In en, this message translates to:
@@ -716,12 +842,6 @@ abstract class AppLocalizations {
   /// **'Workout name'**
   String get workoutNameLabel;
 
-  /// No description provided for @workoutNameHint.
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. Upper Body Power'**
-  String get workoutNameHint;
-
   /// No description provided for @dateLabel.
   ///
   /// In en, this message translates to:
@@ -842,6 +962,48 @@ abstract class AppLocalizations {
   /// **'Weekly volume'**
   String get progressWeeklyVolume;
 
+  /// No description provided for @progressTotalSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Total sessions'**
+  String get progressTotalSessions;
+
+  /// No description provided for @progressWeeklyMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Training time this week'**
+  String get progressWeeklyMinutes;
+
+  /// No description provided for @progressWeeklyCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories this week'**
+  String get progressWeeklyCalories;
+
+  /// No description provided for @progressWeekActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories by day'**
+  String get progressWeekActivity;
+
+  /// No description provided for @progressWeekActivityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories burned each day this week'**
+  String get progressWeekActivityHint;
+
+  /// No description provided for @progressMonthSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions this month'**
+  String get progressMonthSessions;
+
+  /// No description provided for @progressPlannedUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming workouts'**
+  String get progressPlannedUpcoming;
+
   /// No description provided for @progressAchievements.
   ///
   /// In en, this message translates to:
@@ -931,6 +1093,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Profile'**
   String get profileTitle;
+
+  /// No description provided for @profileTabPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get profileTabPhotos;
+
+  /// No description provided for @profileTabAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get profileTabAbout;
+
+  /// No description provided for @profileTabFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Feed'**
+  String get profileTabFeed;
+
+  /// No description provided for @profileTabSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get profileTabSaved;
+
+  /// No description provided for @profileTabSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get profileTabSettings;
+
+  /// No description provided for @profileEditShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get profileEditShort;
+
+  /// No description provided for @profileClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get profileClose;
+
+  /// No description provided for @profileNoBio.
+  ///
+  /// In en, this message translates to:
+  /// **'No public bio yet.'**
+  String get profileNoBio;
+
+  /// No description provided for @profileAboutEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'This user has not added information about themselves yet.'**
+  String get profileAboutEmpty;
+
+  /// No description provided for @profilePhotosEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'This user has not added any photos yet.'**
+  String get profilePhotosEmpty;
+
+  /// No description provided for @profilePostsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'This user has not shared any posts yet.'**
+  String get profilePostsEmpty;
+
+  /// No description provided for @profileSavedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved posts yet. Tap bookmark on a feed post to save it here.'**
+  String get profileSavedEmpty;
+
+  /// No description provided for @profilePrivateNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Private notes'**
+  String get profilePrivateNotes;
+
+  /// No description provided for @profilePrivateNotesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Add private notes only you can see.'**
+  String get profilePrivateNotesEmpty;
+
+  /// No description provided for @profileFitnessSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Fitness summary'**
+  String get profileFitnessSummary;
 
   /// No description provided for @profileWeight.
   ///
@@ -1160,6 +1412,12 @@ abstract class AppLocalizations {
   /// **'Reps'**
   String get labelReps;
 
+  /// No description provided for @labelRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Rest'**
+  String get labelRest;
+
   /// No description provided for @sessionAllExercises.
   ///
   /// In en, this message translates to:
@@ -1201,6 +1459,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Calories'**
   String get sessionSummaryCalories;
+
+  /// No description provided for @sessionSummaryVolumeLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise volume: {logKcal} kcal · Session total: {totalKcal} kcal'**
+  String sessionSummaryVolumeLine(int logKcal, int totalKcal);
+
+  /// No description provided for @sessionDurationSecondsOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}s'**
+  String sessionDurationSecondsOnly(int count);
+
+  /// No description provided for @sessionDurationMinutesOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min'**
+  String sessionDurationMinutesOnly(int count);
+
+  /// No description provided for @sessionDurationMinutesSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m {seconds}s'**
+  String sessionDurationMinutesSeconds(int minutes, int seconds);
 
   /// No description provided for @sessionCaloriesUnit.
   ///
@@ -1499,13 +1781,13 @@ abstract class AppLocalizations {
   /// No description provided for @copyPlanTitle.
   ///
   /// In en, this message translates to:
-  /// **'Copy workout to'**
+  /// **'Schedule on another day'**
   String get copyPlanTitle;
 
   /// No description provided for @copyPlanConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Copy'**
+  /// **'Schedule'**
   String get copyPlanConfirm;
 
   /// No description provided for @snackbarPlanCopied.
@@ -2419,6 +2701,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{area} · {count} territories'**
   String mapLeaderboardMeta(String area, int count);
+
+  /// No description provided for @feedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress photos and training updates'**
+  String get feedSubtitle;
+
+  /// No description provided for @feedPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Post'**
+  String get feedPost;
+
+  /// No description provided for @feedPublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish'**
+  String get feedPublish;
+
+  /// No description provided for @feedDeletePost.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete post'**
+  String get feedDeletePost;
+
+  /// No description provided for @feedBlockUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Block user'**
+  String get feedBlockUser;
+
+  /// No description provided for @feedReportPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Report post'**
+  String get feedReportPost;
 }
 
 class _AppLocalizationsDelegate

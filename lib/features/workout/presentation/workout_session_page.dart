@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/premium_tokens.dart';
+import '../../../core/workout_exercise_l10n.dart';
 import '../../../app/widgets/premium_background.dart';
 import '../../../core/session_calorie_estimator.dart';
 import '../../../core/workout_exercise_catalog.dart';
@@ -293,10 +294,8 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     }
     final current = names[_index];
     final entry = WorkoutExerciseCatalog.entryForName(current);
+    final displayName = WorkoutExerciseL10n.name(l10n, current);
     final imageAsset = entry?.imageAsset;
-    final parsedSets = int.tryParse(_setsController.text.trim()) ?? 0;
-    final parsedReps = int.tryParse(_repsController.text.trim()) ?? 0;
-    final parsedRest = int.tryParse(_restController.text.trim()) ?? 60;
 
     return PremiumBackground(
       child: Scaffold(
@@ -342,10 +341,10 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                   padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
                   keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   children: [
-                    _ExercisePhotoFrame(imageAsset: imageAsset, label: current),
+                    _ExercisePhotoFrame(imageAsset: imageAsset, label: displayName),
                     const SizedBox(height: 14),
                     Text(
-                      current,
+                      displayName,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white,
@@ -357,7 +356,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                     if (entry != null) ...[
                       const SizedBox(height: 6),
                       Text(
-                        entry.description,
+                        WorkoutExerciseL10n.description(l10n, current, entry.description),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: PremiumColors.textSecondary,
@@ -370,38 +369,29 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                     Row(
                       children: [
                         Expanded(
-                          child: _StatBubble(
+                          child: _ColoredMetricField(
+                            controller: _setsController,
                             label: l10n.labelSets,
-                            value: parsedSets > 0 ? '$parsedSets' : '-',
                             color: PremiumColors.successGreen,
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: _StatBubble(
+                          child: _ColoredMetricField(
+                            controller: _repsController,
                             label: l10n.labelReps,
-                            value: parsedReps > 0 ? '$parsedReps' : '-',
                             color: PremiumColors.accentBlue,
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: _StatBubble(
-                            label: 'Rest',
-                            value: '${parsedRest}s',
+                          child: _ColoredMetricField(
+                            controller: _restController,
+                            label: l10n.labelRest,
                             color: const Color(0xFFFF8A65),
+                            suffix: l10n.localeName.startsWith('ru') ? 'с' : 's',
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(child: _SessionField(controller: _setsController, label: l10n.labelSets)),
-                        const SizedBox(width: 10),
-                        Expanded(child: _SessionField(controller: _repsController, label: l10n.labelReps)),
-                        const SizedBox(width: 10),
-                        Expanded(child: _SessionField(controller: _restController, label: 'Rest (s)')),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -430,7 +420,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                     const SizedBox(height: 8),
                     for (var i = 0; i < names.length; i++) ...[
                       _ExerciseListTile(
-                        title: names[i],
+                        title: WorkoutExerciseL10n.name(l10n, names[i]),
                         done: _logsByIndex.containsKey(i),
                         active: i == _index,
                         onTap: () => _goToExercise(i),
@@ -545,37 +535,51 @@ class _ExercisePhotoFrame extends StatelessWidget {
   }
 }
 
-class _StatBubble extends StatelessWidget {
-  const _StatBubble({
+class _ColoredMetricField extends StatelessWidget {
+  const _ColoredMetricField({
+    required this.controller,
     required this.label,
-    required this.value,
     required this.color,
+    this.suffix,
   });
 
+  final TextEditingController controller;
   final String label;
-  final String value;
   final Color color;
+  final String? suffix;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
       decoration: BoxDecoration(
         color: PremiumColors.surface,
         borderRadius: BorderRadius.circular(PremiumRadii.md),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            value,
+          TextField(
+            controller: controller,
             textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             style: TextStyle(
               color: color,
               fontSize: 20,
               fontWeight: FontWeight.w800,
+            ),
+            decoration: InputDecoration(
+              isDense: true,
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+              suffixText: suffix,
+              suffixStyle: TextStyle(
+                color: color.withValues(alpha: 0.85),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           const SizedBox(height: 4),
@@ -589,43 +593,6 @@ class _StatBubble extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SessionField extends StatelessWidget {
-  const _SessionField({required this.controller, required this.label});
-
-  final TextEditingController controller;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      textAlign: TextAlign.center,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 18,
-        fontWeight: FontWeight.w800,
-      ),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: PremiumColors.textMuted, fontSize: 11),
-        filled: true,
-        fillColor: PremiumColors.surface,
-        contentPadding: const EdgeInsets.symmetric(vertical: 14),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(PremiumRadii.md),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(PremiumRadii.md),
-          borderSide: const BorderSide(color: PremiumColors.accentBlue, width: 1.4),
-        ),
       ),
     );
   }
@@ -715,12 +682,12 @@ class _SessionSummaryView extends StatelessWidget {
   final int elapsedSeconds;
   final VoidCallback onClose;
 
-  String _formatDuration(int seconds) {
-    if (seconds < 60) return '${seconds}s';
+  String _formatDuration(AppLocalizations l10n, int seconds) {
+    if (seconds < 60) return l10n.sessionDurationSecondsOnly(seconds);
     final m = seconds ~/ 60;
     final s = seconds % 60;
-    if (s == 0) return '$m min';
-    return '${m}m ${s}s';
+    if (s == 0) return l10n.sessionDurationMinutesOnly(m);
+    return l10n.sessionDurationMinutesSeconds(m, s);
   }
 
   @override
@@ -800,7 +767,7 @@ class _SessionSummaryView extends StatelessWidget {
                                 Expanded(
                                   child: _SummaryTile(
                                     label: l10n.sessionSummaryDuration,
-                                    value: _formatDuration(elapsedSeconds),
+                                    value: _formatDuration(l10n, elapsedSeconds),
                                     icon: Icons.schedule_rounded,
                                   ),
                                 ),
@@ -817,7 +784,7 @@ class _SessionSummaryView extends StatelessWidget {
                             if (logKcal > 0) ...[
                               const SizedBox(height: 8),
                               Text(
-                                'Exercise volume: $logKcal kcal · Session total: ${completion.calories} kcal',
+                                l10n.sessionSummaryVolumeLine(logKcal, completion.calories),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: PremiumColors.textMuted,
@@ -886,7 +853,7 @@ class _SessionSummaryView extends StatelessWidget {
       return completion.exerciseNames
           .map(
             (n) => _SummaryExerciseRow(
-              name: n,
+              name: WorkoutExerciseL10n.name(l10n, n),
               detail: null,
               imageAsset: WorkoutExerciseCatalog.imageForName(n),
             ),
@@ -896,10 +863,11 @@ class _SessionSummaryView extends StatelessWidget {
     return completion.exerciseLogs
         .map(
           (log) => _SummaryExerciseRow(
-            name: log.exerciseName,
+            name: WorkoutExerciseL10n.name(l10n, log.exerciseName),
             detail: l10n.historySetsRepsDetail(log.setsCompleted, log.repsCompleted),
             imageAsset: WorkoutExerciseCatalog.imageForName(log.exerciseName),
             kcal: log.estimatedCalories,
+            l10n: l10n,
           ),
         )
         .toList();
@@ -912,15 +880,18 @@ class _SummaryExerciseRow extends StatelessWidget {
     required this.imageAsset,
     this.detail,
     this.kcal,
+    this.l10n,
   });
 
   final String name;
   final String? detail;
   final String? imageAsset;
   final int? kcal;
+  final AppLocalizations? l10n;
 
   @override
   Widget build(BuildContext context) {
+    final loc = l10n ?? AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
@@ -956,7 +927,10 @@ class _SummaryExerciseRow extends StatelessWidget {
                 if (detail != null)
                   Text(detail!, style: const TextStyle(color: PremiumColors.textMuted, fontSize: 12)),
                 if (kcal != null)
-                  Text('$kcal kcal', style: const TextStyle(color: PremiumColors.accentBlue, fontSize: 11)),
+                  Text(
+                    loc.sessionCaloriesUnit(kcal!),
+                    style: const TextStyle(color: PremiumColors.accentBlue, fontSize: 11),
+                  ),
               ],
             ),
           ),

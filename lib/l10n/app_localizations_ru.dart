@@ -21,10 +21,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get navCalendar => 'Календарь';
 
   @override
-  String get navFeed => 'Feed';
+  String get navFeed => 'Лента';
 
   @override
-  String get navMap => 'Map';
+  String get navMap => 'Карта';
 
   @override
   String get navProgress => 'Прогресс';
@@ -33,14 +33,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get navProfile => 'Профиль';
 
   @override
-  String get navLeaderboard => 'Leaderboard';
+  String get navLeaderboard => 'Рейтинг';
 
   @override
   String get leaderboardSubtitle =>
-      'Ranked by total captured territory on the map';
+      'Рейтинг по захваченной территории на карте';
 
   @override
-  String get leaderboardYou => 'You';
+  String get leaderboardYou => 'Вы';
 
   @override
   String get closeTooltip => 'Закрыть';
@@ -65,12 +65,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String scheduleToday(String time) {
-    return 'Сегодня · $time';
+    return 'Today · $time';
   }
 
   @override
   String scheduleTomorrow(String time) {
-    return 'Завтра · $time';
+    return 'Tomorrow · $time';
   }
 
   @override
@@ -83,7 +83,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String activityDaysAgo(int count) {
-    return '$count дн. назад';
+    return '$count days ago';
   }
 
   @override
@@ -111,7 +111,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String homeNWorkoutsToday(int count) {
-    return 'Сегодня запланировано тренировок: $count';
+    return '$count workouts planned for today';
   }
 
   @override
@@ -184,13 +184,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeNoWorkoutToday => 'На сегодня тренировка не запланирована.';
 
   @override
-  String get homeScreenTitle => 'Workouts';
+  String get homeScreenTitle => 'Тренировки';
 
   @override
-  String get homeTabDashboard => 'Dashboard';
+  String get homeTabDashboard => 'Обзор';
 
   @override
-  String get homeTabWorkouts => 'Workouts';
+  String get homeTabWorkouts => 'Тренировки';
 
   @override
   String get homeTabDiet => 'Diet';
@@ -202,28 +202,27 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeBannerStartHint => 'Start by adding a new training day';
 
   @override
-  String get homeMyTraining => 'My Training';
+  String get homeMyTraining => 'Мои тренировки';
 
   @override
   String homeCompletedSessions(int count) {
-    return '$count sessions completed';
+    return '$count завершённых сессий';
   }
 
   @override
-  String get homeTrainingSchedule => 'Training Schedule';
+  String get homeTrainingSchedule => 'Расписание';
 
   @override
-  String get homeMore => 'More';
+  String get homeMore => 'Ещё';
 
   @override
   String get homeNoWorkoutsOnDate => 'No workouts scheduled for this date';
 
   @override
-  String get homeFeaturedEmptyTitle => 'No training plan yet';
+  String get homeFeaturedEmptyTitle => 'Нет планов';
 
   @override
-  String get homeFeaturedEmptySubtitle =>
-      'Create your first workout to get started';
+  String get homeFeaturedEmptySubtitle => 'Создайте первую тренировку';
 
   @override
   String get plansPageTitle => 'Планы тренировок';
@@ -240,7 +239,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String plansTotalCount(int count) {
-    return 'Всего: $count';
+    return '$count total';
   }
 
   @override
@@ -264,17 +263,90 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String minutesPlanShort(int count) {
-    return 'План на $count мин';
+    return '$count min plan';
   }
 
   @override
   String durationMinutesLabel(int count) {
-    return '$count минут';
+    return '$count мин';
   }
 
   @override
+  String get homeAddWorkout => 'Добавить тренировку';
+
+  @override
+  String get workoutListEmptyTitle => 'Список тренировок пуст';
+
+  @override
+  String get workoutListEmptyBody =>
+      'Создайте тренировку с упражнениями на новый день.';
+
+  @override
+  String get workoutAddTrainingDay => 'Добавить день';
+
+  @override
+  String get workoutChooseMuscleGroup => 'Выберите группу мышц';
+
+  @override
+  String get workoutChooseExercises => 'Выберите упражнения';
+
+  @override
+  String get workoutNameYourWorkout => 'Название тренировки';
+
+  @override
+  String get workoutMuscleGroupHint =>
+      'Выберите одну или несколько зон для тренировки.';
+
+  @override
+  String get workoutContinue => 'Продолжить';
+
+  @override
+  String workoutContinueGroups(int count) {
+    return 'Продолжить ($count групп)';
+  }
+
+  @override
+  String get workoutSelectExercises => 'Выберите упражнения';
+
+  @override
+  String workoutContinueExercises(int count) {
+    return 'Продолжить ($count)';
+  }
+
+  @override
+  String get workoutSaveWorkout => 'Сохранить тренировку';
+
+  @override
+  String workoutExerciseHintSingle(String category) {
+    return 'Упражнения для «$category». Нажмите на карточку, чтобы выбрать и прочитать описание.';
+  }
+
+  @override
+  String get workoutExerciseHintMulti =>
+      'Выберите упражнения из выбранных групп мышц.';
+
+  @override
+  String get workoutNameHint => 'Введите название…';
+
+  @override
+  String get workoutSelected => 'Выбрано';
+
+  @override
+  String get workoutBack => 'Назад';
+
+  @override
+  String get planRepeatWorkout => 'Повторить тренировку';
+
+  @override
+  String get planCustomizeRepeat => 'Настроить и запланировать';
+
+  @override
+  String get planCompletedHint =>
+      'Тренировка завершена. Повторите в другой день или измените упражнения.';
+
+  @override
   String exercisesCount(int count) {
-    return 'Упражнений: $count';
+    return '$count упр.';
   }
 
   @override
@@ -334,7 +406,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String deletePlanConfirm(String name) {
-    return 'Удалить «$name» навсегда?';
+    return 'Delete \"$name\" permanently?';
   }
 
   @override
@@ -351,9 +423,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get workoutNameLabel => 'Название тренировки';
-
-  @override
-  String get workoutNameHint => 'Например: силовая на верх';
 
   @override
   String get dateLabel => 'Дата';
@@ -383,7 +452,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String chipMinutes(int count) {
-    return '$count мин';
+    return '$count min';
   }
 
   @override
@@ -391,7 +460,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String calendarWorkoutsOn(String date) {
-    return 'Тренировки на $date';
+    return 'Workouts on $date';
   }
 
   @override
@@ -426,6 +495,27 @@ class AppLocalizationsRu extends AppLocalizations {
   String get progressWeeklyVolume => 'Объем за неделю';
 
   @override
+  String get progressTotalSessions => 'Всего сессий';
+
+  @override
+  String get progressWeeklyMinutes => 'Время за неделю';
+
+  @override
+  String get progressWeeklyCalories => 'Калории за неделю';
+
+  @override
+  String get progressWeekActivity => 'Калории по дням';
+
+  @override
+  String get progressWeekActivityHint => 'Сожжённые калории по дням недели';
+
+  @override
+  String get progressMonthSessions => 'Сессий в месяце';
+
+  @override
+  String get progressPlannedUpcoming => 'Предстоящие';
+
+  @override
   String get progressAchievements => 'Достижения';
 
   @override
@@ -456,7 +546,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String streakDayStreak(int count) {
-    return 'Серия: $count дн.';
+    return '$count day streak';
   }
 
   @override
@@ -475,6 +565,54 @@ class AppLocalizationsRu extends AppLocalizations {
   String get profileTitle => 'Профиль';
 
   @override
+  String get profileTabPhotos => 'Фото';
+
+  @override
+  String get profileTabAbout => 'О себе';
+
+  @override
+  String get profileTabFeed => 'Лента';
+
+  @override
+  String get profileTabSaved => 'Сохранённое';
+
+  @override
+  String get profileTabSettings => 'Настройки';
+
+  @override
+  String get profileEditShort => 'Изменить';
+
+  @override
+  String get profileClose => 'Закрыть';
+
+  @override
+  String get profileNoBio => 'Публичное описание пока пустое.';
+
+  @override
+  String get profileAboutEmpty =>
+      'Пользователь ещё не добавил информацию о себе.';
+
+  @override
+  String get profilePhotosEmpty => 'Пользователь ещё не добавил фото.';
+
+  @override
+  String get profilePostsEmpty => 'Пользователь ещё не опубликовал посты.';
+
+  @override
+  String get profileSavedEmpty =>
+      'Нет сохранённых постов. Нажмите закладку в ленте, чтобы сохранить.';
+
+  @override
+  String get profilePrivateNotes => 'Личные заметки';
+
+  @override
+  String get profilePrivateNotesEmpty =>
+      'Добавьте заметки, видимые только вам.';
+
+  @override
+  String get profileFitnessSummary => 'Сводка';
+
+  @override
   String get profileWeight => 'Вес';
 
   @override
@@ -484,7 +622,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get profileAccount => 'Аккаунт';
 
   @override
-  String get profileEditProfile => 'Изменить профиль';
+  String get profileEditProfile => 'Редактировать профиль';
 
   @override
   String get profileAppPreferences => 'Настройки приложения';
@@ -496,8 +634,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get profileRemindersTitle => 'Напоминания о тренировках';
 
   @override
-  String get profileRemindersSubtitle =>
-      'Получайте уведомления о предстоящих сессиях';
+  String get profileRemindersSubtitle => 'Уведомления о предстоящих занятиях';
 
   @override
   String get profileLogOut => 'Выйти';
@@ -596,6 +733,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get labelReps => 'Повторения';
 
   @override
+  String get labelRest => 'Отдых';
+
+  @override
   String get sessionAllExercises => 'Все упражнения';
 
   @override
@@ -615,6 +755,26 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get sessionSummaryCalories => 'Калории';
+
+  @override
+  String sessionSummaryVolumeLine(int logKcal, int totalKcal) {
+    return 'Объём упражнений: $logKcal ккал · Итого за сессию: $totalKcal ккал';
+  }
+
+  @override
+  String sessionDurationSecondsOnly(int count) {
+    return '$count с';
+  }
+
+  @override
+  String sessionDurationMinutesOnly(int count) {
+    return '$count мин';
+  }
+
+  @override
+  String sessionDurationMinutesSeconds(int minutes, int seconds) {
+    return '$minutes мин $seconds с';
+  }
 
   @override
   String sessionCaloriesUnit(int count) {
@@ -723,12 +883,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String cameraAppliedReps(int count) {
-    return 'Применено $count повторений с камеры';
+    return 'Applied $count reps from camera';
   }
 
   @override
   String cameraAppliedHold(int count) {
-    return 'Применено $count сек удержания с камеры';
+    return 'Applied ${count}s hold from camera';
   }
 
   @override
@@ -783,13 +943,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get templateSaved => 'Template saved';
 
   @override
-  String get copyPlanTitle => 'Copy workout to';
+  String get copyPlanTitle => 'Запланировать на другой день';
 
   @override
-  String get copyPlanConfirm => 'Copy';
+  String get copyPlanConfirm => 'Запланировать';
 
   @override
-  String get snackbarPlanCopied => 'Workout copied to calendar';
+  String get snackbarPlanCopied => 'Тренировка добавлена в календарь';
 
   @override
   String get sessionManageExercises => 'Manage exercises';
@@ -811,7 +971,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String historySetsRepsDetail(int sets, int reps) {
-    return '$sets подходов · $reps повторений';
+    return '$sets подх. · $reps повт.';
   }
 
   @override
@@ -835,7 +995,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String categorySubtitle(int count) {
-    return 'Упражнений: $count';
+    return '$count exercises';
   }
 
   @override
@@ -1119,110 +1279,109 @@ class AppLocalizationsRu extends AppLocalizations {
   String get calendarDow7 => 'В';
 
   @override
-  String get mapTitle => 'Territory Map';
+  String get mapTitle => 'Карта территорий';
 
   @override
-  String get mapLocateMe => 'My location';
+  String get mapLocateMe => 'Моё местоположение';
 
   @override
-  String get mapLocating => 'Finding your location...';
+  String get mapLocating => 'Определяем местоположение…';
 
   @override
   String get mapLocationUnavailable =>
-      'Could not find your location. Turn on GPS and try again.';
+      'Не удалось найти вас. Включите GPS и попробуйте снова.';
 
   @override
   String get mapLocationServiceDisabled =>
-      'Location services are off. Turn on GPS to see where you are.';
+      'Геолокация выключена. Включите GPS, чтобы видеть себя на карте.';
 
   @override
   String get mapLocationPermissionDenied =>
-      'Location permission is required to show your position on the map.';
+      'Нужен доступ к геолокации для отображения на карте.';
 
   @override
   String get mapLocationTimeout =>
-      'GPS is taking too long. Move outdoors and tap My location again.';
+      'GPS отвечает слишком долго. Выйдите на открытое место и нажмите снова.';
 
   @override
-  String get mapOpenLocationSettings => 'Open settings';
+  String get mapOpenLocationSettings => 'Открыть настройки';
 
   @override
-  String get mapModeMap => 'Map view';
+  String get mapModeMap => 'Карта';
 
   @override
-  String get mapModeSatellite => 'Satellite view';
+  String get mapModeSatellite => 'Спутник';
 
   @override
-  String get mapLeaderboard => 'Leaderboard';
+  String get mapLeaderboard => 'Рейтинг';
 
   @override
-  String get mapStartCapture => 'Start Capture';
+  String get mapStartCapture => 'Начать захват';
 
   @override
-  String get mapCaptureActive => 'Capturing route';
+  String get mapCaptureActive => 'Запись маршрута';
 
   @override
-  String get mapElapsed => 'Elapsed';
+  String get mapElapsed => 'Прошло';
 
   @override
-  String get mapDistance => 'Distance';
+  String get mapDistance => 'Дистанция';
 
   @override
-  String get mapEstimatedArea => 'Est. area';
+  String get mapEstimatedArea => 'Площадь (оценка)';
 
   @override
-  String get mapGpsAccuracy => 'GPS accuracy';
+  String get mapGpsAccuracy => 'Точность GPS';
 
   @override
-  String get mapFinishCapture => 'Finish';
+  String get mapFinishCapture => 'Завершить';
 
   @override
-  String get mapPermissionTitle => 'Location access needed';
+  String get mapPermissionTitle => 'Нужен доступ к геолокации';
 
   @override
   String get mapPermissionBody =>
-      'GymCoach uses your location while the app is open to show your position and record territory capture routes.';
+      'GymCoach использует геолокацию, пока приложение открыто, чтобы показывать вас на карте и записывать маршруты захвата.';
 
   @override
   String get mapPermissionServiceDisabled =>
-      'Turn on location services in system settings to use the territory map.';
+      'Включите геолокацию в настройках системы для карты территорий.';
 
   @override
-  String get mapAllowLocation => 'Allow location';
+  String get mapAllowLocation => 'Разрешить геолокацию';
 
   @override
-  String get mapOpenSettings => 'Open settings';
+  String get mapOpenSettings => 'Открыть настройки';
 
   @override
-  String get mapPermissionDialogTitle =>
-      'Enable location for territory capture';
+  String get mapPermissionDialogTitle => 'Включите геолокацию для захвата';
 
   @override
   String get mapPermissionDialogBody =>
-      'We only use your GPS while you actively capture a route. Your path is sent to the server when you finish a capture.';
+      'GPS используется только во время активного захвата. Маршрут отправляется на сервер после завершения.';
 
   @override
-  String get mapContinue => 'Continue';
+  String get mapContinue => 'Продолжить';
 
   @override
   String get mapSatelliteUnavailable =>
-      'Satellite view requires an external paid map provider. Standard OpenFreeMap is available for free.';
+      'Спутниковый вид требует платного провайдера карт. Бесплатно доступна стандартная карта OpenFreeMap.';
 
   @override
-  String get mapEmptyTerritories => 'No territories captured yet';
+  String get mapEmptyTerritories => 'Территории ещё не захвачены';
 
   @override
   String get mapGpsAccuracyWarning =>
-      'GPS accuracy is lower than ideal. You can continue, but try moving to open sky for a cleaner capture.';
+      'Точность GPS ниже нормы. Можно продолжить, но лучше выйти под открытое небо.';
 
   @override
-  String get mapNameTerritoryTitle => 'Name your territory';
+  String get mapNameTerritoryTitle => 'Назовите территорию';
 
   @override
-  String get mapTerritoryNameLabel => 'Territory name';
+  String get mapTerritoryNameLabel => 'Название территории';
 
   @override
-  String get mapCaptureSuccessTitle => 'Territory captured';
+  String get mapCaptureSuccessTitle => 'Территория захвачена';
 
   @override
   String mapCaptureSuccessBody(String name, String area) {
@@ -1230,42 +1389,61 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get mapDone => 'Done';
+  String get mapDone => 'Готово';
 
   @override
   String get mapValidationMinPoints =>
-      'Capture at least 4 valid GPS points before finishing.';
+      'Запишите минимум 4 точки GPS перед завершением.';
 
   @override
   String get mapValidationMinArea =>
-      'The captured area is too small. Walk a larger loop and try again.';
+      'Площадь слишком мала. Пройдите больший маршрут и попробуйте снова.';
 
   @override
-  String get mapCaptureFailed => 'Could not finish the capture. Try again.';
+  String get mapCaptureFailed =>
+      'Не удалось завершить захват. Попробуйте снова.';
 
   @override
-  String get mapOwner => 'Owner';
+  String get mapOwner => 'Владелец';
 
   @override
-  String get mapArea => 'Area';
+  String get mapArea => 'Площадь';
 
   @override
-  String get mapCapturedOn => 'Captured';
+  String get mapCapturedOn => 'Захвачено';
 
   @override
-  String get mapZoomToTerritory => 'Zoom to territory';
+  String get mapZoomToTerritory => 'Показать территорию';
 
   @override
-  String get mapMyTerritory => 'My territory';
+  String get mapMyTerritory => 'Моя территория';
 
   @override
-  String get mapLeaderboardTitle => 'Territory leaderboard';
+  String get mapLeaderboardTitle => 'Рейтинг территорий';
 
   @override
-  String get mapLeaderboardEmpty => 'No leaderboard data yet.';
+  String get mapLeaderboardEmpty => 'Данных рейтинга пока нет.';
 
   @override
   String mapLeaderboardMeta(String area, int count) {
     return '$area · $count territories';
   }
+
+  @override
+  String get feedSubtitle => 'Фото прогресса и записи о тренировках';
+
+  @override
+  String get feedPost => 'Пост';
+
+  @override
+  String get feedPublish => 'Опубликовать';
+
+  @override
+  String get feedDeletePost => 'Удалить пост';
+
+  @override
+  String get feedBlockUser => 'Заблокировать';
+
+  @override
+  String get feedReportPost => 'Пожаловаться';
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
 import '../../../../app/widgets/premium_image_viewer.dart';
@@ -110,9 +111,10 @@ class ProfilePhotoGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (media.isEmpty) {
-      return const ProfileEmptyTabState(
+      final l10n = AppLocalizations.of(context)!;
+      return ProfileEmptyTabState(
         icon: Icons.photo_camera_outlined,
-        message: 'This user has not added any photos yet.',
+        message: l10n.profilePhotosEmpty,
       );
     }
 
@@ -166,9 +168,10 @@ class ProfileAboutSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (bio.trim().isEmpty && extraSections.isEmpty) {
-      return const ProfileEmptyTabState(
+      final l10n = AppLocalizations.of(context)!;
+      return ProfileEmptyTabState(
         icon: Icons.article_outlined,
-        message: 'This user has not added information about themselves yet.',
+        message: l10n.profileAboutEmpty,
       );
     }
 
@@ -179,7 +182,7 @@ class ProfileAboutSection extends StatelessWidget {
         children: [
           if (bio.trim().isNotEmpty)
             _AboutCard(
-              title: 'About',
+              title: AppLocalizations.of(context)!.profileTabAbout,
               body: bio,
               icon: Icons.person_outline_rounded,
             ),

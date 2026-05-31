@@ -1,10 +1,11 @@
-import 'package:flutter/cupertino.dart';
+﻿import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../../../core/workout_exercise_catalog.dart';
+import '../../../core/workout_exercise_l10n.dart';
 import '../domain/workout_plan.dart';
 
 Future<void> showCreatePlanSheet({
@@ -348,7 +349,7 @@ class _CreatePlanSheetState extends State<CreatePlanSheet> {
                   const SizedBox(height: 10),
                   for (final category in WorkoutExerciseCatalog.categories) ...[
                     Text(
-                      category.title,
+                      WorkoutExerciseL10n.categoryTitle(l10n, category.title),
                       style: const TextStyle(
                         color: PremiumColors.textSecondary,
                         fontSize: 12,
@@ -359,6 +360,7 @@ class _CreatePlanSheetState extends State<CreatePlanSheet> {
                     for (final exercise in category.exercises) ...[
                       _EditExerciseRow(
                         exercise: exercise,
+                        l10n: l10n,
                         selected: _selectedExercises.contains(exercise.name),
                         onTap: () => _toggleExercise(exercise.name),
                       ),
@@ -708,16 +710,19 @@ class _PickerTile extends StatelessWidget {
 class _EditExerciseRow extends StatelessWidget {
   const _EditExerciseRow({
     required this.exercise,
+    required this.l10n,
     required this.selected,
     required this.onTap,
   });
 
   final WorkoutExerciseEntry exercise;
+  final AppLocalizations l10n;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final displayName = WorkoutExerciseL10n.name(l10n, exercise.name);
     return Material(
       color: PremiumColors.surface,
       borderRadius: BorderRadius.circular(PremiumRadii.md),
@@ -753,7 +758,7 @@ class _EditExerciseRow extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  exercise.name,
+                  displayName,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,

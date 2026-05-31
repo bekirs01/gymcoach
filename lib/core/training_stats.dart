@@ -69,6 +69,82 @@ abstract final class TrainingStats {
     return n;
   }
 
+  static int sessionsOnDay(
+    DateTime day,
+    List<WorkoutPlan> plans,
+    List<WorkoutCompletion> completions,
+  ) {
+    final d = WorkoutPlan.dateOnly(day);
+    var count = 0;
+    for (final c in completions) {
+      if (!completionMatchesPlans(c, plans)) continue;
+      if (WorkoutPlan.dateOnly(c.completedAt) == d) count++;
+    }
+    for (final p in plans) {
+      if (p.status != PlanStatus.completed) continue;
+      if (WorkoutPlan.dateOnly(p.scheduledDate) != d) continue;
+      final hasLog = completions.any(
+        (c) =>
+            completionMatchesPlans(c, plans) &&
+            c.title == p.name &&
+            WorkoutPlan.isSameDay(c.completedAt, d),
+      );
+      if (!hasLog) count++;
+    }
+    return count;
+  }
+
+  static List<int> weeklySessionCounts(
+    List<WorkoutPlan> plans,
+    List<WorkoutCompletion> completions,
+    DateTime reference,
+  ) {
+    final mon = WorkoutPlan.mondayContaining(reference);
+    return List.generate(7, (i) => sessionsOnDay(mon.add(Duration(days: i)), plans, completions));
+  }
+
+  static int weeklyTrainingMinutes(
+    List<WorkoutPlan> plans,
+    List<WorkoutCompletion> completions,
+    DateTime reference,
+  ) {
+    final mon = WorkoutPlan.mondayContaining(reference);
+    final end = mon.add(const Duration(days: 7));
+    var total = 0;
+    for (final c in completions) {
+      if (!completionMatchesPlans(c, plans)) continue;
+      final d = WorkoutPlan.dateOnly(c.completedAt);
+      if (d.isBefore(mon) || !d.isBefore(end)) continue;
+      total += c.durationMinutes;
+    }
+    return total;
+  }
+
+  static int weeklyCalories(
+    List<WorkoutPlan> plans,
+    List<WorkoutCompletion> completions,
+    DateTime reference,
+  ) {
+    return weeklyCaloriesByDay(plans, completions, reference).fold<int>(0, (a, b) => a + b);
+  }
+
+  static List<int> weeklyCaloriesByDay(
+    List<WorkoutPlan> plans,
+    List<WorkoutCompletion> completions,
+    DateTime reference,
+  ) {
+    final mon = WorkoutPlan.mondayContaining(reference);
+    return List.generate(7, (i) {
+      final day = WorkoutPlan.dateOnly(mon.add(Duration(days: i)));
+      var total = 0;
+      for (final c in completions) {
+        if (!completionMatchesPlans(c, plans)) continue;
+        if (WorkoutPlan.dateOnly(c.completedAt) == day) total += c.calories;
+      }
+      return total;
+    });
+  }
+
   static int totalCompletedSessions(
     List<WorkoutPlan> plans,
     List<WorkoutCompletion> completions,
