@@ -1,4 +1,5 @@
 import '../../domain/exercise_profile.dart';
+import '../../domain/exercise_profiles_data.dart';
 import '../../domain/smoothed_pose_observation.dart';
 import '../../engine/adaptive_rep_engine.dart';
 import '../biomechanics/metric_extractors.dart';
@@ -9,10 +10,10 @@ class PushUpTracker extends RepExerciseTracker {
   String get canonicalId => 'push_ups';
 
   @override
-  ExerciseProfile get profile => ExerciseProfiles.pushUps;
+  ExerciseProfile get profile => ExerciseProfilesData.byId['push_ups']!;
 
   @override
-  final AdaptiveRepEngine engine = AdaptiveRepEngine(ExerciseProfiles.pushUps.repConfig!);
+  late final AdaptiveRepEngine engine = AdaptiveRepEngine(profile.repConfig!);
 
   double _minElbow = double.infinity;
 

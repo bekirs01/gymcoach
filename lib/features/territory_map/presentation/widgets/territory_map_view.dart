@@ -8,7 +8,9 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
 import '../../config/territory_config.dart';
+import '../../domain/capture_point.dart';
 import '../../domain/territory.dart';
+import '../../services/polygon_utils.dart';
 import '../../services/user_location_service.dart';
 import '../territory_map_controller.dart';
 
@@ -39,32 +41,35 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
   geo.Position? _pendingCenterPosition;
   double? _pendingCenterZoom;
   var _pendingCenterAnimate = false;
-  var _lastSyncedCaptureCount = -1;
-  var _lastSyncedTerritoryCount = -1;
-  var _lastSyncedMapMode = '';
+  _MapSyncSnapshot? _lastSyncedSnapshot;
 
   @override
   void initState() {
     super.initState();
+    widget.controller.addListener(_onControllerChanged);
     unawaited(_resolveInitialTarget());
   }
 
   @override
   void didUpdateWidget(covariant TerritoryMapView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_needsMapSync(oldWidget.controller, widget.controller)) return;
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onControllerChanged);
+      widget.controller.addListener(_onControllerChanged);
+      _lastSyncedSnapshot = null;
+    }
     unawaited(_syncMap());
   }
 
-  bool _needsMapSync(TerritoryMapController old, TerritoryMapController neu) {
-    if (old.mapMode != neu.mapMode) return true;
-    if (old.territories.length != neu.territories.length) return true;
-    if (old.capturePoints.length != neu.capturePoints.length) return true;
-    return false;
+  void _onControllerChanged() {
+    final snapshot = _MapSyncSnapshot.from(widget.controller);
+    if (_lastSyncedSnapshot == snapshot) return;
+    unawaited(_syncMap());
   }
 
   @override
   void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
     super.dispose();
   }
 
@@ -107,17 +112,20 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
   Future<void> _onMapCreated(MapLibreMapController controller) async {
     _mapController = controller;
     controller.onFillTapped.add((fill) {
-      final territoryId = fill.data?['territoryId'] as String?;
-      if (territoryId == null) return;
-      final territory = widget.controller.territories.where((t) => t.id == territoryId).firstOrNull;
-      if (territory != null) widget.onTerritoryTap?.call(territory);
+      _handleTerritoryTap(fill.data?['territoryId'] as String?);
     });
     controller.onCircleTapped.add((circle) {
-      final territoryId = circle.data?['territoryId'] as String?;
-      if (territoryId == null) return;
-      final territory = widget.controller.territories.where((t) => t.id == territoryId).firstOrNull;
-      if (territory != null) widget.onTerritoryTap?.call(territory);
+      _handleTerritoryTap(circle.data?['territoryId'] as String?);
     });
+    controller.onSymbolTapped.add((symbol) {
+      _handleTerritoryTap(symbol.data?['territoryId'] as String?);
+    });
+  }
+
+  void _handleTerritoryTap(String? territoryId) {
+    if (territoryId == null) return;
+    final territory = widget.controller.territories.where((t) => t.id == territoryId).firstOrNull;
+    if (territory != null) widget.onTerritoryTap?.call(territory);
   }
 
   Future<void> _onStyleLoaded() async {
@@ -133,22 +141,15 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     final styleUrl = MapStyleConfig.styleUrlFor(widget.controller.mapMode);
     if (_loadedStyleUrl != styleUrl) {
       _styleReady = false;
+      _lastSyncedSnapshot = null;
       await controller.setStyle(styleUrl);
       _loadedStyleUrl = styleUrl;
       return;
     }
 
-    final captureCount = widget.controller.capturePoints.length;
-    final territoryCount = widget.controller.territories.length;
-    final mapMode = widget.controller.mapMode.name;
-    if (_lastSyncedCaptureCount == captureCount &&
-        _lastSyncedTerritoryCount == territoryCount &&
-        _lastSyncedMapMode == mapMode) {
-      return;
-    }
-    _lastSyncedCaptureCount = captureCount;
-    _lastSyncedTerritoryCount = territoryCount;
-    _lastSyncedMapMode = mapMode;
+    final snapshot = _MapSyncSnapshot.from(widget.controller);
+    if (_lastSyncedSnapshot == snapshot) return;
+    _lastSyncedSnapshot = snapshot;
 
     await controller.clearFills();
     await controller.clearLines();
@@ -214,17 +215,85 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
       );
     }
 
-    if (widget.controller.capturePoints.length >= 2) {
+    if (widget.controller.isCapturingRouteVisible) {
+      await _drawActiveCapture(controller);
+    }
+  }
+
+  Future<void> _drawActiveCapture(MapLibreMapController controller) async {
+    final points = widget.controller.capturePoints;
+    if (points.isEmpty) return;
+
+    final route = points.map((point) => LatLng(point.latitude, point.longitude)).toList(growable: false);
+    final loopClosed = widget.controller.isLoopClosed;
+
+    if (loopClosed && points.length >= 3) {
+      final ring = _ringFromCapturePoints(points, closeLoop: true);
+      if (ring != null) {
+        await controller.addFill(
+          FillOptions(
+            geometry: [ring],
+            fillColor: _colorHex(PremiumColors.accentBlue),
+            fillOpacity: 0.38,
+            fillOutlineColor: _colorHex(PremiumColors.accentBlue),
+          ),
+        );
+      }
+    }
+
+    if (route.length >= 2) {
       await controller.addLine(
         LineOptions(
-          geometry: widget.controller.capturePoints
-              .map((point) => LatLng(point.latitude, point.longitude))
-              .toList(growable: false),
+          geometry: route,
+          lineColor: '#FFFFFF',
+          lineWidth: 7,
+          lineOpacity: 0.85,
+        ),
+      );
+      await controller.addLine(
+        LineOptions(
+          geometry: route,
           lineColor: _colorHex(PremiumColors.accentBlue),
-          lineWidth: 4,
+          lineWidth: 4.5,
         ),
       );
     }
+
+    final start = route.first;
+    await controller.addCircle(
+      CircleOptions(
+        geometry: start,
+        circleRadius: loopClosed ? 10 : 8,
+        circleColor: loopClosed ? '#22C55E' : _colorHex(PremiumColors.accentBlue),
+        circleOpacity: 1,
+        circleStrokeWidth: 2.5,
+        circleStrokeColor: '#FFFFFF',
+      ),
+    );
+  }
+
+  List<LatLng>? _ringFromCapturePoints(
+    List<CapturePoint> points, {
+    required bool closeLoop,
+  }) {
+    if (points.length < 3) return null;
+    final List<List<dynamic>> ringData;
+    if (closeLoop) {
+      final geoJson = PolygonUtils.buildPolygonGeoJson(points);
+      final coords = geoJson['coordinates'];
+      if (coords is! List || coords.isEmpty) return null;
+      ringData = (coords.first as List).cast<List<dynamic>>();
+    } else {
+      ringData = [
+        points.map((p) => [p.longitude, p.latitude]).toList(growable: false),
+      ];
+    }
+    final result = <LatLng>[];
+    for (final vertex in ringData.first) {
+      if (vertex is! List || vertex.length < 2) continue;
+      result.add(LatLng((vertex[1] as num).toDouble(), (vertex[0] as num).toDouble()));
+    }
+    return result.length >= 3 ? result : null;
   }
 
   List<LatLng>? _ringFromTerritory(Territory territory) {
@@ -400,7 +469,9 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
               myLocationEnabled: true,
               myLocationRenderMode:
                   Platform.isIOS ? MyLocationRenderMode.compass : MyLocationRenderMode.normal,
-              myLocationTrackingMode: MyLocationTrackingMode.none,
+              myLocationTrackingMode: widget.controller.capturePhase == CapturePhase.capturing
+                  ? MyLocationTrackingMode.tracking
+                  : MyLocationTrackingMode.none,
               compassEnabled: false,
               onMapCreated: _onMapCreated,
               onStyleLoadedCallback: _onStyleLoaded,
@@ -489,4 +560,51 @@ extension<T> on Iterable<T> {
     if (!iterator.moveNext()) return null;
     return iterator.current;
   }
+}
+
+final class _MapSyncSnapshot {
+  const _MapSyncSnapshot({
+    required this.capturePointCount,
+    required this.capturePhase,
+    required this.territorySignature,
+    required this.mapMode,
+    required this.loopClosed,
+  });
+
+  final int capturePointCount;
+  final CapturePhase capturePhase;
+  final String territorySignature;
+  final String mapMode;
+  final bool loopClosed;
+
+  factory _MapSyncSnapshot.from(TerritoryMapController controller) {
+    return _MapSyncSnapshot(
+      capturePointCount: controller.capturePoints.length,
+      capturePhase: controller.capturePhase,
+      territorySignature: controller.territories
+          .map((t) => '${t.id}:${t.ownerId}:${t.areaSquareMeters.toStringAsFixed(1)}')
+          .join('|'),
+      mapMode: controller.mapMode.name,
+      loopClosed: controller.isLoopClosed,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is _MapSyncSnapshot &&
+        other.capturePointCount == capturePointCount &&
+        other.capturePhase == capturePhase &&
+        other.territorySignature == territorySignature &&
+        other.mapMode == mapMode &&
+        other.loopClosed == loopClosed;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        capturePointCount,
+        capturePhase,
+        territorySignature,
+        mapMode,
+        loopClosed,
+      );
 }

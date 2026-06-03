@@ -48,15 +48,20 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Edit profile'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text('Edit'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     final fields = find.byType(TextField);
-    expect(fields, findsNWidgets(4));
+    expect(fields, findsNWidgets(6));
     await tester.enterText(fields.at(1), '82,3');
     await tester.enterText(fields.at(2), '181,5');
-    await tester.tap(find.text('Save'));
-    await tester.pumpAndSettle();
+    final save = find.widgetWithText(FilledButton, 'Save');
+    await tester.scrollUntilVisible(save, 80, scrollable: find.byType(Scrollable).last);
+    await tester.tap(save);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.byType(AlertDialog), findsNothing);
     expect(saved, isNotNull);
     expect(saved!.weightKg, 82.3);

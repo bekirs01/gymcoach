@@ -1,4 +1,5 @@
 import '../../domain/exercise_profile.dart';
+import '../../domain/exercise_profiles_data.dart';
 import '../../domain/smoothed_pose_observation.dart';
 import '../../engine/adaptive_rep_engine.dart';
 import '../biomechanics/metric_extractors.dart';
@@ -9,10 +10,10 @@ class PullUpTracker extends RepExerciseTracker {
   String get canonicalId => 'pull_ups';
 
   @override
-  ExerciseProfile get profile => ExerciseProfiles.pullUps;
+  ExerciseProfile get profile => ExerciseProfilesData.byId['pull_ups']!;
 
   @override
-  final AdaptiveRepEngine engine = AdaptiveRepEngine(ExerciseProfiles.pullUps.repConfig!);
+  late final AdaptiveRepEngine engine = AdaptiveRepEngine(profile.repConfig!);
 
   double _minElbowThisRep = 180;
 
@@ -33,9 +34,10 @@ class PullUpTracker extends RepExerciseTracker {
 
   @override
   String? validateRep(SmoothedPoseObservation obs) {
-    final ok = _minElbowThisRep <= 105;
+    final elbowOk = _minElbowThisRep <= 105;
+    final chinOk = MetricExtractors.chinAboveBar(obs);
     _minElbowThisRep = 180;
-    if (!ok) return 'pull_higher';
+    if (!elbowOk || !chinOk) return 'pull_higher';
     return null;
   }
 }

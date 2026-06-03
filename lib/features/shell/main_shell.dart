@@ -326,7 +326,7 @@ class _MainShellState extends State<MainShell> {
       case 1:
         return FeedPage(profile: profile);
       case 2:
-        return TerritoryMapPage(displayName: profile.displayName);
+        return TerritoryMapPage(profile: profile);
       case 3:
         return ProgressPage(
           plans: plans,

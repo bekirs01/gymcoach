@@ -6,6 +6,7 @@ void main() {
   test('kcalForExercise returns positive for strength work', () {
     final k = SessionCalorieEstimator.kcalForExercise(
       weightKg: 80,
+      heightCm: 178,
       categoryKey: 'strength',
       sets: 4,
       reps: 8,
@@ -16,12 +17,14 @@ void main() {
   test('cardio category scores higher than mobility for same volume', () {
     final c = SessionCalorieEstimator.kcalForExercise(
       weightKg: 70,
+      heightCm: 175,
       categoryKey: 'cardio',
       sets: 3,
       reps: 20,
     );
     final m = SessionCalorieEstimator.kcalForExercise(
       weightKg: 70,
+      heightCm: 175,
       categoryKey: 'mobility',
       sets: 3,
       reps: 20,
@@ -36,12 +39,14 @@ void main() {
   test('fallbackSessionKcal scales with duration', () {
     final a = SessionCalorieEstimator.fallbackSessionKcal(
       weightKg: 75,
+      heightCm: 180,
       difficulty: PlanDifficulty.beginner,
       durationMinutes: 20,
       exerciseCount: 4,
     );
     final b = SessionCalorieEstimator.fallbackSessionKcal(
       weightKg: 75,
+      heightCm: 180,
       difficulty: PlanDifficulty.beginner,
       durationMinutes: 40,
       exerciseCount: 4,

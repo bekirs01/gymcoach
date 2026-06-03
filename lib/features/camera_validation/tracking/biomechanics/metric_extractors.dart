@@ -260,6 +260,198 @@ abstract final class MetricExtractors {
     return lw.y < ls.y - obs.bodyScale * 0.02 && rw.y < rs.y - obs.bodyScale * 0.02;
   }
 
+  // ── Bench press: elbow flexion (side/front) ────────────────────────────────
+
+  static double? benchPressMetric(SmoothedPoseObservation obs) => elbowAngle(obs);
+
+  // ── Chest fly: arm abduction from torso ───────────────────────────────────
+
+  static double? chestFlyMetric(SmoothedPoseObservation obs) {
+    final frame = _asFrame(obs);
+    final left = PoseGeometry.armElevationDeg(frame, true);
+    final right = PoseGeometry.armElevationDeg(frame, false);
+    if (left == null && right == null) return null;
+    return ((left ?? 0) + (right ?? 0)) / (left != null && right != null ? 2 : 1);
+  }
+
+  // ── Lat pulldown: elbow flexion (high = arms up, low = pulled) ────────────
+
+  static double? latPulldownMetric(SmoothedPoseObservation obs) => elbowAngle(obs);
+
+  // ── Seated row: elbow flexion behind torso ────────────────────────────────
+
+  static double? seatedRowMetric(SmoothedPoseObservation obs) {
+    final elbow = elbowAngle(obs);
+    if (elbow == null) return null;
+    final wristsBehind = _wristsBehindShoulders(obs);
+    return wristsBehind ? elbow + 18 : elbow;
+  }
+
+  // ── Leg curl: knee flexion (side view) ────────────────────────────────────
+
+  static double? legCurlMetric(SmoothedPoseObservation obs) => kneeAngle(obs);
+
+  // ── Hip thrust / glute bridge: hip extension ──────────────────────────────
+
+  static double? hipThrustMetric(SmoothedPoseObservation obs) {
+    final frame = _asFrame(obs);
+    final scale = obs.bodyScale;
+    final hipAngle = PoseGeometry.averageAngle(
+      frame,
+      PoseLandmark.leftShoulder,
+      PoseLandmark.leftHip,
+      PoseLandmark.leftKnee,
+      PoseLandmark.rightShoulder,
+      PoseLandmark.rightHip,
+      PoseLandmark.rightKnee,
+    );
+    final hipLift = PoseGeometry.bilateralVerticalGapNorm(
+      frame,
+      PoseLandmark.leftHip,
+      PoseLandmark.rightHip,
+      PoseLandmark.leftAnkle,
+      PoseLandmark.rightAnkle,
+      scale,
+    );
+    final liftScore = hipLift != null ? (hipLift * -280).clamp(40.0, 175.0) : null;
+    return _blend([(hipAngle, 0.55), (liftScore, 0.45)]);
+  }
+
+  static double? gluteBridgeMetric(SmoothedPoseObservation obs) {
+    final thrust = hipThrustMetric(obs);
+    return thrust != null ? thrust * 0.92 + 8 : null;
+  }
+
+  // ── Step-up: front-leg knee (like lunge) ──────────────────────────────────
+
+  static double? stepUpMetric(SmoothedPoseObservation obs) => lungeMetric(obs);
+
+  // ── Lateral raise: arm abduction ──────────────────────────────────────────
+
+  static double? lateralRaiseMetric(SmoothedPoseObservation obs) {
+    final frame = _asFrame(obs);
+    final left = PoseGeometry.armElevationDeg(frame, true);
+    final right = PoseGeometry.armElevationDeg(frame, false);
+    if (left == null && right == null) return null;
+    return ((left ?? 0) + (right ?? 0)) / (left != null && right != null ? 2 : 1);
+  }
+
+  // ── Front raise: wrists forward of shoulders ──────────────────────────────
+
+  static double? frontRaiseMetric(SmoothedPoseObservation obs) {
+    final frame = _asFrame(obs);
+    final elbow = elbowAngle(obs);
+    final lw = frame[PoseLandmark.leftWrist];
+    final rw = frame[PoseLandmark.rightWrist];
+    final ls = frame[PoseLandmark.leftShoulder];
+    final rs = frame[PoseLandmark.rightShoulder];
+    if (lw == null || rw == null || ls == null || rs == null) return elbow;
+    final forward = ((lw.y < ls.y ? 1 : 0) + (rw.y < rs.y ? 1 : 0)) * 25.0;
+    return (elbow ?? 120) + forward;
+  }
+
+  // ── Face pull: elbows back + flexion ──────────────────────────────────────
+
+  static double? facePullMetric(SmoothedPoseObservation obs) {
+    final elbow = elbowAngle(obs);
+    if (elbow == null) return null;
+    return _wristsBehindShoulders(obs) ? elbow + 22 : elbow;
+  }
+
+  // ── Biceps curl / hammer curl: elbow only ─────────────────────────────────
+
+  static double? bicepsCurlMetric(SmoothedPoseObservation obs) => elbowAngle(obs);
+
+  // ── Dips: elbow flexion (like push-up) ────────────────────────────────────
+
+  static double? dipsMetric(SmoothedPoseObservation obs) => elbowAngle(obs);
+
+  // ── Cable crunch: torso flexion shoulder–hip angle ────────────────────────
+
+  static double? cableCrunchMetric(SmoothedPoseObservation obs) {
+    return PoseGeometry.averageAngle(
+      _asFrame(obs),
+      PoseLandmark.leftShoulder,
+      PoseLandmark.leftHip,
+      PoseLandmark.leftKnee,
+      PoseLandmark.rightShoulder,
+      PoseLandmark.rightHip,
+      PoseLandmark.rightKnee,
+    );
+  }
+
+  // ── Leg raise: hip flexion (knees toward chest) ───────────────────────────
+
+  static double? legRaiseMetric(SmoothedPoseObservation obs) {
+    final frame = _asFrame(obs);
+    final scale = obs.bodyScale;
+    final kneeHip = PoseGeometry.bilateralVerticalGapNorm(
+      frame,
+      PoseLandmark.leftHip,
+      PoseLandmark.rightHip,
+      PoseLandmark.leftKnee,
+      PoseLandmark.rightKnee,
+      scale,
+    );
+    final kneeAngle = _avgLegKneeAngle(frame);
+    final kneeLift = kneeHip != null ? (kneeHip * -300).clamp(35.0, 170.0) : null;
+    return _blend([(kneeAngle, 0.5), (kneeLift, 0.5)]);
+  }
+
+  // ── Mountain climber: knee drive toward chest ─────────────────────────────
+
+  static double? mountainClimberDriveMetric(SmoothedPoseObservation obs) {
+    final frame = _asFrame(obs);
+    final scale = obs.bodyScale;
+    final ls = frame[PoseLandmark.leftShoulder];
+    final rs = frame[PoseLandmark.rightShoulder];
+    final lk = frame[PoseLandmark.leftKnee];
+    final rk = frame[PoseLandmark.rightKnee];
+    if (ls == null || rs == null || lk == null || rk == null) return null;
+    final midY = (ls.y + rs.y) / 2;
+    final leftDrive = (midY - lk.y) / scale;
+    final rightDrive = (midY - rk.y) / scale;
+    return (leftDrive > rightDrive ? leftDrive : rightDrive) * 100;
+  }
+
+  // ── Bicycle crunch: elbow–opposite knee proximity ─────────────────────────
+
+  static ({double leftScore, double rightScore}) bicycleCrunchScores(SmoothedPoseObservation obs) {
+    final frame = _asFrame(obs);
+    final scale = obs.bodyScale.clamp(0.02, 1.0);
+    double score(PoseLandmark elbow, PoseLandmark knee) {
+      final pe = frame[elbow];
+      final pk = frame[knee];
+      if (pe == null || pk == null || !pe.isReliable || !pk.isReliable) return 0;
+      final d = PoseGeometry.normalizedDistance(frame, elbow, knee, scale) ?? 999;
+      return (1.2 - d).clamp(0.0, 1.0) * 180;
+    }
+
+    return (
+      leftScore: score(PoseLandmark.leftElbow, PoseLandmark.rightKnee),
+      rightScore: score(PoseLandmark.rightElbow, PoseLandmark.leftKnee),
+    );
+  }
+
+  // ── Jump rope: vertical bounce (hip midpoint oscillation) ─────────────────
+
+  static double? jumpRopeBounceMetric(SmoothedPoseObservation obs) {
+    final frame = _asFrame(obs);
+    final hipY = frame.midpointY(PoseLandmark.leftHip, PoseLandmark.rightHip);
+    if (hipY == null) return null;
+    return hipY * 1000;
+  }
+
+  static bool _wristsBehindShoulders(SmoothedPoseObservation obs) {
+    final frame = _asFrame(obs);
+    final lw = frame[PoseLandmark.leftWrist];
+    final rw = frame[PoseLandmark.rightWrist];
+    final ls = frame[PoseLandmark.leftShoulder];
+    final rs = frame[PoseLandmark.rightShoulder];
+    if (lw == null || rw == null || ls == null || rs == null) return false;
+    return lw.x > ls.x + obs.bodyScale * 0.02 || rw.x < rs.x - obs.bodyScale * 0.02;
+  }
+
   static PoseFrame _asFrame(SmoothedPoseObservation obs) {
     return PoseFrame(timestamp: obs.timestamp, landmarks: obs.landmarks);
   }

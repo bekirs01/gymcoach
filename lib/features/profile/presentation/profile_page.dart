@@ -89,12 +89,17 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _bootstrapSocial() async {
-    final prefs = await SharedPreferences.getInstance();
-    final client = SocialApiClient(prefs: prefs);
-    await client.ensureProfile(_profile);
-    if (!mounted) return;
-    setState(() => _client = client);
-    await _loadSocial();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final client = SocialApiClient(prefs: prefs);
+      await client.ensureProfile(_profile);
+      if (!mounted) return;
+      setState(() => _client = client);
+      await _loadSocial();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingSocial = false);
+    }
   }
 
   Future<void> _loadSocial() async {
@@ -127,17 +132,21 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _editProfile() async {
-    final client = _client;
-    if (client == null) return;
     final result = await showModalBottomSheet<UserProfile>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _EditSocialProfileSheet(initial: _profile, client: client),
+      builder: (_) => _EditSocialProfileSheet(
+        initial: _profile,
+        client: _client,
+        l10n: AppLocalizations.of(context)!,
+      ),
     );
     if (!mounted || result == null) return;
     setState(() => _profile = result);
     widget.onProfileChanged(result);
+    final client = _client;
+    if (client == null) return;
     await client.updateProfile(
       displayName: result.displayName,
       bio: result.bio,
@@ -145,6 +154,9 @@ class _ProfilePageState extends State<ProfilePage> {
       avatarUrl: result.avatarUrl,
       coverUrl: result.coverUrl,
       isPublic: result.isPublic,
+      weightKg: result.weightKg,
+      heightCm: result.heightCm,
+      fitnessGoal: result.fitnessGoal,
     );
     await _loadSocial();
   }
@@ -330,7 +342,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 l10n: l10n,
                 langLabel: langLabel,
                 notifications: _profile.notificationsEnabled,
-                onEdit: _editProfile,
                 onLanguage: _pickLanguage,
                 onNotifications: (v) {
                   final next = _profile.copyWith(notificationsEnabled: v);
@@ -494,7 +505,6 @@ class _SettingsCard extends StatelessWidget {
     required this.l10n,
     required this.langLabel,
     required this.notifications,
-    required this.onEdit,
     required this.onLanguage,
     required this.onNotifications,
     required this.onLogout,
@@ -503,7 +513,6 @@ class _SettingsCard extends StatelessWidget {
   final AppLocalizations l10n;
   final String langLabel;
   final bool notifications;
-  final VoidCallback onEdit;
   final VoidCallback onLanguage;
   final ValueChanged<bool> onNotifications;
   final VoidCallback onLogout;
@@ -518,14 +527,6 @@ class _SettingsCard extends StatelessWidget {
       ),
             child: Column(
               children: [
-                Material(
-                  color: Colors.transparent,
-                  child: ListTile(
-                    leading: const Icon(Icons.edit_rounded, color: PremiumColors.accentBlue),
-                    title: Text(l10n.profileEditProfile, style: const TextStyle(color: Colors.white)),
-                    onTap: onEdit,
-                  ),
-                ),
                 Material(
                   color: Colors.transparent,
                   child: ListTile(
@@ -560,10 +561,15 @@ class _SettingsCard extends StatelessWidget {
 }
 
 class _EditSocialProfileSheet extends StatefulWidget {
-  const _EditSocialProfileSheet({required this.initial, required this.client});
+  const _EditSocialProfileSheet({
+    required this.initial,
+    required this.client,
+    required this.l10n,
+  });
 
   final UserProfile initial;
-  final SocialApiClient client;
+  final SocialApiClient? client;
+  final AppLocalizations l10n;
 
   @override
   State<_EditSocialProfileSheet> createState() => _EditSocialProfileSheetState();
@@ -574,20 +580,33 @@ class _EditSocialProfileSheetState extends State<_EditSocialProfileSheet> {
   late final TextEditingController _name;
   late final TextEditingController _bio;
   late final TextEditingController _notes;
+  late final TextEditingController _weight;
+  late final TextEditingController _height;
+  late final TextEditingController _goal;
   late String _avatarUrl;
   late String _coverUrl;
   late bool _isPublic;
   var _saving = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _name = TextEditingController(text: widget.initial.displayName);
-    _bio = TextEditingController(text: widget.initial.bio);
-    _notes = TextEditingController(text: widget.initial.privateNotes);
+    final p = widget.initial;
+    _name = TextEditingController(text: p.displayName);
+    _bio = TextEditingController(text: p.bio);
+    _notes = TextEditingController(text: p.privateNotes);
+    _weight = TextEditingController(text: _formatMetric(p.weightKg));
+    _height = TextEditingController(text: _formatMetric(p.heightCm));
+    _goal = TextEditingController(text: p.fitnessGoal);
     _avatarUrl = widget.initial.avatarUrl;
     _coverUrl = widget.initial.coverUrl;
     _isPublic = widget.initial.isPublic;
+  }
+
+  static String _formatMetric(double value) {
+    if (value == value.roundToDouble()) return value.round().toString();
+    return value.toString();
   }
 
   @override
@@ -595,14 +614,19 @@ class _EditSocialProfileSheetState extends State<_EditSocialProfileSheet> {
     _name.dispose();
     _bio.dispose();
     _notes.dispose();
+    _weight.dispose();
+    _height.dispose();
+    _goal.dispose();
     super.dispose();
   }
 
   Future<void> _pickAvatar() async {
+    final client = widget.client;
+    if (client == null) return;
     final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 86, maxWidth: 1200);
     if (image == null) return;
     setState(() => _saving = true);
-    final url = await widget.client.uploadImage(image, 'avatars');
+    final url = await client.uploadImage(image, 'avatars');
     if (!mounted) return;
     setState(() {
       _avatarUrl = url;
@@ -611,10 +635,12 @@ class _EditSocialProfileSheetState extends State<_EditSocialProfileSheet> {
   }
 
   Future<void> _pickCover() async {
+    final client = widget.client;
+    if (client == null) return;
     final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 86, maxWidth: 1600);
     if (image == null) return;
     setState(() => _saving = true);
-    final url = await widget.client.uploadImage(image, 'covers');
+    final url = await client.uploadImage(image, 'covers');
     if (!mounted) return;
     setState(() {
       _coverUrl = url;
@@ -623,159 +649,10 @@ class _EditSocialProfileSheetState extends State<_EditSocialProfileSheet> {
   }
 
   void _save() {
-    final name = _name.text.trim();
-    if (name.isEmpty) return;
-    Navigator.pop(
-      context,
-      widget.initial.copyWith(
-        displayName: name,
-        bio: _bio.text.trim(),
-        privateNotes: _notes.text.trim(),
-        avatarUrl: _avatarUrl,
-        coverUrl: _coverUrl,
-        isPublic: _isPublic,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: Material(
-        color: PremiumColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(PremiumRadii.xl)),
-        child: SafeArea(
-          top: false,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Edit profile',
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    SocialAvatar(name: _name.text, imageUrl: _avatarUrl, size: 64),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _saving ? null : _pickAvatar,
-                        icon: const Icon(Icons.person_rounded),
-                        label: const Text('Avatar'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _saving ? null : _pickCover,
-                        icon: const Icon(Icons.image_rounded),
-                        label: const Text('Cover'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _DarkField(controller: _name, label: 'Name'),
-                const SizedBox(height: 10),
-                _DarkField(controller: _bio, label: 'Public bio', maxLines: 3),
-                const SizedBox(height: 10),
-                _DarkField(controller: _notes, label: 'Private notes', maxLines: 4),
-                SwitchListTile(
-                  value: _isPublic,
-                  title: const Text('Public profile', style: TextStyle(color: Colors.white)),
-                  subtitle: const Text('Visible in Feed and Leaderboard', style: TextStyle(color: PremiumColors.textMuted)),
-                  onChanged: (v) => setState(() => _isPublic = v),
-                ),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: _saving ? null : _save,
-                  child: _saving
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Save'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DarkField extends StatelessWidget {
-  const _DarkField({required this.controller, required this.label, this.maxLines = 1});
-
-  final TextEditingController controller;
-  final String label;
-  final int maxLines;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: PremiumColors.textSecondary),
-        filled: true,
-        fillColor: PremiumColors.midnightBottom,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(PremiumRadii.lg),
-          borderSide: const BorderSide(color: PremiumColors.glassBorder),
-        ),
-      ),
-    );
-  }
-}
-
-class _EditProfileDialog extends StatefulWidget {
-  const _EditProfileDialog({required this.initial, required this.l10n});
-
-  final UserProfile initial;
-  final AppLocalizations l10n;
-
-  @override
-  State<_EditProfileDialog> createState() => _EditProfileDialogState();
-}
-
-class _EditProfileDialogState extends State<_EditProfileDialog> {
-  late final TextEditingController _nameController;
-  late final TextEditingController _weightController;
-  late final TextEditingController _heightController;
-  late final TextEditingController _goalController;
-  late String _membership;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    final p = widget.initial;
-    _nameController = TextEditingController(text: p.displayName);
-    _weightController = TextEditingController(text: p.weightKg.toString());
-    _heightController = TextEditingController(text: p.heightCm.toString());
-    _goalController = TextEditingController(text: p.fitnessGoal);
-    _membership = p.membershipLevel;
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _weightController.dispose();
-    _heightController.dispose();
-    _goalController.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
     final l10n = widget.l10n;
-    final name = _nameController.text.trim();
-    final w = _parsePositiveMetric(_weightController.text);
-    final h = _parsePositiveMetric(_heightController.text);
+    final name = _name.text.trim();
+    final w = _parsePositiveMetric(_weight.text);
+    final h = _parsePositiveMetric(_height.text);
     if (name.isEmpty) {
       setState(() => _error = l10n.validationProfileName);
       return;
@@ -788,106 +665,166 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
       setState(() => _error = l10n.validationProfileHeight);
       return;
     }
-    final next = widget.initial.copyWith(
-      displayName: name,
-      weightKg: w,
-      heightCm: h,
-      fitnessGoal: _goalController.text.trim(),
-      membershipLevel: _membership,
+    Navigator.pop(
+      context,
+      widget.initial.copyWith(
+        displayName: name,
+        bio: _bio.text.trim(),
+        privateNotes: _notes.text.trim(),
+        avatarUrl: _avatarUrl,
+        coverUrl: _coverUrl,
+        isPublic: _isPublic,
+        weightKg: w,
+        heightCm: h,
+        fitnessGoal: _goal.text.trim(),
+      ),
     );
-    Navigator.of(context).pop(next);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = widget.l10n;
-    final tiers = [l10n.membershipFree, l10n.membershipPlus, l10n.membershipPremium];
-
-    return AlertDialog(
-      title: Text(l10n.profileEditSheetTitle),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(labelText: l10n.labelName),
-              textCapitalization: TextCapitalization.words,
-              onChanged: (_) => setState(() => _error = null),
-            ),
-            TextField(
-              controller: _weightController,
-              decoration: InputDecoration(labelText: l10n.labelWeightKg),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: false),
-              onChanged: (_) => setState(() => _error = null),
-            ),
-            TextField(
-              controller: _heightController,
-              decoration: InputDecoration(labelText: l10n.labelHeightCm),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: false),
-              onChanged: (_) => setState(() => _error = null),
-            ),
-            TextField(
-              controller: _goalController,
-              decoration: InputDecoration(labelText: l10n.labelFitnessGoal),
-              textCapitalization: TextCapitalization.sentences,
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.labelMembership,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: Material(
+        color: PremiumColors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(PremiumRadii.xl)),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final m in tiers)
-                  ChoiceChip(
-                    label: Text(m),
-                    selected: _membership == m,
-                    onSelected: (_) => setState(() => _membership = m),
-                    selectedColor: AppColors.successTint,
-                    checkmarkColor: AppColors.primaryDark,
-                    labelStyle: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: _membership == m ? AppColors.primaryDark : AppColors.textSecondary,
-                    ),
-                    side: BorderSide(
-                      color: _membership == m ? AppColors.primary : AppColors.borderSubtle,
-                    ),
+                Text(
+                  l10n.profileEditSheetTitle,
+                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
+                ),
+                if (widget.client != null) ...[
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      SocialAvatar(name: _name.text, imageUrl: _avatarUrl, size: 64),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _saving ? null : _pickAvatar,
+                          icon: const Icon(Icons.person_rounded),
+                          label: Text(l10n.profileAvatarButton),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _saving ? null : _pickCover,
+                          icon: const Icon(Icons.image_rounded),
+                          label: Text(l10n.profileCoverButton),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
+                ],
+                _DarkField(
+                  controller: _name,
+                  label: l10n.labelName,
+                  onChanged: (_) => setState(() => _error = null),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DarkField(
+                        controller: _weight,
+                        label: l10n.labelWeightKg,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        onChanged: (_) => setState(() => _error = null),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _DarkField(
+                        controller: _height,
+                        label: l10n.labelHeightCm,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        onChanged: (_) => setState(() => _error = null),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _DarkField(
+                  controller: _goal,
+                  label: l10n.labelFitnessGoal,
+                  maxLines: 2,
+                  onChanged: (_) => setState(() => _error = null),
+                ),
+                const SizedBox(height: 10),
+                _DarkField(controller: _bio, label: l10n.profilePublicBioLabel, maxLines: 3),
+                const SizedBox(height: 10),
+                _DarkField(controller: _notes, label: l10n.profilePrivateNotes, maxLines: 4),
+                SwitchListTile(
+                  value: _isPublic,
+                  title: Text(l10n.profilePublicToggleTitle, style: const TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    l10n.profilePublicToggleSubtitle,
+                    style: const TextStyle(color: PremiumColors.textMuted),
+                  ),
+                  onChanged: (v) => setState(() => _isPublic = v),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+                ],
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text(l10n.save),
+                ),
               ],
             ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  _error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-          ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
+    );
+  }
+}
+
+class _DarkField extends StatelessWidget {
+  const _DarkField({
+    required this.controller,
+    required this.label,
+    this.maxLines = 1,
+    this.keyboardType,
+    this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final int maxLines;
+  final TextInputType? keyboardType;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      onChanged: onChanged,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: PremiumColors.textSecondary),
+        filled: true,
+        fillColor: PremiumColors.midnightBottom,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(PremiumRadii.lg),
+          borderSide: const BorderSide(color: PremiumColors.glassBorder),
         ),
-        FilledButton(
-          onPressed: _submit,
-          child: Text(l10n.save),
-        ),
-      ],
+      ),
     );
   }
 }

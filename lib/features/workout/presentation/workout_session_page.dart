@@ -12,6 +12,7 @@ import '../../../core/workout_exercise_catalog.dart';
 import '../../plans/domain/workout_plan.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../camera_validation/data/exercise_name_resolver.dart';
+import '../../camera_validation/data/exercise_tracking_catalog.dart';
 import '../../camera_validation/exercise_tracker_registry.dart';
 import '../../camera_validation/domain/exercise_tracking_mode.dart';
 import '../../camera_validation/presentation/camera_tracking_page.dart';
@@ -134,7 +135,8 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
 
   bool _isCameraSupportedFor(String exerciseName) {
     final l10n = AppLocalizations.of(context)!;
-    final canonical = ExerciseNameResolver.canonicalIdForName(exerciseName, l10n);
+    final canonical = ExerciseTrackingCatalog.canonicalIdForDisplayName(exerciseName) ??
+        ExerciseNameResolver.canonicalIdForName(exerciseName, l10n);
     if (canonical == null) return false;
     return ExerciseTrackerRegistry.isCameraSupported(canonical);
   }
@@ -190,6 +192,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     final cat = SessionCalorieEstimator.categoryKeyForName(name);
     final kcal = SessionCalorieEstimator.kcalForExercise(
       weightKg: widget.profile.weightKg,
+      heightCm: widget.profile.heightCm,
       categoryKey: cat,
       sets: s,
       reps: r,
@@ -228,17 +231,15 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
       final log = _logsByIndex[i];
       if (log != null) ordered.add(log);
     }
-    final logKcal = ordered.fold<int>(0, (sum, log) => sum + log.estimatedCalories);
-    final timeKcal = SessionCalorieEstimator.sessionKcalFromLogs(
+    final totalKcal = SessionCalorieEstimator.sessionKcalFromLogs(
       weightKg: widget.profile.weightKg,
+      heightCm: widget.profile.heightCm,
       difficulty: widget.plan.difficulty,
       durationMinutes: elapsedMinutes,
       exerciseCount: names.length,
       logs: ordered,
     );
-    final totalKcal = ordered.isEmpty
-        ? timeKcal
-        : ((logKcal * 0.65) + (timeKcal * 0.35)).round().clamp(logKcal, logKcal + timeKcal);
+    final logKcal = ordered.fold<int>(0, (sum, log) => sum + log.estimatedCalories);
     widget.analytics.onSessionFinished(finishedAt.difference(_startedAt!));
     _summaryElapsedSeconds = elapsedSeconds;
     _summary = WorkoutCompletion(

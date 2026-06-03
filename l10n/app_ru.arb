@@ -334,6 +334,11 @@
   "profileRemindersSubtitle": "Уведомления о предстоящих занятиях",
   "profileLogOut": "Выйти",
   "profileEditSheetTitle": "Изменить профиль",
+  "profileAvatarButton": "Аватар",
+  "profileCoverButton": "Обложка",
+  "profilePublicBioLabel": "Публичное описание",
+  "profilePublicToggleTitle": "Публичный профиль",
+  "profilePublicToggleSubtitle": "Виден в ленте и рейтинге",
   "labelName": "Имя",
   "labelWeightKg": "Вес (кг)",
   "labelHeightCm": "Рост (см)",
@@ -416,11 +421,11 @@
       }
     }
   },
-  "sessionCaloriesEstimateNote": "Калории рассчитаны примерно на основе веса в профиле, типа упражнения, подходов, повторений и длительности сессии.",
+  "sessionCaloriesEstimateNote": "Калории — только приблизительная оценка, не точное значение. Учитываются вес, рост, каждое упражнение, подходы, повторения и длительность сессии.",
   "sessionValidationSetsReps": "Введите положительное число подходов и повторений.",
   "sessionExerciseAlreadyLogged": "Это упражнение уже записано. Выберите другое из списка.",
   "sessionCameraTrackingComingSoon": "Отслеживание камерой (скоро)",
-  "sessionCameraTracking": "Отслеживать камерой",
+  "sessionCameraTracking": "Отслеживание камерой",
   "cameraTrackingTitle": "Отслеживание камерой",
   "cameraStartTracking": "Начать отслеживание",
   "cameraApplyCount": "Применить счёт",
@@ -435,7 +440,7 @@
   "cameraOpenSettings": "Открыть настройки",
   "cameraRetry": "Попробовать снова",
   "cameraPreviewLoading": "Запуск камеры…",
-  "cameraTrackingLive": "Live",
+  "cameraTrackingLive": "В эфире",
   "cameraInvalidAttempts": "Ошибки",
   "cameraUnsupportedExercise": "Отслеживание камерой для этого упражнения пока недоступно.",
   "cameraInitFailed": "Не удалось запустить камеру. Попробуйте снова или считайте вручную.",
@@ -445,7 +450,7 @@
   "cameraFeedbackPullHigher": "Тяните выше — подбородок над кистями",
   "cameraFeedbackHipsSagging": "Поднимите бёдра — держите тело прямо",
   "cameraFeedbackAdjustForm": "Скорректируйте технику и повторите",
-  "cameraAppliedReps": "Applied {count} reps from camera",
+  "cameraAppliedReps": "С камеры: {count} повторений",
   "@cameraAppliedReps": {
     "placeholders": {
       "count": {
@@ -453,7 +458,7 @@
       }
     }
   },
-  "cameraAppliedHold": "Applied {count}s hold from camera",
+  "cameraAppliedHold": "С камеры: удержание {count} с",
   "@cameraAppliedHold": {
     "placeholders": {
       "count": {
@@ -498,7 +503,7 @@
       }
     }
   },
-  "historyCaloriesEstimateNote": "Калории рассчитаны примерно на основе записанной сессии.",
+  "historyCaloriesEstimateNote": "Калории — только приблизительная оценка, не точное измерение.",
   "snackbarWorkoutSavedHistory": "Тренировка сохранена в историю",
   "snackbarPlanUpdated": "План обновлен",
   "snackbarPlanDeleted": "План удален",
@@ -656,6 +661,8 @@
   "mapCapturedOn": "Захвачено",
   "mapZoomToTerritory": "Показать территорию",
   "mapMyTerritory": "Моя территория",
+  "mapViewOwnerProfile": "Профиль владельца",
+  "mapLoopClosed": "Круг замкнут — завершите захват, чтобы закрепить территорию.",
   "mapLeaderboardTitle": "Рейтинг территорий",
   "mapLeaderboardEmpty": "Данных рейтинга пока нет.",
   "mapLeaderboardMeta": "{area} · {count} territories",

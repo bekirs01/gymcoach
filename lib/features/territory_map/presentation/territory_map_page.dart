@@ -7,7 +7,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/premium_tokens.dart';
 import '../../../core/device_user_id.dart';
+import '../../profile/domain/user_profile.dart';
+import '../../profile/presentation/public_profile_page.dart';
+import '../../social/data/social_api_client.dart';
+import '../../social/domain/social_profile.dart';
 import '../data/territory_api_factory.dart';
+import '../domain/territory.dart';
 import '../services/location_permission_service.dart';
 import '../services/user_location_service.dart';
 import 'territory_formatters.dart';
@@ -22,10 +27,12 @@ import 'widgets/territory_map_view.dart';
 class TerritoryMapPage extends StatefulWidget {
   const TerritoryMapPage({
     super.key,
-    required this.displayName,
+    required this.profile,
   });
 
-  final String displayName;
+  final UserProfile profile;
+
+  String get displayName => profile.displayName;
 
   @override
   State<TerritoryMapPage> createState() => _TerritoryMapPageState();
@@ -35,6 +42,7 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
   final _mapViewKey = GlobalKey<TerritoryMapViewState>();
   final _locationService = UserLocationService();
   TerritoryMapController? _controller;
+  SocialApiClient? _socialClient;
   var _leaderboardLoading = false;
   var _namingDialogScheduled = false;
   var _isLocatingUser = false;
@@ -48,6 +56,7 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
   Future<void> _bootstrap() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
+    _socialClient = SocialApiClient(prefs: prefs);
     final apiClient = await createTerritoryApiClient(
       prefs: prefs,
       displayName: widget.displayName,
@@ -219,6 +228,29 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
     );
   }
 
+  void _openOwnerProfile(Territory territory) {
+    final client = _socialClient;
+    if (client == null || territory.isOwnedByCurrentUser) return;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => PublicProfilePage(
+          userId: territory.ownerId,
+          client: client,
+          currentProfile: widget.profile,
+          initialProfile: SocialProfile(
+            userId: territory.ownerId,
+            displayName: territory.ownerDisplayName,
+            bio: '',
+            privateNotes: '',
+            avatarUrl: territory.ownerAvatarUrl,
+            coverUrl: '',
+            isPublic: true,
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _openLeaderboard() async {
     final controller = _controller;
     if (controller == null || _leaderboardLoading) return;
@@ -329,6 +361,9 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
                     _mapViewKey.currentState?.zoomToTerritory(territory);
                   }
                 },
+                onViewOwnerProfile: controller.selectedTerritory!.isOwnedByCurrentUser
+                    ? null
+                    : () => _openOwnerProfile(controller.selectedTerritory!),
               ),
             Positioned(
               left: 16,

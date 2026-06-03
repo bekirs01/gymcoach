@@ -23,5 +23,7 @@ extension ExerciseProfileGuidance on ExerciseProfile {
         orientation: orientationHint,
         framingHint: framingHint,
         safetyNote: safetyNote,
+        placementHint: placementHint,
+        setupSteps: setupSteps,
       );
 }

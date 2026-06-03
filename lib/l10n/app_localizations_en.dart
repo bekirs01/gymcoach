@@ -641,6 +641,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileEditSheetTitle => 'Edit profile';
 
   @override
+  String get profileAvatarButton => 'Avatar';
+
+  @override
+  String get profileCoverButton => 'Cover';
+
+  @override
+  String get profilePublicBioLabel => 'Public bio';
+
+  @override
+  String get profilePublicToggleTitle => 'Public profile';
+
+  @override
+  String get profilePublicToggleSubtitle => 'Visible in Feed and Leaderboard';
+
+  @override
   String get labelName => 'Name';
 
   @override
@@ -780,7 +795,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sessionCaloriesEstimateNote =>
-      'Calories shown are an estimate based on your profile weight, exercise type, and logged sets and reps.';
+      'Calorie values are approximate only, not exact. They are estimated from your weight, height, each exercise, sets, reps, and session duration.';
 
   @override
   String get sessionValidationSetsReps =>
@@ -970,7 +985,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get historyCaloriesEstimateNote =>
-      'Estimated calories (based on your logged session).';
+      'Calorie values are approximate only, not an exact measurement.';
 
   @override
   String get snackbarWorkoutSavedHistory => 'Workout saved to your history';
@@ -1412,6 +1427,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapMyTerritory => 'My territory';
+
+  @override
+  String get mapViewOwnerProfile => 'View owner profile';
+
+  @override
+  String get mapLoopClosed =>
+      'Loop closed — finish capture to claim this area.';
 
   @override
   String get mapLeaderboardTitle => 'Territory leaderboard';

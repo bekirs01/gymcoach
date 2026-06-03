@@ -160,6 +160,7 @@ class _QuickLogSheetState extends State<_QuickLogSheet> {
           repsCompleted: e.reps,
           estimatedCalories: SessionCalorieEstimator.kcalForExercise(
             weightKg: widget.profile.weightKg,
+            heightCm: widget.profile.heightCm,
             categoryKey: cat,
             sets: e.sets,
             reps: e.reps,
@@ -177,6 +178,7 @@ class _QuickLogSheetState extends State<_QuickLogSheet> {
     final duration = (logs.length * 8).clamp(10, 180);
     final calories = SessionCalorieEstimator.sessionKcalFromLogs(
       weightKg: widget.profile.weightKg,
+      heightCm: widget.profile.heightCm,
       difficulty: PlanDifficulty.intermediate,
       durationMinutes: duration,
       exerciseCount: logs.length,

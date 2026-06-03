@@ -1244,6 +1244,36 @@ abstract class AppLocalizations {
   /// **'Edit profile'**
   String get profileEditSheetTitle;
 
+  /// No description provided for @profileAvatarButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Avatar'**
+  String get profileAvatarButton;
+
+  /// No description provided for @profileCoverButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover'**
+  String get profileCoverButton;
+
+  /// No description provided for @profilePublicBioLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Public bio'**
+  String get profilePublicBioLabel;
+
+  /// No description provided for @profilePublicToggleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Public profile'**
+  String get profilePublicToggleTitle;
+
+  /// No description provided for @profilePublicToggleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Visible in Feed and Leaderboard'**
+  String get profilePublicToggleSubtitle;
+
   /// No description provided for @labelName.
   ///
   /// In en, this message translates to:
@@ -1493,7 +1523,7 @@ abstract class AppLocalizations {
   /// No description provided for @sessionCaloriesEstimateNote.
   ///
   /// In en, this message translates to:
-  /// **'Calories shown are an estimate based on your profile weight, exercise type, and logged sets and reps.'**
+  /// **'Calorie values are approximate only, not exact. They are estimated from your weight, height, each exercise, sets, reps, and session duration.'**
   String get sessionCaloriesEstimateNote;
 
   /// No description provided for @sessionValidationSetsReps.
@@ -1841,7 +1871,7 @@ abstract class AppLocalizations {
   /// No description provided for @historyCaloriesEstimateNote.
   ///
   /// In en, this message translates to:
-  /// **'Estimated calories (based on your logged session).'**
+  /// **'Calorie values are approximate only, not an exact measurement.'**
   String get historyCaloriesEstimateNote;
 
   /// No description provided for @snackbarWorkoutSavedHistory.
@@ -2683,6 +2713,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'My territory'**
   String get mapMyTerritory;
+
+  /// No description provided for @mapViewOwnerProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'View owner profile'**
+  String get mapViewOwnerProfile;
+
+  /// No description provided for @mapLoopClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Loop closed — finish capture to claim this area.'**
+  String get mapLoopClosed;
 
   /// No description provided for @mapLeaderboardTitle.
   ///

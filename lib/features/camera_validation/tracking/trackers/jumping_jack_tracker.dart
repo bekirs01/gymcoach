@@ -1,5 +1,6 @@
 import '../../domain/pose_frame.dart';
 import '../../domain/exercise_profile.dart';
+import '../../domain/exercise_profiles_data.dart';
 import '../../domain/exercise_tracking_mode.dart';
 import '../../domain/smoothed_pose_observation.dart';
 import '../../domain/tracking_session_state.dart';
@@ -15,7 +16,7 @@ class JumpingJackTracker extends ExerciseTracker {
   ExerciseTrackingMode get mode => profile.mode;
 
   @override
-  ExerciseProfile get profile => ExerciseProfiles.jumpingJacks;
+  ExerciseProfile get profile => ExerciseProfilesData.byId['jumping_jacks']!;
 
   var _phase = _JackPhase.closed;
   DateTime? _phaseEntered;

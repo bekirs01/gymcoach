@@ -48,12 +48,24 @@ class TerritoryMapController extends ChangeNotifier {
   bool isSubmittingCapture = false;
 
   StreamSubscription<CapturePoint>? _captureSubscription;
+  Timer? _refreshTimer;
   Timer? _elapsedTimer;
   DateTime? _captureStartedAt;
+
+  bool get isLoopClosed => PolygonUtils.isClosureWithinTolerance(capturePoints);
+
+  bool get isCapturingRouteVisible =>
+      capturePhase == CapturePhase.capturing || capturePhase == CapturePhase.naming;
 
   Future<void> initialize() async {
     permissionState = await _permissionService.checkPermission();
     await refreshTerritories();
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (capturePhase == CapturePhase.idle) {
+        unawaited(refreshTerritories());
+      }
+    });
     notifyListeners();
   }
 
@@ -277,6 +289,7 @@ class TerritoryMapController extends ChangeNotifier {
   @override
   void dispose() {
     _captureSubscription?.cancel();
+    _refreshTimer?.cancel();
     _elapsedTimer?.cancel();
     unawaited(_captureService.stop());
     super.dispose();

@@ -135,9 +135,14 @@ class SupabaseTerritoryApiClient implements TerritoryApiClient {
       },
     );
     if (rows.isEmpty) return null;
-    return TerritoryMapRowMapper.territoryFromRow(
+    final territory = TerritoryMapRowMapper.territoryFromRow(
       Map<String, dynamic>.from(rows.first as Map),
       currentUserId: currentUserId,
+    );
+    final profiles = await _loadOwnerProfiles({territory.ownerId});
+    return territory.copyWith(
+      ownerDisplayName: profiles.names[territory.ownerId] ?? territory.ownerDisplayName,
+      ownerAvatarUrl: profiles.avatars[territory.ownerId] ?? territory.ownerAvatarUrl,
     );
   }
 

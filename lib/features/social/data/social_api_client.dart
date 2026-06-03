@@ -75,6 +75,9 @@ final class SocialApiClient {
     required String avatarUrl,
     required String coverUrl,
     required bool isPublic,
+    required double weightKg,
+    required double heightCm,
+    required String fitnessGoal,
   }) async {
     final uid = await currentUserId();
     await _client.from('profiles').update({
@@ -84,6 +87,9 @@ final class SocialApiClient {
       'avatar_url': avatarUrl,
       'cover_url': coverUrl,
       'is_public': isPublic,
+      'weight_kg': weightKg,
+      'height_cm': heightCm,
+      'fitness_goal': fitnessGoal,
     }).eq('id', uid);
   }
 

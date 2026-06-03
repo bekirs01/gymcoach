@@ -41,7 +41,7 @@ class ProgressPage extends StatelessWidget {
       if (!d.isBefore(monthStart) && d.isBefore(monthEnd)) monthSessions++;
     }
     final upcoming = plans.where((p) => p.status == PlanStatus.planned).length;
-    final bottomPad = FloatingTabBar.reservedBottomSpace(context) + AppSpacing.lg;
+    final bottomPad = FloatingTabBar.reservedBottomSpace(context) + AppSpacing.xl;
     final topPad = MediaQuery.viewPaddingOf(context).top;
 
     return PremiumBackground(
@@ -174,14 +174,26 @@ class ProgressPage extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             l10n.progressMonthlyHint,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(color: PremiumColors.textMuted, fontSize: 12, height: 1.3),
                           ),
                           const SizedBox(height: 10),
                           Row(
                             children: [
-                              _MiniStat(label: l10n.progressMonthSessions, value: '$monthSessions'),
-                              const SizedBox(width: 12),
-                              _MiniStat(label: l10n.progressPlannedUpcoming, value: '$upcoming'),
+                              Expanded(
+                                child: _MiniStat(
+                                  label: l10n.progressMonthSessions,
+                                  value: '$monthSessions',
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _MiniStat(
+                                  label: l10n.progressPlannedUpcoming,
+                                  value: '$upcoming',
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -280,9 +292,19 @@ class _MetricCard extends StatelessWidget {
         children: [
           Icon(icon, color: PremiumColors.accentBlue, size: 22),
           const SizedBox(height: 10),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20)),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
+          ),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(color: PremiumColors.textMuted, fontSize: 11, height: 1.25)),
+          Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: PremiumColors.textMuted, fontSize: 11, height: 1.25),
+          ),
         ],
       ),
     );
@@ -302,8 +324,18 @@ class _MiniStat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-        Text(label, style: const TextStyle(color: PremiumColors.textMuted, fontSize: 11)),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
+        ),
+        Text(
+          label,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: PremiumColors.textMuted, fontSize: 11, height: 1.2),
+        ),
       ],
     );
   }
@@ -358,29 +390,32 @@ class _WeeklyCaloriesCard extends StatelessWidget {
           Text(l10n.progressWeekActivityHint, style: const TextStyle(color: PremiumColors.textMuted, fontSize: 12)),
           const SizedBox(height: 14),
           SizedBox(
-            height: 128,
+            height: 132,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 for (var i = 0; i < 7; i++) ...[
-                  if (i > 0) const SizedBox(width: 6),
+                  if (i > 0) const SizedBox(width: 4),
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         if (daily[i] > 0)
                           Text(
                             '${daily[i]}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: PremiumColors.accentBlue,
-                              fontSize: 10,
+                              fontSize: 9,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 220),
-                          height: 10 + (daily[i] / norm) * 66,
+                          height: 8 + (daily[i] / norm) * 52,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
                             color: daily[i] > 0
@@ -388,10 +423,17 @@ class _WeeklyCaloriesCard extends StatelessWidget {
                                 : PremiumColors.surfaceRaised,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         Text(
                           labels[i],
-                          style: const TextStyle(color: PremiumColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: PremiumColors.textMuted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
@@ -474,13 +516,28 @@ class _RecordTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(lift, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                Text(
+                  lift,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+                ),
                 const SizedBox(height: 2),
-                Text(dateLabel, style: const TextStyle(color: PremiumColors.textMuted, fontSize: 12)),
+                Text(
+                  dateLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: PremiumColors.textMuted, fontSize: 12),
+                ),
               ],
             ),
           ),
-          Text(value, style: const TextStyle(color: PremiumColors.accentBlue, fontWeight: FontWeight.w800, fontSize: 15)),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: PremiumColors.accentBlue, fontWeight: FontWeight.w800, fontSize: 15),
+          ),
         ],
       ),
     );
@@ -524,6 +581,8 @@ class _BadgesRow extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   e.$1,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: unlocked ? Colors.white : PremiumColors.textMuted,
                     fontWeight: FontWeight.w600,

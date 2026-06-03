@@ -12,11 +12,13 @@ class TerritoryDetailSheet extends StatelessWidget {
     required this.territory,
     required this.onClose,
     required this.onZoom,
+    this.onViewOwnerProfile,
   });
 
   final Territory territory;
   final VoidCallback onClose;
   final VoidCallback onZoom;
+  final VoidCallback? onViewOwnerProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -55,31 +57,39 @@ class TerritoryDetailSheet extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _OwnerAvatar(territory: territory),
+                  InkWell(
+                    onTap: onViewOwnerProfile,
+                    borderRadius: BorderRadius.circular(24),
+                    child: _OwnerAvatar(territory: territory),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          territory.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 18,
-                            letterSpacing: -0.2,
+                    child: InkWell(
+                      onTap: onViewOwnerProfile,
+                      borderRadius: BorderRadius.circular(PremiumRadii.md),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            territory.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
+                              letterSpacing: -0.2,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          territory.ownerDisplayName,
-                          style: const TextStyle(
-                            color: PremiumColors.textSecondary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
+                          const SizedBox(height: 4),
+                          Text(
+                            territory.ownerDisplayName,
+                            style: const TextStyle(
+                              color: PremiumColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   IconButton(
@@ -122,6 +132,24 @@ class TerritoryDetailSheet extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 14),
+              if (onViewOwnerProfile != null && !territory.isOwnedByCurrentUser) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: onViewOwnerProfile,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(PremiumRadii.md),
+                      ),
+                    ),
+                    child: Text(l10n.mapViewOwnerProfile),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(

@@ -62,6 +62,7 @@ class _WorkoutLogSheetState extends State<_WorkoutLogSheet> {
         _typeController.text.trim().isEmpty ? l10n.logWorkoutTypeDefault : _typeController.text.trim();
     final calories = SessionCalorieEstimator.fallbackAdHocLog(
       weightKg: widget.profile.weightKg,
+      heightCm: widget.profile.heightCm,
       durationMinutes: _durationMinutes,
     );
     final completion = WorkoutCompletion(

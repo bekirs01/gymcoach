@@ -146,8 +146,15 @@ class CaptureOverlay extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Close the loop to capture at least ${TerritoryFormatters.area(minArea)}.',
-                  style: const TextStyle(color: PremiumColors.textMuted, fontSize: 11, height: 1.35),
+                  controller.isLoopClosed
+                      ? l10n.mapLoopClosed
+                      : 'Close the loop to capture at least ${TerritoryFormatters.area(minArea)}.',
+                  style: TextStyle(
+                    color: controller.isLoopClosed ? const Color(0xFF86EFAC) : PremiumColors.textMuted,
+                    fontSize: 11,
+                    height: 1.35,
+                    fontWeight: controller.isLoopClosed ? FontWeight.w600 : FontWeight.w400,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 Row(

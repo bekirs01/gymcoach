@@ -643,6 +643,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get profileEditSheetTitle => 'Изменить профиль';
 
   @override
+  String get profileAvatarButton => 'Аватар';
+
+  @override
+  String get profileCoverButton => 'Обложка';
+
+  @override
+  String get profilePublicBioLabel => 'Публичное описание';
+
+  @override
+  String get profilePublicToggleTitle => 'Публичный профиль';
+
+  @override
+  String get profilePublicToggleSubtitle => 'Виден в ленте и рейтинге';
+
+  @override
   String get labelName => 'Имя';
 
   @override
@@ -783,7 +798,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get sessionCaloriesEstimateNote =>
-      'Калории рассчитаны примерно на основе веса в профиле, типа упражнения, подходов, повторений и длительности сессии.';
+      'Калории — только приблизительная оценка, не точное значение. Учитываются вес, рост, каждое упражнение, подходы, повторения и длительность сессии.';
 
   @override
   String get sessionValidationSetsReps =>
@@ -797,7 +812,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get sessionCameraTrackingComingSoon => 'Отслеживание камерой (скоро)';
 
   @override
-  String get sessionCameraTracking => 'Отслеживать камерой';
+  String get sessionCameraTracking => 'Отслеживание камерой';
 
   @override
   String get cameraTrackingTitle => 'Отслеживание камерой';
@@ -847,7 +862,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get cameraPreviewLoading => 'Запуск камеры…';
 
   @override
-  String get cameraTrackingLive => 'Live';
+  String get cameraTrackingLive => 'В эфире';
 
   @override
   String get cameraInvalidAttempts => 'Ошибки';
@@ -883,12 +898,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String cameraAppliedReps(int count) {
-    return 'Applied $count reps from camera';
+    return 'С камеры: $count повторений';
   }
 
   @override
   String cameraAppliedHold(int count) {
-    return 'Applied ${count}s hold from camera';
+    return 'С камеры: удержание $count с';
   }
 
   @override
@@ -976,7 +991,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get historyCaloriesEstimateNote =>
-      'Калории рассчитаны примерно на основе записанной сессии.';
+      'Калории — только приблизительная оценка, не точное измерение.';
 
   @override
   String get snackbarWorkoutSavedHistory => 'Тренировка сохранена в историю';
@@ -1417,6 +1432,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mapMyTerritory => 'Моя территория';
+
+  @override
+  String get mapViewOwnerProfile => 'Профиль владельца';
+
+  @override
+  String get mapLoopClosed =>
+      'Круг замкнут — завершите захват, чтобы закрепить территорию.';
 
   @override
   String get mapLeaderboardTitle => 'Рейтинг территорий';

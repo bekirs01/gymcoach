@@ -8,7 +8,9 @@ import 'package:gym/l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../core/workout_exercise_l10n.dart';
 import '../data/exercise_name_resolver.dart';
+import '../l10n/exercise_camera_guidance_l10n.dart';
 import '../data/mlkit_pose_frame_source.dart';
 import '../data/pose_frame_source.dart';
 import '../domain/camera_tracking_result.dart';
@@ -111,7 +113,8 @@ class _CameraTrackingPageState extends State<CameraTrackingPage> with WidgetsBin
 
     _detachCameraListener();
     _source?.dispose();
-    _source = MlKitPoseFrameSource(lensDirection: CameraLensDirection.front);
+    final lens = _engine?.tracker.preferredLens ?? CameraLensDirection.front;
+    _source = MlKitPoseFrameSource(lensDirection: lens);
 
     try {
       await _source!.initializeCamera();
@@ -313,7 +316,7 @@ class _CameraTrackingPageState extends State<CameraTrackingPage> with WidgetsBin
     final isHold = tracker.mode == ExerciseTrackingMode.holdBased;
     final count = isHold ? state.holdSeconds : state.repCount;
     final feedback = _feedbackText(l10n, state.lastFeedbackCode);
-    final guidance = tracker.guidance;
+    final guidance = ExerciseCameraGuidanceL10n.localized(l10n, tracker.profile);
 
     return Stack(
       fit: StackFit.expand,
@@ -367,7 +370,7 @@ class _CameraTrackingPageState extends State<CameraTrackingPage> with WidgetsBin
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.exerciseName,
+                            WorkoutExerciseL10n.name(l10n, widget.exerciseName),
                             style: theme.titleMedium?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -488,6 +491,8 @@ class _CameraTrackingPageState extends State<CameraTrackingPage> with WidgetsBin
                         ),
                       ),
                     ] else ...[
+                      _CameraSetupCard(guidance: guidance, l10n: l10n),
+                      const SizedBox(height: 12),
                       Text(
                         l10n.cameraSafetyDisclaimer,
                         style: theme.bodySmall?.copyWith(
@@ -592,6 +597,91 @@ class _FullScreenCameraPreview extends StatelessWidget {
             if (overlay != null) overlay!,
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CameraSetupCard extends StatelessWidget {
+  const _CameraSetupCard({required this.guidance, required this.l10n});
+
+  final CameraGuidance guidance;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                guidance.orientation == CameraOrientationHint.side
+                    ? Icons.switch_access_shortcut_rounded
+                    : Icons.center_focus_strong_rounded,
+                color: Colors.white70,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                ExerciseCameraGuidanceL10n.orientationLabel(l10n, guidance.orientation),
+                style: theme.labelLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          if (guidance.placementHint.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              guidance.placementHint,
+              style: theme.bodySmall?.copyWith(color: Colors.white70, height: 1.35),
+            ),
+          ],
+          if (guidance.setupSteps.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            for (var i = 0; i < guidance.setupSteps.length; i++) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${i + 1}.',
+                    style: theme.bodySmall?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      guidance.setupSteps[i],
+                      style: theme.bodySmall?.copyWith(color: Colors.white, height: 1.35),
+                    ),
+                  ),
+                ],
+              ),
+              if (i < guidance.setupSteps.length - 1) const SizedBox(height: 6),
+            ],
+          ],
+          const SizedBox(height: 8),
+          Text(
+            guidance.safetyNote,
+            style: theme.bodySmall?.copyWith(
+              color: Colors.white54,
+              fontStyle: FontStyle.italic,
+              height: 1.3,
+            ),
+          ),
+        ],
       ),
     );
   }

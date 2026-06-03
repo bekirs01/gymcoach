@@ -1,4 +1,5 @@
 import '../../domain/exercise_profile.dart';
+import '../../domain/exercise_profiles_data.dart';
 import '../../domain/exercise_tracking_mode.dart';
 import '../../domain/smoothed_pose_observation.dart';
 import '../../domain/tracking_session_state.dart';
@@ -14,7 +15,7 @@ class PlankTracker extends ExerciseTracker {
   ExerciseTrackingMode get mode => profile.mode;
 
   @override
-  ExerciseProfile get profile => ExerciseProfiles.plank;
+  ExerciseProfile get profile => ExerciseProfilesData.byId['plank']!;
 
   DateTime? _lastTick;
   var _validHold = false;
