@@ -294,6 +294,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get workoutNameYourWorkout => 'Название тренировки';
 
   @override
+  String get workoutScheduleTitle => 'Назначить тренировку';
+
+  @override
+  String get workoutScheduleHint =>
+      'Выберите дату, время и длительность тренировки.';
+
+  @override
   String get workoutMuscleGroupHint =>
       'Выберите одну или несколько зон для тренировки.';
 
@@ -717,6 +724,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get profileDefaultGoal => 'Сила и общая подготовка';
+
+  @override
+  String get onboardingTitle => 'Добро пожаловать в GymCoach';
+
+  @override
+  String get onboardingSubtitle =>
+      'Укажите имя, вес и рост — так тренировки и калории будут точнее для вас.';
+
+  @override
+  String get onboardingContinue => 'Продолжить';
 
   @override
   String get sessionActiveTitle => 'Активная сессия';

@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gym/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
@@ -807,9 +809,24 @@ class _WorkoutComposerSheet extends StatefulWidget {
 
 class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
   final _nameController = TextEditingController();
+  final _durationController = TextEditingController(text: '45');
   final Set<String> _selectedExerciseNames = {};
   final Set<String> _selectedCategoryTitles = {WorkoutExerciseCatalog.categories.first.title};
   var _step = _WorkoutBuildStep.category;
+  late DateTime _selectedDate;
+  late TimeOfDay _selectedTime;
+
+  static const List<int> _durationPresets = [30, 45, 60, 90];
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _selectedDate = WorkoutPlan.dateOnly(now);
+    _selectedTime = const TimeOfDay(hour: 18, minute: 30);
+  }
+
+  int? get _parsedDuration => int.tryParse(_durationController.text.trim());
 
   List<WorkoutExerciseCategory> get _selectedCategories {
     return WorkoutExerciseCatalog.categories
@@ -830,7 +847,77 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
           ? WorkoutExerciseL10n.categoryTitle(l10n, _selectedCategories.first.title)
           : l10n.workoutChooseExercises,
       _WorkoutBuildStep.details => l10n.workoutNameYourWorkout,
+      _WorkoutBuildStep.schedule => l10n.workoutScheduleTitle,
     };
+  }
+
+  void _goBack() {
+    setState(() {
+      _step = switch (_step) {
+        _WorkoutBuildStep.schedule => _WorkoutBuildStep.details,
+        _WorkoutBuildStep.details => _WorkoutBuildStep.exercises,
+        _WorkoutBuildStep.exercises => _WorkoutBuildStep.category,
+        _WorkoutBuildStep.category => _WorkoutBuildStep.category,
+      };
+    });
+  }
+
+  void _selectDurationPreset(int minutes) {
+    setState(() => _durationController.text = '$minutes');
+  }
+
+  Future<void> _pickDate() async {
+    var temp = _selectedDate;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _WorkoutCupertinoPickerSheet(
+          title: AppLocalizations.of(sheetContext)!.dateLabel,
+          onDone: () {
+            setState(() => _selectedDate = WorkoutPlan.dateOnly(temp));
+            Navigator.of(sheetContext).pop();
+          },
+          child: CupertinoDatePicker(
+            mode: CupertinoDatePickerMode.date,
+            initialDateTime: _selectedDate,
+            minimumDate: DateTime.now().subtract(const Duration(days: 365)),
+            maximumDate: DateTime.now().add(const Duration(days: 365 * 2)),
+            onDateTimeChanged: (value) => temp = value,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickTime() async {
+    final base = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+    var temp = base;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _WorkoutCupertinoPickerSheet(
+          title: AppLocalizations.of(sheetContext)!.timeLabel,
+          onDone: () {
+            setState(() => _selectedTime = TimeOfDay(hour: temp.hour, minute: temp.minute));
+            Navigator.of(sheetContext).pop();
+          },
+          child: CupertinoDatePicker(
+            mode: CupertinoDatePickerMode.time,
+            use24hFormat: true,
+            initialDateTime: base,
+            onDateTimeChanged: (value) => temp = value,
+          ),
+        );
+      },
+    );
   }
 
   void _toggleCategory(WorkoutExerciseCategory category) {
@@ -848,6 +935,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
   @override
   void dispose() {
     _nameController.dispose();
+    _durationController.dispose();
     super.dispose();
   }
 
@@ -863,16 +951,22 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
 
   void _saveWorkout() {
     final name = _nameController.text.trim();
-    if (name.isEmpty || _selectedExerciseNames.isEmpty) return;
+    final duration = _parsedDuration;
+    if (name.isEmpty ||
+        _selectedExerciseNames.isEmpty ||
+        duration == null ||
+        duration < 5 ||
+        duration > 300) {
+      return;
+    }
 
-    final now = DateTime.now();
     widget.onAddPlan(
       WorkoutPlan(
-        id: now.microsecondsSinceEpoch.toString(),
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
         name: name,
-        scheduledDate: WorkoutPlan.dateOnly(now),
-        scheduledTime: TimeOfDay.now(),
-        durationMinutes: 45,
+        scheduledDate: _selectedDate,
+        scheduledTime: _selectedTime,
+        durationMinutes: duration,
         difficulty: PlanDifficulty.intermediate,
         exerciseNames: _selectedExerciseNames.toList()..sort(),
         status: PlanStatus.planned,
@@ -901,13 +995,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
               children: [
                 if (_step != _WorkoutBuildStep.category)
                   IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _step = _step == _WorkoutBuildStep.details
-                            ? _WorkoutBuildStep.exercises
-                            : _WorkoutBuildStep.category;
-                      });
-                    },
+                    onPressed: _goBack,
                     icon: const Icon(Icons.arrow_back_rounded),
                     color: PremiumColors.accentBlue,
                   )
@@ -960,6 +1048,7 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
       _WorkoutBuildStep.category => _buildCategoryStep(l10n),
       _WorkoutBuildStep.exercises => _buildExerciseStep(l10n),
       _WorkoutBuildStep.details => _buildDetailsStep(l10n),
+      _WorkoutBuildStep.schedule => _buildScheduleStep(l10n),
     };
   }
 
@@ -987,8 +1076,19 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
                 : l10n.workoutContinueExercises(_selectedExerciseNames.length),
           ),
         ),
-      _WorkoutBuildStep.details => FilledButton.icon(
+      _WorkoutBuildStep.details => FilledButton(
           onPressed: _nameController.text.trim().isEmpty || _selectedExerciseNames.isEmpty
+              ? null
+              : () => setState(() => _step = _WorkoutBuildStep.schedule),
+          style: _primaryButtonStyle(),
+          child: Text(l10n.workoutContinue),
+        ),
+      _WorkoutBuildStep.schedule => FilledButton.icon(
+          onPressed: _nameController.text.trim().isEmpty ||
+                  _selectedExerciseNames.isEmpty ||
+                  _parsedDuration == null ||
+                  _parsedDuration! < 5 ||
+                  _parsedDuration! > 300
               ? null
               : _saveWorkout,
           icon: const Icon(Icons.check_rounded),
@@ -1128,9 +1228,368 @@ class _WorkoutComposerSheetState extends State<_WorkoutComposerSheet> {
       ],
     );
   }
+
+  Widget _buildScheduleStep(AppLocalizations l10n) {
+    final dateValue =
+        '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l10n.workoutScheduleHint,
+          style: const TextStyle(
+            color: PremiumColors.textSecondary,
+            fontSize: 14,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _WorkoutScheduleLabel(l10n.dateLabel),
+                  const SizedBox(height: 8),
+                  _WorkoutSchedulePickerTile(
+                    value: dateValue,
+                    icon: Icons.calendar_month_rounded,
+                    onTap: _pickDate,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _WorkoutScheduleLabel(l10n.timeLabel),
+                  const SizedBox(height: 8),
+                  _WorkoutSchedulePickerTile(
+                    value: _selectedTime.format(context),
+                    icon: Icons.schedule_rounded,
+                    onTap: _pickTime,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _WorkoutScheduleLabel(l10n.durationLabel),
+        const SizedBox(height: 8),
+        _WorkoutDurationInput(
+          controller: _durationController,
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: _durationPresets.map((m) {
+            final selected = _parsedDuration == m;
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: m == _durationPresets.last ? 0 : 8),
+                child: _WorkoutDurationChip(
+                  minutes: m,
+                  selected: selected,
+                  onTap: () => _selectDurationPreset(m),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 16),
+        for (final exercise in _selectedExercises) ...[
+          _SelectedExerciseSummary(exercise: exercise, l10n: l10n),
+          const SizedBox(height: 10),
+        ],
+      ],
+    );
+  }
 }
 
-enum _WorkoutBuildStep { category, exercises, details }
+enum _WorkoutBuildStep { category, exercises, details, schedule }
+
+class _WorkoutCupertinoPickerSheet extends StatelessWidget {
+  const _WorkoutCupertinoPickerSheet({
+    required this.title,
+    required this.onDone,
+    required this.child,
+  });
+
+  final String title;
+  final VoidCallback onDone;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: PremiumColors.midnightMid,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+              child: Row(
+                children: [
+                  CupertinoButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      l10n.cancel,
+                      style: const TextStyle(color: PremiumColors.textSecondary),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  CupertinoButton(
+                    onPressed: onDone,
+                    child: Text(
+                      l10n.mapDone,
+                      style: const TextStyle(
+                        color: PremiumColors.accentBlue,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              height: 220,
+              child: CupertinoTheme(
+                data: const CupertinoThemeData(
+                  brightness: Brightness.dark,
+                  primaryColor: PremiumColors.accentBlue,
+                  textTheme: CupertinoTextThemeData(
+                    dateTimePickerTextStyle: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                child: child,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutScheduleLabel extends StatelessWidget {
+  const _WorkoutScheduleLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 14,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+}
+
+class _WorkoutSchedulePickerTile extends StatelessWidget {
+  const _WorkoutSchedulePickerTile({
+    required this.value,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String value;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: PremiumColors.surface,
+      borderRadius: BorderRadius.circular(PremiumRadii.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(PremiumRadii.md),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(PremiumRadii.md),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              Icon(icon, color: PremiumColors.accentBlue),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutDurationInput extends StatelessWidget {
+  const _WorkoutDurationInput({
+    required this.controller,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: PremiumColors.surface,
+        borderRadius: BorderRadius.circular(PremiumRadii.md),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IntrinsicWidth(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 36, maxWidth: 80),
+              child: TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22,
+                  height: 1.2,
+                ),
+                decoration: const InputDecoration(
+                  hintText: '45',
+                  hintStyle: TextStyle(
+                    color: PremiumColors.textMuted,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 22,
+                  ),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(vertical: 8),
+                ),
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 1),
+            child: Text(
+              'min',
+              style: TextStyle(
+                color: PremiumColors.textSecondary,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                height: 1.2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkoutDurationChip extends StatelessWidget {
+  const _WorkoutDurationChip({
+    required this.minutes,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int minutes;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = selected ? PremiumColors.accentBlue : PremiumColors.textSecondary;
+    final unitColor =
+        selected ? PremiumColors.accentBlue.withValues(alpha: 0.8) : PremiumColors.textMuted;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        decoration: BoxDecoration(
+          color: selected
+              ? PremiumColors.accentBlue.withValues(alpha: 0.16)
+              : PremiumColors.surface,
+          borderRadius: BorderRadius.circular(PremiumRadii.pill),
+          border: Border.all(
+            color: selected
+                ? PremiumColors.accentBlue.withValues(alpha: 0.75)
+                : Colors.white.withValues(alpha: 0.1),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '$minutes',
+              style: TextStyle(
+                color: accent,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+                height: 1,
+              ),
+            ),
+            Text(
+              ' min',
+              style: TextStyle(
+                color: unitColor,
+                fontWeight: FontWeight.w600,
+                fontSize: 11,
+                height: 1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _WorkoutEmptyState extends StatelessWidget {
   const _WorkoutEmptyState({required this.onCreate});

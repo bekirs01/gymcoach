@@ -608,6 +608,18 @@ abstract class AppLocalizations {
   /// **'Name your workout'**
   String get workoutNameYourWorkout;
 
+  /// No description provided for @workoutScheduleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule workout'**
+  String get workoutScheduleTitle;
+
+  /// No description provided for @workoutScheduleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose date, time, and duration for this workout.'**
+  String get workoutScheduleHint;
+
   /// No description provided for @workoutMuscleGroupHint.
   ///
   /// In en, this message translates to:
@@ -1387,6 +1399,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Strength and conditioning'**
   String get profileDefaultGoal;
+
+  /// No description provided for @onboardingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to GymCoach'**
+  String get onboardingTitle;
+
+  /// No description provided for @onboardingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your name, weight, and height so workouts and calorie estimates fit you.'**
+  String get onboardingSubtitle;
+
+  /// No description provided for @onboardingContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get onboardingContinue;
 
   /// No description provided for @sessionActiveTitle.
   ///

@@ -292,6 +292,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workoutNameYourWorkout => 'Name your workout';
 
   @override
+  String get workoutScheduleTitle => 'Schedule workout';
+
+  @override
+  String get workoutScheduleHint =>
+      'Choose date, time, and duration for this workout.';
+
+  @override
   String get workoutMuscleGroupHint =>
       'Select one or more areas you want to train.';
 
@@ -715,6 +722,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileDefaultGoal => 'Strength and conditioning';
+
+  @override
+  String get onboardingTitle => 'Welcome to GymCoach';
+
+  @override
+  String get onboardingSubtitle =>
+      'Enter your name, weight, and height so workouts and calorie estimates fit you.';
+
+  @override
+  String get onboardingContinue => 'Continue';
 
   @override
   String get sessionActiveTitle => 'Active Session';
