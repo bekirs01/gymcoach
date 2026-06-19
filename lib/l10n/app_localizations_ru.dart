@@ -771,13 +771,39 @@ class AppLocalizationsRu extends AppLocalizations {
   String get sessionAllExercises => 'Все упражнения';
 
   @override
+  String sessionExerciseOf(int current, int total) {
+    return 'Упражнение $current из $total';
+  }
+
+  @override
   String get sessionCompleteExercise => 'Завершить упражнение';
 
   @override
   String get sessionCompleteFinal => 'Завершить последнее упражнение';
 
   @override
+  String get sessionNextExercise => 'Следующее упражнение';
+
+  @override
+  String get sessionEndWorkout => 'Завершить досрочно';
+
+  @override
   String get sessionFinishWorkout => 'Завершить тренировку';
+
+  @override
+  String get sessionFormTips => 'СОВЕТЫ ПО ТЕХНИКЕ';
+
+  @override
+  String get sessionBetweenSets => 'Между подходами';
+
+  @override
+  String get sessionChipTarget => 'Цель';
+
+  @override
+  String get sessionChipTempo => 'Темп';
+
+  @override
+  String get sessionChipEquipment => 'Инвентарь';
 
   @override
   String get sessionSummaryTitle => 'Итоги сессии';

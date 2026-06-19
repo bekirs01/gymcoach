@@ -26,12 +26,12 @@ void main() {
       scheduledTime: const TimeOfDay(hour: 18, minute: 30),
       durationMinutes: 45,
       difficulty: PlanDifficulty.intermediate,
-      exerciseNames: const ['Push-ups', 'Pull-ups'],
+      exerciseNames: const ['Push-up', 'Pull-up'],
       status: PlanStatus.planned,
     );
   });
 
-  testWidgets('Active session exposes enabled sets and reps fields', (WidgetTester tester) async {
+  testWidgets('Active session shows metric steppers with default values', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -44,14 +44,15 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-    final textFields = tester.widgetList<TextField>(find.byType(TextField));
-    expect(textFields.length, 2);
-    expect(textFields.every((f) => f.enabled != false), true);
+    expect(find.text('Exercise 1 of 2'), findsOneWidget);
+    expect(find.text('Complete exercise'), findsOneWidget);
+    expect(find.text('End workout'), findsOneWidget);
   });
 
-  testWidgets('Active session starts timer and saves logged exercise', (WidgetTester tester) async {
+  testWidgets('Active session completes exercise and finishes workout', (WidgetTester tester) async {
     WorkoutCompletion? saved;
     await tester.pumpWidget(
       MaterialApp(
@@ -65,24 +66,30 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    await tester.tap(find.text('Start session'));
-    await tester.pumpAndSettle();
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(0), '3');
-    await tester.enterText(fields.at(1), '10');
     await tester.tap(find.text('Complete exercise'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Finish workout'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    expect(find.text('Next exercise'), findsOneWidget);
+
+    await tester.tap(find.text('Next exercise'));
+    await tester.pump();
+    expect(find.text('Exercise 2 of 2'), findsOneWidget);
+
+    await tester.tap(find.text('Complete exercise'));
+    await tester.pump();
+    expect(find.text('Finish workout'), findsWidgets);
+
+    await tester.tap(find.text('Finish workout').first);
+    await tester.pump();
     await tester.tap(find.text('Done'));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(saved, isNotNull);
     expect(saved!.durationMinutes, greaterThanOrEqualTo(1));
     expect(saved!.calories, greaterThan(0));
-    expect(saved!.exerciseLogs.single.setsCompleted, 3);
-    expect(saved!.exerciseLogs.single.repsCompleted, 10);
+    expect(saved!.exerciseLogs.length, 2);
+    expect(saved!.exerciseLogs.first.setsCompleted, 3);
+    expect(saved!.exerciseLogs.first.repsCompleted, 10);
   });
 }

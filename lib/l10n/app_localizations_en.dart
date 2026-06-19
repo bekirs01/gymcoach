@@ -768,13 +768,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sessionAllExercises => 'All exercises';
 
   @override
+  String sessionExerciseOf(int current, int total) {
+    return 'Exercise $current of $total';
+  }
+
+  @override
   String get sessionCompleteExercise => 'Complete exercise';
 
   @override
   String get sessionCompleteFinal => 'Complete final exercise';
 
   @override
+  String get sessionNextExercise => 'Next exercise';
+
+  @override
+  String get sessionEndWorkout => 'End workout';
+
+  @override
   String get sessionFinishWorkout => 'Finish workout';
+
+  @override
+  String get sessionFormTips => 'FORM TIPS';
+
+  @override
+  String get sessionBetweenSets => 'Between sets';
+
+  @override
+  String get sessionChipTarget => 'Target';
+
+  @override
+  String get sessionChipTempo => 'Tempo';
+
+  @override
+  String get sessionChipEquipment => 'Equipment';
 
   @override
   String get sessionSummaryTitle => 'Session summary';

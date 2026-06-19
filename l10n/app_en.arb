@@ -252,9 +252,23 @@
   "labelReps": "Reps",
   "labelRest": "Rest",
   "sessionAllExercises": "All exercises",
+  "sessionExerciseOf": "Exercise {current} of {total}",
+  "@sessionExerciseOf": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
   "sessionCompleteExercise": "Complete exercise",
   "sessionCompleteFinal": "Complete final exercise",
+  "sessionNextExercise": "Next exercise",
+  "sessionEndWorkout": "End workout",
   "sessionFinishWorkout": "Finish workout",
+  "sessionFormTips": "FORM TIPS",
+  "sessionBetweenSets": "Between sets",
+  "sessionChipTarget": "Target",
+  "sessionChipTempo": "Tempo",
+  "sessionChipEquipment": "Equipment",
   "sessionSummaryTitle": "Session summary",
   "sessionSummaryDuration": "Duration",
   "sessionSummaryCalories": "Calories",

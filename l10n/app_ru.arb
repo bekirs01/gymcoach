@@ -374,9 +374,23 @@
   "labelReps": "Повторения",
   "labelRest": "Отдых",
   "sessionAllExercises": "Все упражнения",
+  "sessionExerciseOf": "Упражнение {current} из {total}",
+  "@sessionExerciseOf": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
   "sessionCompleteExercise": "Завершить упражнение",
   "sessionCompleteFinal": "Завершить последнее упражнение",
+  "sessionNextExercise": "Следующее упражнение",
+  "sessionEndWorkout": "Завершить досрочно",
   "sessionFinishWorkout": "Завершить тренировку",
+  "sessionFormTips": "СОВЕТЫ ПО ТЕХНИКЕ",
+  "sessionBetweenSets": "Между подходами",
+  "sessionChipTarget": "Цель",
+  "sessionChipTempo": "Темп",
+  "sessionChipEquipment": "Инвентарь",
   "sessionSummaryTitle": "Итоги сессии",
   "sessionSummaryDuration": "Длительность",
   "sessionSummaryCalories": "Калории",

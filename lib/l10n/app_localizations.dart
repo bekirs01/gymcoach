@@ -1484,6 +1484,12 @@ abstract class AppLocalizations {
   /// **'All exercises'**
   String get sessionAllExercises;
 
+  /// No description provided for @sessionExerciseOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise {current} of {total}'**
+  String sessionExerciseOf(int current, int total);
+
   /// No description provided for @sessionCompleteExercise.
   ///
   /// In en, this message translates to:
@@ -1496,11 +1502,53 @@ abstract class AppLocalizations {
   /// **'Complete final exercise'**
   String get sessionCompleteFinal;
 
+  /// No description provided for @sessionNextExercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Next exercise'**
+  String get sessionNextExercise;
+
+  /// No description provided for @sessionEndWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'End workout'**
+  String get sessionEndWorkout;
+
   /// No description provided for @sessionFinishWorkout.
   ///
   /// In en, this message translates to:
   /// **'Finish workout'**
   String get sessionFinishWorkout;
+
+  /// No description provided for @sessionFormTips.
+  ///
+  /// In en, this message translates to:
+  /// **'FORM TIPS'**
+  String get sessionFormTips;
+
+  /// No description provided for @sessionBetweenSets.
+  ///
+  /// In en, this message translates to:
+  /// **'Between sets'**
+  String get sessionBetweenSets;
+
+  /// No description provided for @sessionChipTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get sessionChipTarget;
+
+  /// No description provided for @sessionChipTempo.
+  ///
+  /// In en, this message translates to:
+  /// **'Tempo'**
+  String get sessionChipTempo;
+
+  /// No description provided for @sessionChipEquipment.
+  ///
+  /// In en, this message translates to:
+  /// **'Equipment'**
+  String get sessionChipEquipment;
 
   /// No description provided for @sessionSummaryTitle.
   ///

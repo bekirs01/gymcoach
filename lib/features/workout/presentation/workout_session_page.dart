@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/premium_tokens.dart';
@@ -19,6 +18,13 @@ import '../../camera_validation/presentation/camera_tracking_page.dart';
 import '../domain/completed_exercise_log.dart';
 import '../domain/workout_completion.dart';
 import '../domain/workout_session_analytics.dart';
+import 'widgets/exercise_form_tips_card.dart';
+import 'widgets/exercise_hero_card.dart';
+import 'widgets/exercise_info_chip.dart';
+import 'widgets/exercise_metric_stepper_card.dart';
+import 'widgets/exercise_session_metadata.dart';
+import 'widgets/workout_exercise_list_item.dart';
+import 'widgets/workout_session_action_bar.dart';
 
 class WorkoutSessionPage extends StatefulWidget {
   const WorkoutSessionPage({
@@ -43,29 +49,25 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
   Timer? _timer;
   var _elapsedSeconds = 0;
   var _index = 0;
+  var _sets = 3;
+  var _reps = 12;
+  var _restSec = 60;
   final _saved = <int, ({int sets, int reps, int restSec})>{};
   final _logsByIndex = <int, CompletedExerciseLog>{};
+  final _favorites = <String>{};
   var _showSummary = false;
   var _summaryElapsedSeconds = 0;
   late WorkoutCompletion _summary;
-  late TextEditingController _setsController;
-  late TextEditingController _repsController;
-  late TextEditingController _restController;
 
   @override
   void initState() {
     super.initState();
-    _setsController = TextEditingController();
-    _repsController = TextEditingController();
-    _restController = TextEditingController(text: '60');
-    _setsController.addListener(_refreshInputs);
-    _repsController.addListener(_refreshInputs);
-    _restController.addListener(_refreshInputs);
     _startedAt = DateTime.now();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _startedAt == null) return;
       setState(() => _elapsedSeconds = DateTime.now().difference(_startedAt!).inSeconds);
     });
+    _loadMetricsForIndex(0);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final names = widget.plan.exerciseNames;
@@ -75,21 +77,17 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     });
   }
 
-  void _refreshInputs() {
-    if (mounted) setState(() {});
-  }
-
   @override
   void dispose() {
     _timer?.cancel();
-    _setsController.removeListener(_refreshInputs);
-    _repsController.removeListener(_refreshInputs);
-    _restController.removeListener(_refreshInputs);
-    _setsController.dispose();
-    _repsController.dispose();
-    _restController.dispose();
     super.dispose();
   }
+
+  bool get _isCurrentCompleted => _logsByIndex.containsKey(_index);
+
+  bool get _isFinalExercise => _index >= widget.plan.exerciseNames.length - 1;
+
+  bool get _hasNextExercise => !_isFinalExercise;
 
   String get _elapsedLabel {
     final h = _elapsedSeconds ~/ 3600;
@@ -101,36 +99,41 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  void _flushInputsToSaved() {
-    final sets = int.tryParse(_setsController.text.trim());
-    final reps = int.tryParse(_repsController.text.trim());
-    final rest = int.tryParse(_restController.text.trim()) ?? 60;
-    if (sets != null && reps != null && sets > 0 && reps > 0) {
-      _saved[_index] = (sets: sets, reps: reps, restSec: rest);
-    }
+  void _saveCurrentMetrics() {
+    _saved[_index] = (sets: _sets, reps: _reps, restSec: _restSec);
   }
 
-  void _fillControllersFromSaved() {
-    final e = _saved[_index];
-    if (e != null) {
-      _setsController.text = '${e.sets}';
-      _repsController.text = '${e.reps}';
-      _restController.text = '${e.restSec}';
-    } else {
-      _setsController.text = '';
-      _repsController.text = '';
-      _restController.text = '60';
+  void _loadMetricsForIndex(int i) {
+    final saved = _saved[i];
+    if (saved != null) {
+      _sets = saved.sets;
+      _reps = saved.reps;
+      _restSec = saved.restSec;
+      return;
     }
+    final exercise = widget.plan.exercises[i];
+    _sets = exercise.defaultSets.clamp(1, 10);
+    _reps = exercise.defaultReps.clamp(1, 100);
+    _restSec = 60;
   }
 
   void _goToExercise(int i) {
     if (i == _index) return;
     setState(() {
-      _flushInputsToSaved();
+      _saveCurrentMetrics();
       _index = i;
-      _fillControllersFromSaved();
+      _loadMetricsForIndex(i);
     });
     widget.analytics.onExerciseBecameActive(i, widget.plan.exerciseNames[i]);
+  }
+
+  void _goToNextExercise() {
+    if (!_isCurrentCompleted || !_hasNextExercise) return;
+    setState(() {
+      _index++;
+      _loadMetricsForIndex(_index);
+    });
+    widget.analytics.onExerciseBecameActive(_index, widget.plan.exerciseNames[_index]);
   }
 
   bool _isCameraSupportedFor(String exerciseName) {
@@ -152,10 +155,8 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     final count = result.primaryCount;
     if (count <= 0) return;
     setState(() {
-      _repsController.text = '$count';
-      if (_setsController.text.trim().isEmpty) {
-        _setsController.text = '1';
-      }
+      _reps = count.clamp(1, 100);
+      if (_sets < 1) _sets = 1;
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -169,18 +170,29 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     );
   }
 
+  void _onCameraTap(String exerciseName) {
+    final l10n = AppLocalizations.of(context)!;
+    if (_isCameraSupportedFor(exerciseName)) {
+      unawaited(_openCameraTracking(exerciseName));
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(l10n.sessionCameraTrackingComingSoon),
+      ),
+    );
+  }
+
   void _completeCurrent() {
     final l10n = AppLocalizations.of(context)!;
-    if (_logsByIndex.containsKey(_index)) {
+    if (_isCurrentCompleted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(behavior: SnackBarBehavior.floating, content: Text(l10n.sessionExerciseAlreadyLogged)),
       );
       return;
     }
-    final s = int.tryParse(_setsController.text.trim()) ?? 0;
-    final r = int.tryParse(_repsController.text.trim()) ?? 0;
-    final rest = int.tryParse(_restController.text.trim()) ?? 60;
-    if (s <= 0 || r <= 0) {
+    if (_sets <= 0 || _reps <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(behavior: SnackBarBehavior.floating, content: Text(l10n.sessionValidationSetsReps)),
       );
@@ -194,34 +206,29 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
       weightKg: widget.profile.weightKg,
       heightCm: widget.profile.heightCm,
       categoryKey: cat,
-      sets: s,
-      reps: r,
+      sets: _sets,
+      reps: _reps,
     );
     final log = CompletedExerciseLog(
       exerciseId: id,
       exerciseName: name,
-      setsCompleted: s,
-      repsCompleted: r,
+      setsCompleted: _sets,
+      repsCompleted: _reps,
       estimatedCalories: kcal,
       completedAt: DateTime.now(),
       categoryKey: cat,
     );
-    widget.analytics.onExerciseLogged(index: _index, sets: s, reps: r);
+    widget.analytics.onExerciseLogged(index: _index, sets: _sets, reps: _reps);
     setState(() {
-      _saved[_index] = (sets: s, reps: r, restSec: rest);
+      _saveCurrentMetrics();
       _logsByIndex[_index] = log;
-      if (_index < names.length - 1) {
-        _index++;
-        _fillControllersFromSaved();
-        widget.analytics.onExerciseBecameActive(_index, names[_index]);
-      }
     });
   }
 
   void _finishWorkout() {
     final l10n = AppLocalizations.of(context)!;
     if (_startedAt == null) return;
-    _flushInputsToSaved();
+    _saveCurrentMetrics();
     final names = widget.plan.exerciseNames;
     final finishedAt = DateTime.now();
     final elapsedSeconds = finishedAt.difference(_startedAt!).inSeconds.clamp(1, 86400);
@@ -239,7 +246,6 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
       exerciseCount: names.length,
       logs: ordered,
     );
-    final logKcal = ordered.fold<int>(0, (sum, log) => sum + log.estimatedCalories);
     widget.analytics.onSessionFinished(finishedAt.difference(_startedAt!));
     _summaryElapsedSeconds = elapsedSeconds;
     _summary = WorkoutCompletion(
@@ -254,6 +260,90 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
       caloriesAreEstimated: true,
     );
     setState(() => _showSummary = true);
+  }
+
+  void _showImageFullscreen(String? imageAsset, String label) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.92),
+      builder: (ctx) => Dialog(
+        backgroundColor: PremiumColors.surface,
+        insetPadding: const EdgeInsets.all(20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(PremiumRadii.lg)),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: imageAsset == null
+                  ? SizedBox(
+                      height: 280,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.fitness_center_rounded, color: PremiumColors.accentBlue, size: 56),
+                            const SizedBox(height: 12),
+                            Text(label, style: const TextStyle(color: PremiumColors.textSecondary)),
+                          ],
+                        ),
+                      ),
+                    )
+                  : Image.asset(
+                      imageAsset,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.broken_image_outlined,
+                        color: PremiumColors.textMuted,
+                        size: 48,
+                      ),
+                    ),
+            ),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: IconButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                icon: const Icon(Icons.close_rounded, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  WorkoutSessionPrimaryAction _primaryAction() {
+    if (!_isCurrentCompleted) return WorkoutSessionPrimaryAction.completeExercise;
+    if (_hasNextExercise) return WorkoutSessionPrimaryAction.nextExercise;
+    return WorkoutSessionPrimaryAction.finishWorkout;
+  }
+
+  String _primaryLabel(AppLocalizations l10n) {
+    switch (_primaryAction()) {
+      case WorkoutSessionPrimaryAction.completeExercise:
+        return l10n.sessionCompleteExercise;
+      case WorkoutSessionPrimaryAction.nextExercise:
+        return l10n.sessionNextExercise;
+      case WorkoutSessionPrimaryAction.finishWorkout:
+        return l10n.sessionFinishWorkout;
+    }
+  }
+
+  void _onPrimaryTap() {
+    switch (_primaryAction()) {
+      case WorkoutSessionPrimaryAction.completeExercise:
+        _completeCurrent();
+      case WorkoutSessionPrimaryAction.nextExercise:
+        _goToNextExercise();
+      case WorkoutSessionPrimaryAction.finishWorkout:
+        _finishWorkout();
+    }
+  }
+
+  String? _secondaryLabel(AppLocalizations l10n) {
+    if (_isCurrentCompleted && _isFinalExercise) return null;
+    if (_isCurrentCompleted && _hasNextExercise) return l10n.sessionFinishWorkout;
+    return l10n.sessionEndWorkout;
   }
 
   @override
@@ -293,192 +383,227 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
         ),
       );
     }
+
     final current = names[_index];
     final entry = WorkoutExerciseCatalog.entryForName(current);
     final displayName = WorkoutExerciseL10n.name(l10n, current);
     final imageAsset = entry?.imageAsset;
+    final description = entry != null
+        ? WorkoutExerciseL10n.description(l10n, current, entry.description)
+        : '';
+    final muscleGroup = ExerciseSessionMetadata.muscleGroupFor(current) ?? widget.plan.name;
+    final typeBadge = ExerciseSessionMetadata.typeBadgeFor(current);
+    final equipment = ExerciseSessionMetadata.equipmentFor(current);
+    final tips = ExerciseSessionMetadata.formTipsFor(current, entry?.description);
+    final isFavorite = _favorites.contains(current);
+    final restSuffix = l10n.localeName.startsWith('ru') ? 'с' : 's';
 
     return PremiumBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          foregroundColor: Colors.white,
-          title: Text(
-            '${_index + 1}/${names.length}',
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 14),
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: PremiumColors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(PremiumRadii.pill),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                  ),
-                  child: Text(
-                    _elapsedLabel,
-                    style: const TextStyle(
-                      color: PremiumColors.accentBlue,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
         body: SafeArea(
           child: Column(
             children: [
+              _SessionTopBar(
+                exerciseIndex: _index,
+                exerciseCount: names.length,
+                subtitle: muscleGroup,
+                elapsedLabel: _elapsedLabel,
+                onBack: () => Navigator.of(context).maybePop(),
+              ),
               Expanded(
                 child: ListView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(18, 4, 18, 12),
                   children: [
-                    _ExercisePhotoFrame(imageAsset: imageAsset, label: displayName),
-                    const SizedBox(height: 14),
-                    Text(
-                      displayName,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                      ),
+                    ExerciseHeroCard(
+                      imageAsset: imageAsset,
+                      label: displayName,
+                      onExpand: () => _showImageFullscreen(imageAsset, displayName),
                     ),
-                    if (entry != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        WorkoutExerciseL10n.description(l10n, current, entry.description),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: PremiumColors.textSecondary,
-                          fontSize: 13,
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
                     const SizedBox(height: 16),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: _ColoredMetricField(
-                            controller: _setsController,
-                            label: l10n.labelSets,
-                            color: PremiumColors.successGreen,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                displayName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.4,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: PremiumColors.accentBlue.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(PremiumRadii.pill),
+                                  border: Border.all(
+                                    color: PremiumColors.accentBlue.withValues(alpha: 0.35),
+                                  ),
+                                ),
+                                child: Text(
+                                  typeBadge,
+                                  style: const TextStyle(
+                                    color: PremiumColors.accentBlue,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _ColoredMetricField(
-                            controller: _repsController,
-                            label: l10n.labelReps,
-                            color: PremiumColors.accentBlue,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _ColoredMetricField(
-                            controller: _restController,
-                            label: l10n.labelRest,
-                            color: const Color(0xFFFF8A65),
-                            suffix: l10n.localeName.startsWith('ru') ? 'с' : 's',
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              if (isFavorite) {
+                                _favorites.remove(current);
+                              } else {
+                                _favorites.add(current);
+                              }
+                            });
+                          },
+                          icon: Icon(
+                            isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            color: isFavorite ? const Color(0xFFE57373) : PremiumColors.textMuted,
                           ),
                         ),
                       ],
                     ),
+                    if (description.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        description,
+                        style: const TextStyle(
+                          color: PremiumColors.textSecondary,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    ExerciseFormTipsCard(
+                      title: l10n.sessionFormTips,
+                      tips: tips,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        ExerciseMetricStepperCard(
+                          label: l10n.labelSets,
+                          value: '$_sets',
+                          onDecrement: () {
+                            if (_sets > 1) setState(() => _sets--);
+                          },
+                          onIncrement: () {
+                            if (_sets < 10) setState(() => _sets++);
+                          },
+                          valueColor: PremiumColors.successGreen,
+                        ),
+                        const SizedBox(width: 10),
+                        ExerciseMetricStepperCard(
+                          label: l10n.labelReps,
+                          value: '$_reps',
+                          onDecrement: () {
+                            if (_reps > 1) setState(() => _reps--);
+                          },
+                          onIncrement: () {
+                            if (_reps < 100) setState(() => _reps++);
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        ExerciseMetricStepperCard(
+                          label: l10n.labelRest,
+                          value: '$_restSec',
+                          suffix: restSuffix,
+                          onDecrement: () {
+                            if (_restSec > 15) setState(() => _restSec -= 15);
+                          },
+                          onIncrement: () {
+                            if (_restSec < 300) setState(() => _restSec += 15);
+                          },
+                          subtitle: l10n.sessionBetweenSets,
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 12),
-                    if (_isCameraSupportedFor(current))
-                      OutlinedButton.icon(
-                        onPressed: () => _openCameraTracking(current),
+                    Row(
+                      children: [
+                        ExerciseInfoChip(
+                          icon: Icons.adjust_rounded,
+                          label: l10n.sessionChipTarget,
+                          value: muscleGroup,
+                        ),
+                        const SizedBox(width: 8),
+                        ExerciseInfoChip(
+                          icon: Icons.speed_rounded,
+                          label: l10n.sessionChipTempo,
+                          value: '2-0-2',
+                        ),
+                        const SizedBox(width: 8),
+                        ExerciseInfoChip(
+                          icon: Icons.fitness_center_outlined,
+                          label: l10n.sessionChipEquipment,
+                          value: equipment,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _onCameraTap(current),
                         icon: const Icon(Icons.videocam_outlined, size: 18),
                         label: Text(l10n.sessionCameraTracking),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: PremiumColors.accentBlue,
-                          side: BorderSide(color: PremiumColors.accentBlue.withValues(alpha: 0.5)),
+                          side: BorderSide(color: PremiumColors.accentBlue.withValues(alpha: 0.45)),
+                          minimumSize: const Size.fromHeight(48),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(PremiumRadii.md),
                           ),
                         ),
                       ),
-                    const SizedBox(height: 18),
+                    ),
+                    const SizedBox(height: 20),
                     Text(
-                      l10n.sessionAllExercises,
+                      l10n.sessionAllExercises.toUpperCase(),
                       style: const TextStyle(
-                        color: PremiumColors.textSecondary,
-                        fontSize: 13,
+                        color: PremiumColors.textMuted,
+                        fontSize: 11,
                         fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     for (var i = 0; i < names.length; i++) ...[
-                      _ExerciseListTile(
+                      WorkoutExerciseListItem(
+                        orderNumber: i + 1,
                         title: WorkoutExerciseL10n.name(l10n, names[i]),
+                        exerciseName: names[i],
                         done: _logsByIndex.containsKey(i),
                         active: i == _index,
                         onTap: () => _goToExercise(i),
                       ),
                       if (i < names.length - 1) const SizedBox(height: 8),
                     ],
+                    const SizedBox(height: 80),
                   ],
                 ),
               ),
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: _completeCurrent,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: PremiumColors.accentBlue,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size.fromHeight(54),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(PremiumRadii.md),
-                            ),
-                          ),
-                          child: Text(
-                            _index >= names.length - 1
-                                ? l10n.sessionCompleteFinal
-                                : l10n.sessionCompleteExercise,
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: _finishWorkout,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: PremiumColors.textSecondary,
-                            side: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
-                            minimumSize: const Size.fromHeight(50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(PremiumRadii.md),
-                            ),
-                          ),
-                          child: Text(
-                            l10n.sessionFinishWorkout,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              WorkoutSessionActionBar(
+                primaryAction: _primaryAction(),
+                primaryLabel: _primaryLabel(l10n),
+                onPrimary: _onPrimaryTap,
+                secondaryLabel: _secondaryLabel(l10n),
+                onSecondary: _secondaryLabel(l10n) != null ? _finishWorkout : null,
               ),
             ],
           ),
@@ -488,185 +613,81 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
   }
 }
 
-class _ExercisePhotoFrame extends StatelessWidget {
-  const _ExercisePhotoFrame({
-    required this.imageAsset,
-    required this.label,
+class _SessionTopBar extends StatelessWidget {
+  const _SessionTopBar({
+    required this.exerciseIndex,
+    required this.exerciseCount,
+    required this.subtitle,
+    required this.elapsedLabel,
+    required this.onBack,
   });
 
-  final String? imageAsset;
-  final String label;
+  final int exerciseIndex;
+  final int exerciseCount;
+  final String subtitle;
+  final String elapsedLabel;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 210,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: PremiumColors.surface,
-        borderRadius: BorderRadius.circular(PremiumRadii.lg),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(PremiumRadii.lg),
-        child: imageAsset == null
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.fitness_center_rounded, color: PremiumColors.accentBlue, size: 48),
-                    const SizedBox(height: 8),
-                    Text(label, style: const TextStyle(color: PremiumColors.textSecondary, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              )
-            : Padding(
-                padding: const EdgeInsets.all(12),
-                child: Image.asset(
-                  imageAsset!,
-                  fit: BoxFit.contain,
-                  alignment: Alignment.center,
-                  filterQuality: FilterQuality.high,
-                  width: double.infinity,
-                  height: double.infinity,
-                ),
-              ),
-      ),
-    );
-  }
-}
-
-class _ColoredMetricField extends StatelessWidget {
-  const _ColoredMetricField({
-    required this.controller,
-    required this.label,
-    required this.color,
-    this.suffix,
-  });
-
-  final TextEditingController controller;
-  final String label;
-  final Color color;
-  final String? suffix;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-      decoration: BoxDecoration(
-        color: PremiumColors.surface,
-        borderRadius: BorderRadius.circular(PremiumRadii.md),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 4, 14, 8),
+      child: Row(
         children: [
-          TextField(
-            controller: controller,
-            textAlign: TextAlign.center,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            style: TextStyle(
-              color: color,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-            decoration: InputDecoration(
-              isDense: true,
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.zero,
-              suffixText: suffix,
-              suffixStyle: TextStyle(
-                color: color.withValues(alpha: 0.85),
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
+          IconButton(
+            onPressed: onBack,
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          ),
+          Expanded(
+            child: Column(
+              children: [
+                Text(
+                  l10n.sessionExerciseOf(exerciseIndex + 1, exerciseCount),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: PremiumColors.textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: PremiumColors.textMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: PremiumColors.surfaceRaised,
+              borderRadius: BorderRadius.circular(PremiumRadii.pill),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.schedule_rounded, color: PremiumColors.accentBlue, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  elapsedLabel,
+                  style: const TextStyle(
+                    color: PremiumColors.accentBlue,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ExerciseListTile extends StatelessWidget {
-  const _ExerciseListTile({
-    required this.title,
-    required this.done,
-    required this.active,
-    required this.onTap,
-  });
-
-  final String title;
-  final bool done;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final imageAsset = WorkoutExerciseCatalog.imageForName(title);
-
-    return Material(
-      color: active ? PremiumColors.surfaceRaised : PremiumColors.surface,
-      borderRadius: BorderRadius.circular(PremiumRadii.md),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(PremiumRadii.md),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(PremiumRadii.md),
-            border: Border.all(
-              color: active
-                  ? PremiumColors.accentBlue.withValues(alpha: 0.8)
-                  : Colors.white.withValues(alpha: 0.1),
-              width: active ? 1.4 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: SizedBox(
-                  width: 42,
-                  height: 42,
-                  child: imageAsset == null
-                      ? Container(
-                          color: PremiumColors.accentBlue.withValues(alpha: 0.16),
-                          child: const Icon(Icons.fitness_center_rounded, color: PremiumColors.accentBlue, size: 18),
-                        )
-                      : Image.asset(imageAsset, fit: BoxFit.cover),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              Icon(
-                done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                color: done ? PremiumColors.successGreen : PremiumColors.textMuted,
-                size: 20,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
