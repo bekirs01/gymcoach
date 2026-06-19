@@ -1,32 +1,21 @@
-# GymCoach — Reddit Post Package (EN)
+# GymCoach — Reddit Post (English)
 
-> Screenshots: `marketing/reddit/screenshots/` — upload in numbered order.
-
----
-
-## Recommended subreddits
-
-| Subreddit | Best for |
-|-----------|----------|
-| r/FlutterDev | Technical showcase |
-| r/SideProject | Indie project story |
-| r/reactnative | Cross-platform comparison (optional) |
-| r/fitness | Product-focused, less technical |
-| r/opensource | If repo is public |
+> Screenshots and upload guide: [`README.md`](README.md)
 
 ---
 
-## Title (recommended)
+## Title
 
-**GymCoach — Flutter fitness app: workout planning, AI nutrition tracking, progress analytics & social feed**
+**Recommended:**
+> GymCoach — Flutter fitness app: workout planning, AI nutrition tracking, progress analytics & social feed
 
-Alternatives:
+**Alternatives:**
 - *Built a personal gym coach in Flutter — planning, camera reps, territory map & more*
 - *7 workouts/week, 79% plan completion — my side project fitness app in Flutter*
 
 ---
 
-## Post body (copy/paste)
+## Post body (copy / paste)
 
 Hey everyone,
 
@@ -47,14 +36,14 @@ This is a **side project / student project** — not on the App Store yet. Shari
 - Share completed workouts
 
 **Progress & analytics**
-- 7 sessions/week, 3-day streak, 79% monthly plan completion
+- 7 sessions/week · 3-day streak · 79% monthly plan completion
 - Daily calorie & session bar charts
 - Muscle group distribution (donut chart)
 - Sets / reps / volume metrics
 - Personal records: longest session, max calories, most intense workout
 
 **Nutrition AI**
-- Natural language meal logging ("2 eggs, 200g chicken…")
+- Natural language meal logging (*"2 eggs, 200g chicken…"*)
 - Macro estimation via Supabase Edge Function + OpenAI
 - Daily target: ~1753 kcal
 
@@ -67,13 +56,7 @@ This is a **side project / student project** — not on the App Store yet. Shari
 
 ### Tech stack
 
-| Layer | Stack |
-|-------|-------|
-| UI | Flutter 3.x, Material 3 |
-| Backend | Supabase (PostgreSQL + Edge Functions) |
-| Pose | Google ML Kit |
-| Map | MapLibre GL, Geolocator |
-| i18n | EN / RU |
+Flutter 3.x · Material 3 · Supabase (PostgreSQL + Edge Functions) · Google ML Kit · MapLibre GL · EN/RU i18n
 
 Repo: [github.com/bekirs01/gymcoach](https://github.com/bekirs01/gymcoach)
 
@@ -81,7 +64,7 @@ Repo: [github.com/bekirs01/gymcoach](https://github.com/bekirs01/gymcoach)
 
 1. Progress overview — weekly metrics & monthly consistency
 2. Home — calendar & featured workout
-3. Workouts — session list
+3. Workouts — session list & completion rings
 4. Nutrition AI — natural language meal entry
 5. Analytics — daily calorie & session charts
 6. Strength & volume — sets/reps/volume + muscle split
@@ -97,20 +80,6 @@ Thanks — happy to answer questions!
 
 ---
 
-## First comment (post immediately after)
+## First comment
 
 > **Stack details:** Flutter client + Supabase Edge Functions. Nutrition uses an `estimate-nutrition` edge function. Progress demo data is seeded locally — same pipeline as real session data. AMA on architecture or Flutter choices.
-
----
-
-## Upload order
-
-```
-01_progress_overview.png   ← Cover / thumbnail
-02_home_overview.png
-03_workouts.png
-04_nutrition_ai.png
-05_analytics_charts.png
-06_strength_volume.png
-07_social_feed.png
-```
