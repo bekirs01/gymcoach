@@ -1,6 +1,25 @@
 import '../features/plans/domain/workout_plan.dart';
 import '../features/workout/domain/workout_completion.dart';
 
+class MuscleGroupShare {
+  const MuscleGroupShare({required this.label, required this.percent});
+
+  final String label;
+  final int percent;
+}
+
+class StrengthVolumeStats {
+  const StrengthVolumeStats({
+    required this.sets,
+    required this.reps,
+    required this.estimatedVolume,
+  });
+
+  final int sets;
+  final int reps;
+  final int estimatedVolume;
+}
+
 abstract final class TrainingStats {
   static bool completionMatchesPlans(WorkoutCompletion completion, List<WorkoutPlan> plans) {
     for (final plan in plans) {
@@ -167,6 +186,16 @@ abstract final class TrainingStats {
     List<WorkoutCompletion> completions,
     DateTime now,
   ) {
+    final totals = monthlyCompletedVsPlanned(plans, completions, now);
+    if (totals.planned == 0) return 0;
+    return (totals.completed / totals.planned * 100).clamp(0, 100);
+  }
+
+  static ({int completed, int planned}) monthlyCompletedVsPlanned(
+    List<WorkoutPlan> plans,
+    List<WorkoutCompletion> completions,
+    DateTime now,
+  ) {
     final start = DateTime(now.year, now.month, 1);
     final end = DateTime(now.year, now.month + 1, 1);
     var planned = 0;
@@ -175,11 +204,11 @@ abstract final class TrainingStats {
       if (d.isBefore(start) || !d.isBefore(end)) continue;
       planned++;
     }
-    if (planned == 0) return 0;
 
     final completionDaysInMonth = <DateTime>{};
     var completionCount = 0;
     for (final c in completions) {
+      if (!completionMatchesPlans(c, plans)) continue;
       final d = WorkoutPlan.dateOnly(c.completedAt);
       if (d.isBefore(start) || !d.isBefore(end)) continue;
       completionCount++;
@@ -192,7 +221,112 @@ abstract final class TrainingStats {
       if (d.isBefore(start) || !d.isBefore(end)) continue;
       if (!completionDaysInMonth.contains(d)) extraPlanHits++;
     }
-    final done = completionCount + extraPlanHits;
-    return (done / planned * 100).clamp(0, 100);
+    return (completed: completionCount + extraPlanHits, planned: planned);
+  }
+
+  static int monthlyCompletedSessions(
+    List<WorkoutPlan> plans,
+    List<WorkoutCompletion> completions,
+    DateTime now,
+  ) {
+    return monthlyCompletedVsPlanned(plans, completions, now).completed;
+  }
+
+  static int upcomingPlannedWorkouts(List<WorkoutPlan> plans, DateTime now) {
+    final today = WorkoutPlan.dateOnly(now);
+    return plans.where((p) {
+      if (p.status != PlanStatus.planned) return false;
+      return !WorkoutPlan.dateOnly(p.scheduledDate).isBefore(today);
+    }).length;
+  }
+
+  static List<WorkoutCompletion> relevantCompletions(
+    List<WorkoutPlan> plans,
+    List<WorkoutCompletion> completions,
+  ) {
+    return completions.where((c) => completionMatchesPlans(c, plans)).toList();
+  }
+
+  static String mostTrainedMuscleGroup(
+    List<WorkoutPlan> plans,
+    List<WorkoutCompletion> completions,
+  ) {
+    final counts = <String, int>{};
+    for (final c in relevantCompletions(plans, completions)) {
+      counts[c.workoutType] = (counts[c.workoutType] ?? 0) + 1;
+    }
+    if (counts.isEmpty) return '—';
+    return counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+  }
+
+  static int averageWorkoutDuration(
+    List<WorkoutPlan> plans,
+    List<WorkoutCompletion> completions,
+  ) {
+    final relevant = relevantCompletions(plans, completions);
+    if (relevant.isEmpty) return 0;
+    final total = relevant.fold<int>(0, (sum, c) => sum + c.durationMinutes);
+    return (total / relevant.length).round();
+  }
+
+  static int averageSessionCalories(
+    List<WorkoutPlan> plans,
+    List<WorkoutCompletion> completions,
+  ) {
+    final relevant = relevantCompletions(plans, completions);
+    if (relevant.isEmpty) return 0;
+    final total = relevant.fold<int>(0, (sum, c) => sum + c.calories);
+    return (total / relevant.length).round();
+  }
+
+  static StrengthVolumeStats weeklyStrengthVolume(
+    List<WorkoutPlan> plans,
+    List<WorkoutCompletion> completions,
+    DateTime reference,
+  ) {
+    final mon = WorkoutPlan.mondayContaining(reference);
+    final end = mon.add(const Duration(days: 7));
+    var sets = 0;
+    var reps = 0;
+    for (final c in relevantCompletions(plans, completions)) {
+      final d = WorkoutPlan.dateOnly(c.completedAt);
+      if (d.isBefore(mon) || !d.isBefore(end)) continue;
+      for (final log in c.exerciseLogs) {
+        sets += log.setsCompleted;
+        reps += log.setsCompleted * log.repsCompleted;
+      }
+    }
+    return StrengthVolumeStats(
+      sets: sets,
+      reps: reps,
+      estimatedVolume: reps * 38,
+    );
+  }
+
+  static List<MuscleGroupShare> muscleGroupDistribution(
+    List<WorkoutPlan> plans,
+    List<WorkoutCompletion> completions,
+  ) {
+    final counts = <String, int>{};
+    for (final c in relevantCompletions(plans, completions)) {
+      counts[c.workoutType] = (counts[c.workoutType] ?? 0) + 1;
+    }
+    if (counts.isEmpty) return const [];
+
+    final total = counts.values.fold<int>(0, (a, b) => a + b);
+    final entries = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    var assigned = 0;
+    final shares = <MuscleGroupShare>[];
+    for (var i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      final percent = i == entries.length - 1
+          ? (100 - assigned).clamp(0, 100)
+          : ((entry.value / total) * 100).round();
+      assigned += percent;
+      shares.add(MuscleGroupShare(label: entry.key, percent: percent));
+    }
+    return shares;
   }
 }

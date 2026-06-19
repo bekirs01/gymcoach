@@ -3,6 +3,7 @@ import 'package:gym/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/widgets/workout_image.dart';
 import '../../workout/domain/completed_exercise_log.dart';
 import '../../workout/domain/workout_completion.dart';
 
@@ -34,6 +35,20 @@ class CompletedWorkoutDetailPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: SizedBox(
+                height: 160,
+                width: double.infinity,
+                child: WorkoutImage(
+                  exerciseNames: completion.exerciseNames,
+                  muscleGroup: completion.workoutType,
+                  workoutName: completion.title,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             Text(
               completion.title,
               style: theme.headlineSmall?.copyWith(
@@ -103,7 +118,17 @@ class CompletedWorkoutDetailPage extends StatelessWidget {
                       side: const BorderSide(color: AppColors.borderSubtle),
                     ),
                     child: ListTile(
-                      leading: const Icon(Icons.check_circle_outline_rounded, color: AppColors.primary),
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: WorkoutImage(
+                            exerciseNames: [n],
+                            workoutName: n,
+                          ),
+                        ),
+                      ),
                       title: Text(
                         n,
                         style: theme.titleSmall?.copyWith(

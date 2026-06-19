@@ -496,7 +496,71 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progressTitle => 'Progress';
 
   @override
-  String get progressSubtitle => 'Performance overview and history';
+  String get progressSubtitle => 'Performance overview and training insights';
+
+  @override
+  String get progressStatusStrong => 'Strong';
+
+  @override
+  String get progressStatusHot => 'Hot';
+
+  @override
+  String progressCompletedVsPlanned(int completed, int planned) {
+    return '$completed/$planned Completed vs planned';
+  }
+
+  @override
+  String get progressSessionsByDay => 'Sessions by day';
+
+  @override
+  String get progressSessionsByDayHint =>
+      'Training sessions completed each day this week';
+
+  @override
+  String get progressPerformanceInsights => 'Performance insights';
+
+  @override
+  String get progressPerformanceInsightsHint =>
+      'Key training metrics from your recent sessions';
+
+  @override
+  String get progressMostTrainedGroup => 'Most trained muscle group';
+
+  @override
+  String get progressAvgDuration => 'Average workout duration';
+
+  @override
+  String get progressAvgCalories => 'Average session calories';
+
+  @override
+  String get progressCompletionRate => 'Completion rate';
+
+  @override
+  String get progressStrengthVolume => 'Strength and volume';
+
+  @override
+  String get progressSetsThisWeek => 'Sets this week';
+
+  @override
+  String get progressRepsThisWeek => 'Reps this week';
+
+  @override
+  String get progressEstVolume => 'Est. volume';
+
+  @override
+  String get progressMuscleDistribution => 'Muscle group distribution';
+
+  @override
+  String get progressMuscleDistributionHint =>
+      'Share of completed sessions by focus area';
+
+  @override
+  String get progressCompleted => 'Completed';
+
+  @override
+  String progressVolumeK(String value) {
+    return '${value}k';
+  }
 
   @override
   String get progressWeeklySessions => 'Weekly sessions';
@@ -547,13 +611,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progressSessionHighlights => 'Session highlights';
 
   @override
-  String get progressHighlightLongest => 'Longest session';
+  String get progressHighlightLongest => 'Longest workout';
 
   @override
-  String get progressHighlightCalories => 'Peak calories';
+  String get progressHighlightCalories => 'Highest calorie workout';
 
   @override
-  String get progressHighlightMoves => 'Most exercises';
+  String get progressHighlightIntense => 'Most intense session';
+
+  @override
+  String get progressHighlightLatest => 'Latest completed workout';
 
   @override
   String get progressHighlightsEmpty =>
@@ -1384,13 +1451,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get badgeFirstSession => 'First session';
 
   @override
-  String get badgeWeekWarrior => 'Week warrior';
+  String get badgeThreeDayStreak => '3 day streak';
 
   @override
-  String get badgeStreakStarter => 'Streak starter';
+  String get badgeFiveSessions => '5 sessions';
 
   @override
-  String get badgeConsistency => 'Consistency';
+  String get badgeWeeklyWarrior => 'Weekly warrior';
+
+  @override
+  String get badgeConsistencyBadge => 'Consistency badge';
+
+  @override
+  String get badgeMonthlyGrind => 'Monthly grind';
 
   @override
   String get weekdayMon => 'Mon';

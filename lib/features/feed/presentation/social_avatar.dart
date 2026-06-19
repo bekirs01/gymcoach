@@ -8,12 +8,14 @@ class SocialAvatar extends StatefulWidget {
     required this.name,
     required this.imageUrl,
     this.fallbackImageUrl,
+    this.defaultAssetPath,
     this.size = 44,
   });
 
   final String name;
   final String imageUrl;
   final String? fallbackImageUrl;
+  final String? defaultAssetPath;
   final double size;
 
   static String initials(String raw) {
@@ -49,33 +51,78 @@ class _SocialAvatarState extends State<SocialAvatar> {
     return null;
   }
 
+  String? get _assetPath {
+    final asset = widget.defaultAssetPath?.trim() ?? '';
+    return asset.isEmpty ? null : asset;
+  }
+
   @override
   Widget build(BuildContext context) {
     final url = _activeUrl;
-    if (url == null) {
-      return _Fallback(name: widget.name, size: widget.size);
+    final assetPath = _assetPath;
+    if (url != null) {
+      final isFallback = widget.imageUrl.trim().isEmpty || _primaryFailed;
+      return ClipOval(
+        child: Image.network(
+          url,
+          width: widget.size,
+          height: widget.size,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            if (!isFallback && !_primaryFailed) {
+              _primaryFailed = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) setState(() {});
+              });
+            } else if (isFallback && !_fallbackFailed) {
+              _fallbackFailed = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) setState(() {});
+              });
+            }
+            if (assetPath != null) {
+              return _AssetAvatar(assetPath: assetPath, size: widget.size);
+            }
+            return _Fallback(name: widget.name, size: widget.size);
+          },
+        ),
+      );
     }
 
-    final isFallback = widget.imageUrl.trim().isEmpty || _primaryFailed;
+    if (assetPath != null) {
+      return _AssetAvatar(assetPath: assetPath, size: widget.size);
+    }
+
+    return _Fallback(name: widget.name, size: widget.size);
+  }
+}
+
+class _AssetAvatar extends StatelessWidget {
+  const _AssetAvatar({required this.assetPath, required this.size});
+
+  final String assetPath;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
     return ClipOval(
-      child: Image.network(
-        url,
-        width: widget.size,
-        height: widget.size,
+      child: Image.asset(
+        assetPath,
+        width: size,
+        height: size,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
-          if (!isFallback && !_primaryFailed) {
-            _primaryFailed = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) setState(() {});
-            });
-          } else if (isFallback && !_fallbackFailed) {
-            _fallbackFailed = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) setState(() {});
-            });
-          }
-          return _Fallback(name: widget.name, size: widget.size);
+          return Container(
+            width: size,
+            height: size,
+            color: PremiumColors.surface,
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.person_outline_rounded,
+              color: PremiumColors.textMuted,
+              size: size * 0.45,
+            ),
+          );
         },
       ),
     );

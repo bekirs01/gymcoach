@@ -77,6 +77,10 @@ flutter:
     - .env.example
     - assets/workout_categories/
     - assets/workout_exercises/
+    - assets/images/workouts/
+    - assets/images/nutrition/nutrition_hero.jpg
+    - assets/images/profile/default_male_avatar.jpg
+    - assets/images/profile/default_profile_cover.jpg
     - assets/map/territory_map_style.json
 
   # An image asset can refer to one or more resolution-specific "variants", see

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/workout_exercise_catalog.dart';
+import '../../../core/workout_image_resolver.dart';
 import '../../plans/domain/plan_exercise.dart';
 import '../../plans/domain/workout_plan.dart';
 
@@ -130,8 +131,13 @@ class SharedWorkoutSnapshot {
     required String createdByUserId,
   }) {
     final firstExercise = plan.exercises.isEmpty ? null : plan.exercises.first.name;
-    final imageUrl = WorkoutExerciseCatalog.imageForName(firstExercise) ?? '';
-    final muscleGroup = WorkoutExerciseCatalog.categoryTitleForName(firstExercise) ?? '';
+    final imageUrl = WorkoutImageResolver.resolveAssetPath(
+      exerciseNames: plan.exerciseNames,
+      workoutName: plan.name,
+    );
+    final muscleGroup = WorkoutExerciseCatalog.categoryTitleForName(firstExercise) ??
+        WorkoutImageResolver.muscleGroupAsset(plan.name)?.split('/').last.replaceAll('_', ' ').replaceAll('.jpg', '') ??
+        '';
 
     final exercises = <SharedWorkoutExerciseSnapshot>[];
     for (var i = 0; i < plan.exercises.length; i++) {
@@ -140,7 +146,11 @@ class SharedWorkoutSnapshot {
       exercises.add(
         SharedWorkoutExerciseSnapshot(
           name: exercise.name,
-          imageUrl: entry?.imageAsset ?? WorkoutExerciseCatalog.imageForName(exercise.name) ?? '',
+          imageUrl: WorkoutImageResolver.exerciseAssetForName(exercise.name) ??
+              WorkoutImageResolver.resolveAssetPath(
+                exerciseNames: [exercise.name],
+                workoutName: plan.name,
+              ),
           description: entry?.description ?? '',
           sets: exercise.defaultSets,
           reps: exercise.defaultReps,

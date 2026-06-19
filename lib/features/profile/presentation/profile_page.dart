@@ -11,11 +11,13 @@ import '../../social/data/social_seed_data.dart';
 import '../../social/domain/feed_post.dart';
 import '../data/profile_repository.dart';
 import '../domain/profile_defaults.dart';
+import '../domain/profile_image_assets.dart';
 import '../domain/profile_media_filter.dart';
 import '../domain/profile_settings_options.dart';
 import '../domain/user_profile.dart';
 import 'edit_profile_sheet.dart';
 import 'settings/profile_settings_tab.dart';
+import 'widgets/profile_cover_image.dart';
 import 'widgets/profile_view_widgets.dart';
 
 Future<void> showProfileSheet({
@@ -186,14 +188,6 @@ class _ProfilePageState extends State<ProfilePage> {
       displayName: _profile.displayName.trim().isEmpty ? seed.displayName : _profile.displayName,
       username: _profile.username.trim().isEmpty ? seed.username : _profile.username,
       publicBio: _profile.publicBio.trim().isEmpty ? seed.bio : _profile.publicBio,
-      avatarUrl: ProfileMediaFilter.resolveImageUrl(
-        primary: _profile.avatarUrl,
-        fallback: seed.avatarUrl,
-      ),
-      coverUrl: ProfileMediaFilter.resolveImageUrl(
-        primary: _profile.coverUrl,
-        fallback: seed.coverUrl,
-      ),
       fitnessGoal: _profile.fitnessGoal.trim().isEmpty ? seed.goal : _profile.fitnessGoal,
       trainingFocus: _profile.trainingFocus.trim().isEmpty ? seed.trainingFocus : _profile.trainingFocus,
       locationText: _profile.locationText.trim().isEmpty ? seed.city : _profile.locationText,
@@ -259,7 +253,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     SliverToBoxAdapter(
                       child: Column(
                         children: [
-                          _ProfileCover(profile: _profile),
+                          ProfileCoverImage(coverUrl: _profile.coverUrl),
                           Transform.translate(
                             offset: const Offset(0, -48),
                             child: DecoratedBox(
@@ -270,7 +264,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               child: ProfileAvatarButton(
                                 name: _profile.displayName,
                                 imageUrl: _profile.avatarUrl,
-                                fallbackImageUrl: SocialSeedRepository.currentUserAvatarFallback,
+                                defaultAssetPath: ProfileImageAssets.defaultMaleAvatar,
                                 size: 96,
                               ),
                             ),
@@ -537,33 +531,6 @@ class _ProfileSheetChrome extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ProfileCover extends StatelessWidget {
-  const _ProfileCover({required this.profile});
-
-  final UserProfile profile;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 132,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: PremiumColors.surface,
-        image: profile.coverUrl.isEmpty
-            ? null
-            : DecorationImage(
-                image: NetworkImage(profile.coverUrl),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                  Colors.black.withValues(alpha: 0.25),
-                  BlendMode.darken,
-                ),
-              ),
-      ),
     );
   }
 }

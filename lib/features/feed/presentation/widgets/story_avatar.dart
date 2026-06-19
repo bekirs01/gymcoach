@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
+import '../../../profile/domain/profile_image_assets.dart';
 import '../../presentation/social_avatar.dart';
 import 'network_image_with_fallback.dart';
 
@@ -93,7 +94,13 @@ class StoryAvatar extends StatelessWidget {
                                 fit: BoxFit.cover,
                                 placeholderIcon: Icons.person_outline_rounded,
                               )
-                            : SocialAvatar(name: name, imageUrl: '', size: innerSize),
+                            : SocialAvatar(
+                                name: name,
+                                imageUrl: '',
+                                defaultAssetPath:
+                                    isOwnStory ? ProfileImageAssets.defaultMaleAvatar : null,
+                                size: innerSize,
+                              ),
                       ),
                     ),
                   ),

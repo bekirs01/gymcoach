@@ -498,7 +498,71 @@ class AppLocalizationsRu extends AppLocalizations {
   String get progressTitle => 'Прогресс';
 
   @override
-  String get progressSubtitle => 'Обзор результатов и история';
+  String get progressSubtitle => 'Обзор результатов и аналитика тренировок';
+
+  @override
+  String get progressStatusStrong => 'Сильно';
+
+  @override
+  String get progressStatusHot => 'Горячо';
+
+  @override
+  String progressCompletedVsPlanned(int completed, int planned) {
+    return '$completed/$planned Выполнено из запланированных';
+  }
+
+  @override
+  String get progressSessionsByDay => 'Сессии по дням';
+
+  @override
+  String get progressSessionsByDayHint =>
+      'Завершенные тренировки по дням недели';
+
+  @override
+  String get progressPerformanceInsights => 'Аналитика результатов';
+
+  @override
+  String get progressPerformanceInsightsHint =>
+      'Ключевые метрики ваших недавних сессий';
+
+  @override
+  String get progressMostTrainedGroup => 'Самая тренируемая группа';
+
+  @override
+  String get progressAvgDuration => 'Средняя длительность';
+
+  @override
+  String get progressAvgCalories => 'Средние калории сессии';
+
+  @override
+  String get progressCompletionRate => 'Процент выполнения';
+
+  @override
+  String get progressStrengthVolume => 'Сила и объем';
+
+  @override
+  String get progressSetsThisWeek => 'Подходы за неделю';
+
+  @override
+  String get progressRepsThisWeek => 'Повторы за неделю';
+
+  @override
+  String get progressEstVolume => 'Оцен. объем';
+
+  @override
+  String get progressMuscleDistribution => 'Распределение по группам';
+
+  @override
+  String get progressMuscleDistributionHint =>
+      'Доля завершенных сессий по зонам';
+
+  @override
+  String get progressCompleted => 'Завершено';
+
+  @override
+  String progressVolumeK(String value) {
+    return '${value}k';
+  }
 
   @override
   String get progressWeeklySessions => 'Сессии за неделю';
@@ -549,13 +613,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get progressSessionHighlights => 'Лучшие сессии';
 
   @override
-  String get progressHighlightLongest => 'Самая длинная сессия';
+  String get progressHighlightLongest => 'Самая длинная тренировка';
 
   @override
   String get progressHighlightCalories => 'Максимум калорий';
 
   @override
-  String get progressHighlightMoves => 'Больше всего упражнений';
+  String get progressHighlightIntense => 'Самая интенсивная сессия';
+
+  @override
+  String get progressHighlightLatest => 'Последняя завершенная';
 
   @override
   String get progressHighlightsEmpty =>
@@ -1392,13 +1459,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get badgeFirstSession => 'Первая сессия';
 
   @override
-  String get badgeWeekWarrior => 'Воин недели';
+  String get badgeThreeDayStreak => '3 дня подряд';
 
   @override
-  String get badgeStreakStarter => 'Начало серии';
+  String get badgeFiveSessions => '5 сессий';
 
   @override
-  String get badgeConsistency => 'Регулярность';
+  String get badgeWeeklyWarrior => 'Воин недели';
+
+  @override
+  String get badgeConsistencyBadge => 'Значок регулярности';
+
+  @override
+  String get badgeMonthlyGrind => 'Месячный ритм';
 
   @override
   String get weekdayMon => 'Пн';

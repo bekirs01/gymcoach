@@ -3,10 +3,11 @@ import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
-import 'delete_workout_sheet.dart';
-import '../../../core/workout_exercise_catalog.dart';
+import '../../../app/widgets/workout_image.dart';
 import '../../../core/workout_exercise_l10n.dart';
+import '../../../core/workout_image_resolver.dart';
 import '../domain/workout_plan.dart';
+import 'delete_workout_sheet.dart';
 
 class PlanDetailPage extends StatelessWidget {
   const PlanDetailPage({
@@ -38,8 +39,9 @@ class PlanDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final heroImage = WorkoutExerciseCatalog.imageForName(
-      plan.exerciseNames.isEmpty ? null : plan.exerciseNames.first,
+    final heroImage = WorkoutImageResolver.resolveAssetPath(
+      exerciseNames: plan.exerciseNames,
+      workoutName: plan.name,
     );
     final isCompleted = plan.status == PlanStatus.completed;
 
@@ -207,7 +209,7 @@ class _HeroCard extends StatelessWidget {
   });
 
   final WorkoutPlan plan;
-  final String? imageAsset;
+  final String imageAsset;
   final AppLocalizations l10n;
 
   @override
@@ -222,10 +224,13 @@ class _HeroCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (imageAsset != null)
-            Image.asset(imageAsset!, fit: BoxFit.cover, filterQuality: FilterQuality.high)
-          else
-            Container(color: PremiumColors.surfaceRaised),
+          WorkoutImage(
+            localImageAsset: imageAsset,
+            exerciseNames: plan.exerciseNames,
+            workoutName: plan.name,
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.high,
+          ),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -402,7 +407,6 @@ class _ExerciseRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageAsset = WorkoutExerciseCatalog.imageForName(name);
     final displayName = WorkoutExerciseL10n.name(l10n, name);
 
     return Container(
@@ -419,12 +423,12 @@ class _ExerciseRow extends StatelessWidget {
             child: SizedBox(
               width: 56,
               height: 56,
-              child: imageAsset == null
-                  ? Container(
-                      color: PremiumColors.accentBlue.withValues(alpha: 0.16),
-                      child: const Icon(Icons.fitness_center_rounded, color: PremiumColors.accentBlue),
-                    )
-                  : Image.asset(imageAsset, fit: BoxFit.cover, filterQuality: FilterQuality.high),
+              child: WorkoutImage(
+                exerciseNames: [name],
+                workoutName: name,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.high,
+              ),
             ),
           ),
           const SizedBox(width: 12),

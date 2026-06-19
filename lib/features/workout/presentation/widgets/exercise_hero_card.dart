@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
+import '../../../../app/widgets/workout_image.dart';
 
 class ExerciseHeroCard extends StatelessWidget {
   const ExerciseHeroCard({
     super.key,
-    required this.imageAsset,
+    required this.exerciseName,
     required this.label,
+    this.muscleGroup,
     this.onExpand,
   });
 
-  final String? imageAsset;
+  final String exerciseName;
   final String label;
+  final String? muscleGroup;
   final VoidCallback? onExpand;
 
   @override
@@ -36,10 +39,16 @@ class ExerciseHeroCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (imageAsset == null)
-              _FallbackContent(label: label)
-            else
-              _HeroImage(asset: imageAsset!, label: label),
+            ColoredBox(
+              color: const Color(0xFFF3F5F8),
+              child: WorkoutImage(
+                exerciseNames: [exerciseName],
+                muscleGroup: muscleGroup,
+                workoutName: label,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+              ),
+            ),
             if (onExpand != null)
               Positioned(
                 right: 10,
@@ -63,62 +72,6 @@ class ExerciseHeroCard extends StatelessWidget {
               ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _HeroImage extends StatelessWidget {
-  const _HeroImage({required this.asset, required this.label});
-
-  final String asset;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(14),
-      child: Image.asset(
-        asset,
-        fit: BoxFit.contain,
-        alignment: Alignment.center,
-        filterQuality: FilterQuality.high,
-        errorBuilder: (context, error, stackTrace) => _FallbackContent(label: label),
-      ),
-    );
-  }
-}
-
-class _FallbackContent extends StatelessWidget {
-  const _FallbackContent({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.fitness_center_rounded,
-            color: PremiumColors.accentBlue.withValues(alpha: 0.9),
-            size: 48,
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: PremiumColors.textSecondary,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

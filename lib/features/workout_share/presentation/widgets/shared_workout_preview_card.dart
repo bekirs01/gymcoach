@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
+import '../../../../app/widgets/workout_image.dart';
 import '../../domain/shared_workout_snapshot.dart';
 
 class SharedWorkoutPreviewCard extends StatelessWidget {
@@ -29,7 +30,12 @@ class SharedWorkoutPreviewCard extends StatelessWidget {
         children: [
           SizedBox(
             height: compact ? 120 : 148,
-            child: _WorkoutShareImage(imageUrl: snapshot.imageUrl),
+            child: WorkoutImage(
+              imageUrl: snapshot.imageUrl,
+              exerciseNames: snapshot.exercises.map((e) => e.name).toList(),
+              muscleGroup: snapshot.muscleGroup,
+              workoutName: snapshot.name,
+            ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
@@ -103,49 +109,6 @@ class SharedWorkoutPreviewCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _WorkoutShareImage extends StatelessWidget {
-  const _WorkoutShareImage({required this.imageUrl});
-
-  final String imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    if (imageUrl.startsWith('assets/')) {
-      return Image.asset(
-        imageUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => const _WorkoutShareImageFallback(),
-      );
-    }
-    if (imageUrl.trim().isEmpty) {
-      return const _WorkoutShareImageFallback();
-    }
-    return Image.network(
-      imageUrl,
-      fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => const _WorkoutShareImageFallback(),
-    );
-  }
-}
-
-class _WorkoutShareImageFallback extends StatelessWidget {
-  const _WorkoutShareImageFallback();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: PremiumColors.accentBlue.withValues(alpha: 0.16),
-      child: const Center(
-        child: Icon(
-          Icons.fitness_center_rounded,
-          color: PremiumColors.accentBlue,
-          size: 42,
-        ),
       ),
     );
   }

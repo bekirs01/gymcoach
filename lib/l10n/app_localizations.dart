@@ -971,8 +971,122 @@ abstract class AppLocalizations {
   /// No description provided for @progressSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Performance overview and history'**
+  /// **'Performance overview and training insights'**
   String get progressSubtitle;
+
+  /// No description provided for @progressStatusStrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Strong'**
+  String get progressStatusStrong;
+
+  /// No description provided for @progressStatusHot.
+  ///
+  /// In en, this message translates to:
+  /// **'Hot'**
+  String get progressStatusHot;
+
+  /// No description provided for @progressCompletedVsPlanned.
+  ///
+  /// In en, this message translates to:
+  /// **'{completed}/{planned} Completed vs planned'**
+  String progressCompletedVsPlanned(int completed, int planned);
+
+  /// No description provided for @progressSessionsByDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions by day'**
+  String get progressSessionsByDay;
+
+  /// No description provided for @progressSessionsByDayHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Training sessions completed each day this week'**
+  String get progressSessionsByDayHint;
+
+  /// No description provided for @progressPerformanceInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'Performance insights'**
+  String get progressPerformanceInsights;
+
+  /// No description provided for @progressPerformanceInsightsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Key training metrics from your recent sessions'**
+  String get progressPerformanceInsightsHint;
+
+  /// No description provided for @progressMostTrainedGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Most trained muscle group'**
+  String get progressMostTrainedGroup;
+
+  /// No description provided for @progressAvgDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Average workout duration'**
+  String get progressAvgDuration;
+
+  /// No description provided for @progressAvgCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Average session calories'**
+  String get progressAvgCalories;
+
+  /// No description provided for @progressCompletionRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Completion rate'**
+  String get progressCompletionRate;
+
+  /// No description provided for @progressStrengthVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Strength and volume'**
+  String get progressStrengthVolume;
+
+  /// No description provided for @progressSetsThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Sets this week'**
+  String get progressSetsThisWeek;
+
+  /// No description provided for @progressRepsThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Reps this week'**
+  String get progressRepsThisWeek;
+
+  /// No description provided for @progressEstVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Est. volume'**
+  String get progressEstVolume;
+
+  /// No description provided for @progressMuscleDistribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Muscle group distribution'**
+  String get progressMuscleDistribution;
+
+  /// No description provided for @progressMuscleDistributionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share of completed sessions by focus area'**
+  String get progressMuscleDistributionHint;
+
+  /// No description provided for @progressCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get progressCompleted;
+
+  /// No description provided for @progressVolumeK.
+  ///
+  /// In en, this message translates to:
+  /// **'{value}k'**
+  String progressVolumeK(String value);
 
   /// No description provided for @progressWeeklySessions.
   ///
@@ -1067,20 +1181,26 @@ abstract class AppLocalizations {
   /// No description provided for @progressHighlightLongest.
   ///
   /// In en, this message translates to:
-  /// **'Longest session'**
+  /// **'Longest workout'**
   String get progressHighlightLongest;
 
   /// No description provided for @progressHighlightCalories.
   ///
   /// In en, this message translates to:
-  /// **'Peak calories'**
+  /// **'Highest calorie workout'**
   String get progressHighlightCalories;
 
-  /// No description provided for @progressHighlightMoves.
+  /// No description provided for @progressHighlightIntense.
   ///
   /// In en, this message translates to:
-  /// **'Most exercises'**
-  String get progressHighlightMoves;
+  /// **'Most intense session'**
+  String get progressHighlightIntense;
+
+  /// No description provided for @progressHighlightLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest completed workout'**
+  String get progressHighlightLatest;
 
   /// No description provided for @progressHighlightsEmpty.
   ///
@@ -2618,23 +2738,35 @@ abstract class AppLocalizations {
   /// **'First session'**
   String get badgeFirstSession;
 
-  /// No description provided for @badgeWeekWarrior.
+  /// No description provided for @badgeThreeDayStreak.
   ///
   /// In en, this message translates to:
-  /// **'Week warrior'**
-  String get badgeWeekWarrior;
+  /// **'3 day streak'**
+  String get badgeThreeDayStreak;
 
-  /// No description provided for @badgeStreakStarter.
+  /// No description provided for @badgeFiveSessions.
   ///
   /// In en, this message translates to:
-  /// **'Streak starter'**
-  String get badgeStreakStarter;
+  /// **'5 sessions'**
+  String get badgeFiveSessions;
 
-  /// No description provided for @badgeConsistency.
+  /// No description provided for @badgeWeeklyWarrior.
   ///
   /// In en, this message translates to:
-  /// **'Consistency'**
-  String get badgeConsistency;
+  /// **'Weekly warrior'**
+  String get badgeWeeklyWarrior;
+
+  /// No description provided for @badgeConsistencyBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Consistency badge'**
+  String get badgeConsistencyBadge;
+
+  /// No description provided for @badgeMonthlyGrind.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly grind'**
+  String get badgeMonthlyGrind;
 
   /// No description provided for @weekdayMon.
   ///

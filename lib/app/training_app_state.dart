@@ -3,6 +3,7 @@ import 'package:gym/l10n/app_localizations.dart';
 
 import '../data/local/training_snapshot_codec.dart';
 import '../core/plan_factory.dart';
+import '../core/progress_demo_seed.dart';
 import '../features/plans/domain/workout_plan.dart';
 import '../features/plans/domain/workout_template.dart';
 import '../features/profile/domain/profile_defaults.dart';
@@ -67,6 +68,18 @@ final class TrainingAppState extends ChangeNotifier {
       _completions = [];
       _templates = [];
       _profile = _defaultProfile(l10n);
+    }
+
+    final seedResult = ProgressDemoSeed.applyIfNeeded(
+      plans: _plans,
+      completions: _completions,
+      profile: _profile,
+      now: DateTime.now(),
+    );
+    if (seedResult != null) {
+      _plans = seedResult.plans;
+      _completions = seedResult.completions;
+      await _persist();
     }
 
     _ready = true;

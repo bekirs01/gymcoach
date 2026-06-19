@@ -598,11 +598,13 @@ class ProfileAvatarButton extends StatelessWidget {
     required this.imageUrl,
     required this.size,
     this.fallbackImageUrl,
+    this.defaultAssetPath,
   });
 
   final String name;
   final String imageUrl;
   final String? fallbackImageUrl;
+  final String? defaultAssetPath;
   final double size;
 
   @override
@@ -611,6 +613,7 @@ class ProfileAvatarButton extends StatelessWidget {
       name: name,
       imageUrl: imageUrl,
       fallbackImageUrl: fallbackImageUrl,
+      defaultAssetPath: defaultAssetPath,
       size: size,
     );
     final resolvedUrl = ProfileMediaFilter.resolveImageUrl(

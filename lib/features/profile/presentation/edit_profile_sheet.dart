@@ -7,6 +7,7 @@ import '../../feed/presentation/social_avatar.dart';
 import '../../social/data/social_api_client.dart';
 import '../data/profile_repository.dart';
 import '../domain/profile_defaults.dart';
+import '../domain/profile_image_assets.dart';
 import '../domain/user_profile.dart';
 import 'widgets/edit_profile_widgets.dart';
 
@@ -455,7 +456,12 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                             padding: const EdgeInsets.all(16),
                             child: Row(
                               children: [
-                                SocialAvatar(name: _name.text, imageUrl: _avatarUrl, size: 72),
+                                SocialAvatar(
+                                  name: _name.text,
+                                  imageUrl: _avatarUrl,
+                                  defaultAssetPath: ProfileImageAssets.defaultMaleAvatar,
+                                  size: 72,
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: ProfileOutlineButton(

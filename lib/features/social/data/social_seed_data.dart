@@ -63,12 +63,6 @@ class SeededSocialUser {
 abstract final class SocialSeedRepository {
   static const currentUserId = 'seed_current';
 
-  static const currentUserAvatarFallback =
-      'https://randomuser.me/api/portraits/women/68.jpg';
-
-  static const _currentUserCoverFallback =
-      'https://images.unsplash.com/photo-1581009146145-b5ef050c2a1e?w=1200&q=80';
-
   static const _currentUserGallery = [
     'https://images.unsplash.com/photo-1581009146145-b5ef050c2a1e?w=900&q=80',
     'https://images.unsplash.com/photo-1599058917765-a780eda07a3e?w=900&q=80',
@@ -232,14 +226,8 @@ abstract final class SocialSeedRepository {
     final bio = profile.publicBio.trim().isNotEmpty
         ? profile.publicBio.trim()
         : ProfileDefaults.publicBio;
-    final avatar = ProfileMediaFilter.resolveImageUrl(
-      primary: profile.avatarUrl,
-      fallback: currentUserAvatarFallback,
-    );
-    final cover = ProfileMediaFilter.resolveImageUrl(
-      primary: profile.coverUrl,
-      fallback: _currentUserCoverFallback,
-    );
+    final avatar = profile.avatarUrl.trim();
+    final cover = profile.coverUrl.trim();
     final trainingFocus = profile.trainingFocus.trim().isNotEmpty
         ? profile.trainingFocus.trim()
         : ProfileDefaults.trainingFocus;

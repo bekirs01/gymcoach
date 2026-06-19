@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
-import '../../../../core/workout_exercise_catalog.dart';
+import '../../../../app/widgets/workout_image.dart';
 
 class WorkoutExerciseListItem extends StatelessWidget {
   const WorkoutExerciseListItem({
@@ -23,7 +23,7 @@ class WorkoutExerciseListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageAsset = WorkoutExerciseCatalog.imageForName(exerciseName ?? title);
+    final resolvedName = exerciseName ?? title;
 
     return Material(
       color: active ? PremiumColors.surfaceRaised : PremiumColors.surface,
@@ -49,27 +49,10 @@ class WorkoutExerciseListItem extends StatelessWidget {
                 child: SizedBox(
                   width: 42,
                   height: 42,
-                  child: imageAsset == null
-                      ? Container(
-                          color: PremiumColors.accentBlue.withValues(alpha: 0.16),
-                          child: const Icon(
-                            Icons.fitness_center_rounded,
-                            color: PremiumColors.accentBlue,
-                            size: 18,
-                          ),
-                        )
-                      : Image.asset(
-                          imageAsset,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            color: PremiumColors.accentBlue.withValues(alpha: 0.16),
-                            child: const Icon(
-                              Icons.fitness_center_rounded,
-                              color: PremiumColors.accentBlue,
-                              size: 18,
-                            ),
-                          ),
-                        ),
+                  child: WorkoutImage(
+                    exerciseNames: [resolvedName],
+                    workoutName: resolvedName,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -78,39 +61,44 @@ class WorkoutExerciseListItem extends StatelessWidget {
                 height: 22,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: active
-                      ? PremiumColors.accentBlue
-                      : PremiumColors.surfaceRaised,
+                  color: done
+                      ? PremiumColors.successGreen.withValues(alpha: 0.18)
+                      : Colors.white.withValues(alpha: 0.08),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: active
-                        ? PremiumColors.accentBlue
-                        : Colors.white.withValues(alpha: 0.15),
+                    color: done
+                        ? PremiumColors.successGreen.withValues(alpha: 0.7)
+                        : Colors.white.withValues(alpha: 0.12),
                   ),
                 ),
-                child: Text(
-                  '$orderNumber',
-                  style: TextStyle(
-                    color: active ? Colors.white : PremiumColors.textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                child: done
+                    ? const Icon(Icons.check_rounded, color: PremiumColors.successGreen, size: 14)
+                    : Text(
+                        '$orderNumber',
+                        style: TextStyle(
+                          color: active ? PremiumColors.accentBlue : PremiumColors.textSecondary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                        ),
+                      ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                    color: done ? PremiumColors.textSecondary : Colors.white,
+                    fontWeight: FontWeight.w700,
                     fontSize: 14,
+                    decoration: done ? TextDecoration.lineThrough : null,
                   ),
                 ),
               ),
               Icon(
-                done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                color: done ? PremiumColors.successGreen : PremiumColors.textMuted,
+                active ? Icons.play_arrow_rounded : Icons.chevron_right_rounded,
+                color: active ? PremiumColors.accentBlue : PremiumColors.textMuted,
                 size: 20,
               ),
             ],

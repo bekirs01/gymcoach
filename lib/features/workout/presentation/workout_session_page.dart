@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/premium_tokens.dart';
-import '../../../core/workout_exercise_l10n.dart';
 import '../../../app/widgets/premium_background.dart';
+import '../../../app/widgets/workout_image.dart';
 import '../../../core/session_calorie_estimator.dart';
-import '../../../core/workout_exercise_catalog.dart';
+import '../../../core/workout_exercise_l10n.dart';
 import '../../plans/domain/workout_plan.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../camera_validation/domain/exercise_tracking_mode.dart';
@@ -250,7 +250,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     setState(() => _showSummary = true);
   }
 
-  void _showImageFullscreen(String? imageAsset, String label) {
+  void _showImageFullscreen(String exerciseName, String label, {String? muscleGroup}) {
     showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.92),
@@ -262,29 +262,16 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
           children: [
             Padding(
               padding: const EdgeInsets.all(20),
-              child: imageAsset == null
-                  ? SizedBox(
-                      height: 280,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.fitness_center_rounded, color: PremiumColors.accentBlue, size: 56),
-                            const SizedBox(height: 12),
-                            Text(label, style: const TextStyle(color: PremiumColors.textSecondary)),
-                          ],
-                        ),
-                      ),
-                    )
-                  : Image.asset(
-                      imageAsset,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.broken_image_outlined,
-                        color: PremiumColors.textMuted,
-                        size: 48,
-                      ),
-                    ),
+              child: SizedBox(
+                height: 280,
+                child: WorkoutImage(
+                  exerciseNames: [exerciseName],
+                  muscleGroup: muscleGroup,
+                  workoutName: label,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                ),
+              ),
             ),
             Positioned(
               top: 4,
@@ -373,10 +360,8 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
     }
 
     final current = names[_index];
-    final entry = WorkoutExerciseCatalog.entryForName(current);
     final instruction = ExerciseInstructionData.forExercise(current);
     final displayName = WorkoutExerciseL10n.name(l10n, current);
-    final imageAsset = entry?.imageAsset;
     final description = WorkoutExerciseL10n.description(l10n, current, instruction.description);
     final muscleGroup = instruction.targetMuscle;
     final typeBadge = ExerciseSessionMetadata.typeBadgeFor(current);
@@ -407,9 +392,10 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                   padding: const EdgeInsets.fromLTRB(18, 4, 18, 12),
                   children: [
                     ExerciseHeroCard(
-                      imageAsset: imageAsset,
+                      exerciseName: current,
                       label: displayName,
-                      onExpand: () => _showImageFullscreen(imageAsset, displayName),
+                      muscleGroup: muscleGroup,
+                      onExpand: () => _showImageFullscreen(current, displayName, muscleGroup: muscleGroup),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -714,10 +700,6 @@ class _SessionSummaryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final heroName = completion.exerciseLogs.isNotEmpty
-        ? completion.exerciseLogs.first.exerciseName
-        : (completion.exerciseNames.isNotEmpty ? completion.exerciseNames.first : completion.title);
-    final heroImage = WorkoutExerciseCatalog.imageForName(heroName);
     final logKcal = completion.exerciseLogs.fold<int>(0, (sum, log) => sum + log.estimatedCalories);
 
     return PremiumBackground(
@@ -753,23 +735,13 @@ class _SessionSummaryView extends StatelessWidget {
                               borderRadius: BorderRadius.circular(PremiumRadii.md),
                               child: SizedBox(
                                 height: 120,
-                                child: heroImage == null
-                                    ? Container(
-                                        color: PremiumColors.surfaceRaised,
-                                        child: const Icon(
-                                          Icons.fitness_center_rounded,
-                                          color: PremiumColors.accentBlue,
-                                          size: 40,
-                                        ),
-                                      )
-                                    : Padding(
-                                        padding: const EdgeInsets.all(8),
-                                        child: Image.asset(
-                                          heroImage,
-                                          fit: BoxFit.contain,
-                                          filterQuality: FilterQuality.high,
-                                        ),
-                                      ),
+                                child: WorkoutImage(
+                                  exerciseNames: completion.exerciseNames,
+                                  muscleGroup: completion.workoutType,
+                                  workoutName: completion.title,
+                                  fit: BoxFit.contain,
+                                  filterQuality: FilterQuality.high,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -876,7 +848,7 @@ class _SessionSummaryView extends StatelessWidget {
             (n) => _SummaryExerciseRow(
               name: WorkoutExerciseL10n.name(l10n, n),
               detail: null,
-              imageAsset: WorkoutExerciseCatalog.imageForName(n),
+              exerciseName: n,
             ),
           )
           .toList();
@@ -886,7 +858,7 @@ class _SessionSummaryView extends StatelessWidget {
           (log) => _SummaryExerciseRow(
             name: WorkoutExerciseL10n.name(l10n, log.exerciseName),
             detail: l10n.historySetsRepsDetail(log.setsCompleted, log.repsCompleted),
-            imageAsset: WorkoutExerciseCatalog.imageForName(log.exerciseName),
+            exerciseName: log.exerciseName,
             kcal: log.estimatedCalories,
             l10n: l10n,
           ),
@@ -898,15 +870,15 @@ class _SessionSummaryView extends StatelessWidget {
 class _SummaryExerciseRow extends StatelessWidget {
   const _SummaryExerciseRow({
     required this.name,
-    required this.imageAsset,
+    required this.exerciseName,
     this.detail,
     this.kcal,
     this.l10n,
   });
 
   final String name;
+  final String exerciseName;
   final String? detail;
-  final String? imageAsset;
   final int? kcal;
   final AppLocalizations? l10n;
 
@@ -928,12 +900,10 @@ class _SummaryExerciseRow extends StatelessWidget {
             child: SizedBox(
               width: 44,
               height: 44,
-              child: imageAsset == null
-                  ? Container(
-                      color: PremiumColors.accentBlue.withValues(alpha: 0.16),
-                      child: const Icon(Icons.fitness_center_rounded, color: PremiumColors.accentBlue, size: 18),
-                    )
-                  : Image.asset(imageAsset!, fit: BoxFit.cover),
+              child: WorkoutImage(
+                exerciseNames: [exerciseName],
+                workoutName: exerciseName,
+              ),
             ),
           ),
           const SizedBox(width: 10),
