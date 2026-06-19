@@ -8,27 +8,7 @@
 
 create extension if not exists "pgcrypto";
 
--- cleanup (безопасно на пустой базе)
-drop trigger if exists on_auth_user_created on auth.users;
-drop trigger if exists profiles_updated_at on public.profiles;
-drop trigger if exists workout_plans_updated_at on public.workout_plans;
-
-drop policy if exists "profiles: read own" on public.profiles;
-drop policy if exists "profiles: insert own" on public.profiles;
-drop policy if exists "profiles: update own" on public.profiles;
-drop policy if exists "exercises: read all" on public.exercises;
-drop policy if exists "workout_plans: own rows" on public.workout_plans;
-drop policy if exists "workout_plan_exercises: via plan" on public.workout_plan_exercises;
-drop policy if exists "workout_completions: own rows" on public.workout_completions;
-drop policy if exists "workout_completion_exercises: via completion" on public.workout_completion_exercises;
-drop policy if exists "camera_tracking_sessions: own rows" on public.camera_tracking_sessions;
-drop policy if exists "profiles: device access" on public.profiles;
-drop policy if exists "workout_plans: device access" on public.workout_plans;
-drop policy if exists "workout_plan_exercises: device access" on public.workout_plan_exercises;
-drop policy if exists "workout_completions: device access" on public.workout_completions;
-drop policy if exists "workout_completion_exercises: device access" on public.workout_completion_exercises;
-drop policy if exists "camera_tracking_sessions: device access" on public.camera_tracking_sessions;
-
+-- cleanup (safe on empty database: drop tables first — CASCADE removes policies/triggers)
 drop table if exists public.camera_tracking_sessions cascade;
 drop table if exists public.workout_completion_exercises cascade;
 drop table if exists public.workout_completions cascade;
@@ -36,6 +16,8 @@ drop table if exists public.workout_plan_exercises cascade;
 drop table if exists public.workout_plans cascade;
 drop table if exists public.profiles cascade;
 drop table if exists public.exercises cascade;
+
+drop trigger if exists on_auth_user_created on auth.users;
 
 -- profiles (id = device uuid из приложения)
 create table public.profiles (

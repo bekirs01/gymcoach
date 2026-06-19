@@ -7,9 +7,9 @@
 --   1. Core GymCoach schema (profiles, plans, workouts, camera)
 --   2. Territory capture game (PostGIS + RPC functions)
 --   3. Demo territory seed data (Istanbul)
---   4. Backend verification tests (optional, rolled back)
 --
 -- WARNING: Section 1 drops existing GymCoach tables. Backup first if needed.
+-- Tests are in supabase/tests/territory_capture_test.sql (run separately).
 -- =============================================================================
 
 -- =============================================================================
@@ -22,29 +22,7 @@
 
 create extension if not exists "pgcrypto";
 
--- cleanup (безопасно на пустой базе)
-drop trigger if exists on_auth_user_created on auth.users;
-drop trigger if exists profiles_updated_at on public.profiles;
-drop trigger if exists workout_plans_updated_at on public.workout_plans;
-
-drop policy if exists "profiles: read own" on public.profiles;
-drop policy if exists "profiles: insert own" on public.profiles;
-drop policy if exists "profiles: update own" on public.profiles;
-drop policy if exists "exercises: read all" on public.exercises;
-drop policy if exists "workout_plans: own rows" on public.workout_plans;
-drop policy if exists "workout_plan_exercises: via plan" on public.workout_plan_exercises;
-drop policy if exists "workout_completions: own rows" on public.workout_completions;
-drop policy if exists "workout_completion_exercises: via completion" on public.workout_completion_exercises;
-drop policy if exists "camera_tracking_sessions: own rows" on public.camera_tracking_sessions;
-drop policy if exists "profiles: device access" on public.profiles;
-drop policy if exists "workout_plans: device access" on public.workout_plans;
-drop policy if exists "workout_plan_exercises: device access" on public.workout_plan_exercises;
-drop policy if exists "workout_completions: device access" on public.workout_completions;
-drop policy if exists "workout_completion_exercises: device access" on public.workout_completion_exercises;
-drop policy if exists "camera_tracking_sessions: device access" on public.camera_tracking_sessions;
-drop policy if exists "workout_templates: device access" on public.workout_templates;
-drop policy if exists "workout_template_exercises: device access" on public.workout_template_exercises;
-
+-- cleanup (safe on empty database: drop tables first — CASCADE removes policies/triggers)
 drop table if exists public.workout_template_exercises cascade;
 drop table if exists public.workout_templates cascade;
 drop table if exists public.camera_tracking_sessions cascade;
@@ -59,6 +37,8 @@ drop table if exists public.workout_plan_exercises cascade;
 drop table if exists public.workout_plans cascade;
 drop table if exists public.profiles cascade;
 drop table if exists public.exercises cascade;
+
+drop trigger if exists on_auth_user_created on auth.users;
 
 -- profiles (id = device uuid из приложения)
 create table public.profiles (
@@ -951,178 +931,6 @@ SELECT public.capture_territory(
 );
 
 -- =============================================================================
--- SECTION 4: Backend tests (optional — uses ROLLBACK, safe to run)
+-- Tests: run separately → supabase/tests/territory_capture_test.sql
+-- (Do NOT include ROLLBACK here — Supabase SQL Editor rolls back the whole script)
 -- =============================================================================
-
-BEGIN;
-
-INSERT INTO public.profiles (id, display_name)
-VALUES
-  ('territory-test-user-1', 'Territory User 1'),
-  ('territory-test-user-2', 'Territory User 2')
-ON CONFLICT (id) DO UPDATE
-SET display_name = EXCLUDED.display_name;
-
-DELETE FROM public.territory_events
-WHERE user_id IN ('territory-test-user-1', 'territory-test-user-2');
-
-DELETE FROM public.captured_territories
-WHERE owner_user_id IN ('territory-test-user-1', 'territory-test-user-2');
-
-DELETE FROM public.territory_capture_points
-WHERE user_id IN ('territory-test-user-1', 'territory-test-user-2');
-
-DELETE FROM public.territory_capture_sessions
-WHERE user_id IN ('territory-test-user-1', 'territory-test-user-2');
-
-DO $$
-DECLARE
-  v_polygon jsonb := jsonb_build_object(
-    'type', 'Polygon',
-    'coordinates', jsonb_build_array(jsonb_build_array(
-      jsonb_build_array(28.97840, 41.00820),
-      jsonb_build_array(28.97940, 41.00820),
-      jsonb_build_array(28.97940, 41.00920),
-      jsonb_build_array(28.97840, 41.00920),
-      jsonb_build_array(28.97840, 41.00820)
-    ))
-  );
-  v_small_polygon jsonb := jsonb_build_object(
-    'type', 'Polygon',
-    'coordinates', jsonb_build_array(jsonb_build_array(
-      jsonb_build_array(28.97840, 41.00820),
-      jsonb_build_array(28.9784001, 41.00820),
-      jsonb_build_array(28.9784001, 41.0082001),
-      jsonb_build_array(28.97840, 41.0082001),
-      jsonb_build_array(28.97840, 41.00820)
-    ))
-  );
-  v_overlap_polygon jsonb := jsonb_build_object(
-    'type', 'Polygon',
-    'coordinates', jsonb_build_array(jsonb_build_array(
-      jsonb_build_array(28.97890, 41.00870),
-      jsonb_build_array(28.97910, 41.00870),
-      jsonb_build_array(28.97910, 41.00890),
-      jsonb_build_array(28.97890, 41.00890),
-      jsonb_build_array(28.97890, 41.00870)
-    ))
-  );
-  v_session_id uuid;
-  v_territory_id uuid;
-  v_area double precision;
-  v_user1_area double precision;
-  v_user2_area double precision;
-  v_leaderboard_total double precision;
-  v_rejected boolean;
-BEGIN
-  v_rejected := false;
-  BEGIN
-    PERFORM public.start_territory_capture_session('invalid-user-id');
-  EXCEPTION
-    WHEN OTHERS THEN
-      v_rejected := true;
-  END;
-  IF NOT v_rejected THEN
-    RAISE EXCEPTION 'Expected invalid user rejection';
-  END IF;
-
-  v_rejected := false;
-  BEGIN
-    PERFORM public.capture_territory(NULL, 'Test Area', v_polygon);
-  EXCEPTION
-    WHEN OTHERS THEN
-      v_rejected := SQLERRM LIKE '%Not authenticated%';
-  END;
-  IF NOT v_rejected THEN
-    RAISE EXCEPTION 'Expected unauthenticated rejection';
-  END IF;
-
-  v_rejected := false;
-  BEGIN
-    PERFORM public.capture_territory('territory-test-user-1', 'Tiny', v_small_polygon);
-  EXCEPTION
-    WHEN OTHERS THEN
-      v_rejected := SQLERRM LIKE '%too small%';
-  END;
-  IF NOT v_rejected THEN
-    RAISE EXCEPTION 'Expected too small polygon rejection';
-  END IF;
-
-  SELECT territory_id, area_m2
-  INTO v_territory_id, v_area
-  FROM public.capture_territory(
-    'territory-test-user-1',
-    'User 1 Base Area',
-    v_polygon
-  );
-
-  IF v_territory_id IS NULL OR v_area <= 0 THEN
-    RAISE EXCEPTION 'Territory creation failed';
-  END IF;
-
-  SELECT public.start_territory_capture_session('territory-test-user-1')
-  INTO v_session_id;
-
-  PERFORM public.save_territory_capture_point(
-    'territory-test-user-1',
-    v_session_id,
-    41.00820,
-    28.97840,
-    5,
-    1.2,
-    90
-  );
-
-  v_rejected := false;
-  BEGIN
-    PERFORM public.finish_territory_capture_session(
-      'territory-test-user-2',
-      v_session_id,
-      'Wrong User Area',
-      v_overlap_polygon
-    );
-  EXCEPTION
-    WHEN OTHERS THEN
-      v_rejected := SQLERRM LIKE '%Invalid capture session%';
-  END;
-  IF NOT v_rejected THEN
-    RAISE EXCEPTION 'Expected invalid session owner rejection';
-  END IF;
-
-  SELECT territory_id, area_m2
-  INTO v_territory_id, v_area
-  FROM public.capture_territory(
-    'territory-test-user-2',
-    'User 2 Overlap Area',
-    v_overlap_polygon
-  );
-
-  SELECT COALESCE(SUM(area_m2), 0)
-  INTO v_user1_area
-  FROM public.captured_territories
-  WHERE owner_user_id = 'territory-test-user-1';
-
-  SELECT COALESCE(SUM(area_m2), 0)
-  INTO v_user2_area
-  FROM public.captured_territories
-  WHERE owner_user_id = 'territory-test-user-2';
-
-  IF v_user2_area <= 0 THEN
-    RAISE EXCEPTION 'Overlap capture did not create new territory';
-  END IF;
-
-  IF v_user1_area >= ST_Area(ST_SetSRID(ST_GeomFromGeoJSON(v_polygon::text), 4326)::geography) THEN
-    RAISE EXCEPTION 'Overlap capture did not cut old territory';
-  END IF;
-
-  SELECT total_area_m2
-  INTO v_leaderboard_total
-  FROM public.get_territory_leaderboard(10)
-  WHERE user_id = 'territory-test-user-2';
-
-  IF v_leaderboard_total IS NULL OR abs(v_leaderboard_total - v_user2_area) > 0.5 THEN
-    RAISE EXCEPTION 'Leaderboard total area mismatch';
-  END IF;
-END $$;
-
-ROLLBACK;

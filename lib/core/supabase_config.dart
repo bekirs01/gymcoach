@@ -5,14 +5,14 @@ abstract final class SupabaseConfig {
       _env('NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_URL') ??
       const String.fromEnvironment(
         'SUPABASE_URL',
-        defaultValue: 'https://vgwcwayexfkeelzueyfb.supabase.co',
+        defaultValue: 'https://sibussbdttgdcizldbzb.supabase.co',
       );
 
   static String get anonKey =>
       _env('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_ANON_KEY') ??
       const String.fromEnvironment(
         'SUPABASE_ANON_KEY',
-        defaultValue: 'sb_publishable_YicCj5QqafDbo8zMgCAbJg_fkaHdmms',
+        defaultValue: 'sb_publishable_Gmu702SI_o2BqNWBRl2VnQ_6o6cMCWb',
       );
 
   static String? _env(String primary, String fallback) {
