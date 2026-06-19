@@ -326,6 +326,10 @@ class _FeedPageState extends State<FeedPage> {
                     if (_isSeededPost(post)) {
                       return SeededFeedPostCard(
                         post: post,
+                        currentUser: SocialSeedRepository.socialProfileFor(
+                          SocialSeedRepository.currentUserId,
+                          currentProfile: widget.profile,
+                        ),
                         onChanged: (updated) => _onSeededPostChanged(index, updated),
                         onOpenProfile: () => _openSeededProfile(post.userId),
                       );
@@ -334,6 +338,10 @@ class _FeedPageState extends State<FeedPage> {
                     if (client == null) {
                       return SeededFeedPostCard(
                         post: post,
+                        currentUser: SocialSeedRepository.socialProfileFor(
+                          SocialSeedRepository.currentUserId,
+                          currentProfile: widget.profile,
+                        ),
                         onChanged: (updated) => _onSeededPostChanged(index, updated),
                         onOpenProfile: () => _openProfile(post),
                       );
@@ -341,6 +349,10 @@ class _FeedPageState extends State<FeedPage> {
                     return ApiFeedPostCard(
                       post: post,
                       client: client,
+                      currentUser: SocialSeedRepository.socialProfileFor(
+                        SocialSeedRepository.currentUserId,
+                        currentProfile: widget.profile,
+                      ),
                       onOpenProfile: _openProfile,
                       onPostChanged: (updated) => _onApiPostChanged(index, updated),
                       onPostRemoved: _onApiPostRemoved,
@@ -412,53 +424,19 @@ class _GymCoachBrandLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                PremiumColors.accentBlue.withValues(alpha: 0.35),
-                const Color(0xFFFF8A50).withValues(alpha: 0.28),
-              ],
-            ),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: PremiumColors.accentBlue.withValues(alpha: 0.35),
-                blurRadius: 14,
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.local_fire_department_rounded,
-            size: 16,
-            color: Color(0xFFFF8A50),
-          ),
+    return ShaderMask(
+      shaderCallback: (bounds) => const LinearGradient(
+        colors: [Colors.white, PremiumColors.accentBlueSoft],
+      ).createShader(bounds),
+      child: const Text(
+        'Gym Coach',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.6,
         ),
-        const SizedBox(width: 8),
-        ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [Colors.white, PremiumColors.accentBlueSoft],
-          ).createShader(bounds),
-          child: const Text(
-            'Gym Koç',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.6,
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -474,28 +452,25 @@ class _FeedHeaderIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(PremiumRadii.pill),
-        child: Ink(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: PremiumColors.surface.withValues(alpha: 0.55),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            boxShadow: [
-              BoxShadow(
-                color: PremiumColors.accentBlue.withValues(alpha: 0.22),
-                blurRadius: 12,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Icon(icon, size: 21, color: Colors.white),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: PremiumColors.surface.withValues(alpha: 0.55),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: PremiumColors.accentBlue.withValues(alpha: 0.22),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
+        child: Icon(icon, size: 21, color: Colors.white),
       ),
     );
   }

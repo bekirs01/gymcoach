@@ -1,5 +1,6 @@
 import '../../feed/domain/feed_story.dart';
 import '../../profile/domain/user_profile.dart';
+import '../domain/feed_comment.dart';
 import '../domain/feed_media.dart';
 import '../domain/feed_post.dart';
 import '../domain/social_profile.dart';
@@ -342,6 +343,7 @@ abstract final class SocialSeedRepository {
   }
 
   static FeedPost _toFeedPost(_SeedPostDef def, {UserProfile? currentProfile}) {
+    final comments = _seedCommentsForPost(def, currentProfile: currentProfile);
     return FeedPost(
       id: def.id,
       userId: def.userId,
@@ -357,12 +359,87 @@ abstract final class SocialSeedRepository {
           sortOrder: 0,
         ),
       ],
-      comments: const [],
+      comments: comments,
       likeCount: def.likeCount,
-      commentCount: def.commentCount,
+      commentCount: comments.length,
       likedByMe: false,
     );
   }
+
+  static List<FeedComment> _seedCommentsForPost(
+    _SeedPostDef def, {
+    UserProfile? currentProfile,
+  }) {
+    final templates = _commentTemplates[def.id] ?? const [];
+    return templates.asMap().entries.map((entry) {
+      final index = entry.key;
+      final template = entry.value;
+      return FeedComment(
+        id: '${def.id}_comment_$index',
+        postId: def.id,
+        userId: template.userId,
+        body: template.body,
+        createdAt: def.createdAt.subtract(Duration(minutes: (index + 1) * 3)),
+        author: socialProfileFor(template.userId, currentProfile: currentProfile),
+      );
+    }).toList();
+  }
+
+  static const _commentTemplates = <String, List<_CommentTemplate>>{
+    'seed_post_sofia_1': [
+      _CommentTemplate(userId: 'seed_maria', body: 'Love this energy!'),
+      _CommentTemplate(userId: 'seed_anastasia', body: 'Morning sessions hit different'),
+      _CommentTemplate(userId: 'seed_ekaterina', body: 'Сильная работа!'),
+      _CommentTemplate(userId: 'seed_alexey', body: 'Consistency is showing'),
+      _CommentTemplate(userId: 'seed_dmitry', body: 'Keep it up'),
+    ],
+    'seed_post_maria_1': [
+      _CommentTemplate(userId: 'seed_sofia', body: 'Small wins add up'),
+      _CommentTemplate(userId: 'seed_ivan', body: 'Nice progress'),
+      _CommentTemplate(userId: 'seed_maxim', body: 'Solid routine'),
+      _CommentTemplate(userId: 'seed_anastasia', body: 'Молодец!'),
+    ],
+    'seed_post_anastasia_1': [
+      _CommentTemplate(userId: 'seed_ekaterina', body: 'Stretching is underrated'),
+      _CommentTemplate(userId: 'seed_sofia', body: 'Recovery looks good'),
+      _CommentTemplate(userId: 'seed_maria', body: 'Great form'),
+    ],
+    'seed_post_ekaterina_1': [
+      _CommentTemplate(userId: 'seed_maxim', body: 'Leg day never gets easier'),
+      _CommentTemplate(userId: 'seed_dmitry', body: 'Strong finish'),
+      _CommentTemplate(userId: 'seed_alexey', body: 'Отличная тренировка'),
+      _CommentTemplate(userId: 'seed_ivan', body: 'Respect the grind'),
+      _CommentTemplate(userId: 'seed_sofia', body: 'You crushed it'),
+      _CommentTemplate(userId: 'seed_maria', body: 'Inspiring session'),
+    ],
+    'seed_post_alexey_1': [
+      _CommentTemplate(userId: 'seed_dmitry', body: 'Back day gains'),
+      _CommentTemplate(userId: 'seed_maxim', body: 'Looking strong'),
+      _CommentTemplate(userId: 'seed_ivan', body: 'Clean reps'),
+      _CommentTemplate(userId: 'seed_anastasia', body: 'Great work today'),
+    ],
+    'seed_post_dmitry_1': [
+      _CommentTemplate(userId: 'seed_alexey', body: 'Facts'),
+      _CommentTemplate(userId: 'seed_maxim', body: 'Motivation follows action'),
+      _CommentTemplate(userId: 'seed_sofia', body: 'Needed this reminder'),
+      _CommentTemplate(userId: 'seed_maria', body: 'Discipline wins'),
+      _CommentTemplate(userId: 'seed_ekaterina', body: 'Согласна полностью'),
+      _CommentTemplate(userId: 'seed_ivan', body: 'Steady progress'),
+      _CommentTemplate(userId: 'seed_anastasia', body: 'Well said'),
+    ],
+    'seed_post_maxim_1': [
+      _CommentTemplate(userId: 'seed_ivan', body: 'Evening cardio hits different'),
+      _CommentTemplate(userId: 'seed_sofia', body: 'Nice pace'),
+      _CommentTemplate(userId: 'seed_maria', body: 'Keep going'),
+    ],
+    'seed_post_ivan_1': [
+      _CommentTemplate(userId: 'seed_maxim', body: 'Clean session'),
+      _CommentTemplate(userId: 'seed_dmitry', body: 'One more rep mentality'),
+      _CommentTemplate(userId: 'seed_alexey', body: 'Solid work'),
+      _CommentTemplate(userId: 'seed_ekaterina', body: 'Хорошая работа'),
+      _CommentTemplate(userId: 'seed_anastasia', body: 'Consistency pays off'),
+    ],
+  };
 
   static List<_SeedPostDef> _seedPostDefinitions({UserProfile? currentProfile}) {
     final now = DateTime.now();
@@ -467,6 +544,16 @@ abstract final class SocialSeedRepository {
       ),
     ];
   }
+}
+
+class _CommentTemplate {
+  const _CommentTemplate({
+    required this.userId,
+    required this.body,
+  });
+
+  final String userId;
+  final String body;
 }
 
 class _SeedPostDef {

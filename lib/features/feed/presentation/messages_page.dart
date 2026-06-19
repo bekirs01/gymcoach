@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
-import '../../social/data/social_seed_data.dart';
+import '../../chat/data/chat_local_store.dart';
+import '../../chat/domain/chat_conversation.dart';
+import '../../chat/presentation/chat_conversation_screen.dart';
 import 'social_avatar.dart';
 
 class MessagesPage extends StatefulWidget {
@@ -15,50 +17,23 @@ class MessagesPage extends StatefulWidget {
 class _MessagesPageState extends State<MessagesPage> {
   var _query = '';
 
-  static const _conversationOrder = [
-    'seed_sofia',
-    'seed_maria',
-    'seed_anastasia',
-    'seed_ekaterina',
-    'seed_alexey',
-  ];
-
-  static const _lastMessages = {
-    'seed_sofia': 'See you at the gym tomorrow?',
-    'seed_maria': 'Great session today 💪',
-    'seed_anastasia': 'Sent a workout plan',
-    'seed_ekaterina': 'Thanks for the tips!',
-    'seed_alexey': 'Leg day was intense',
-  };
-
-  static const _times = {
-    'seed_sofia': '2m',
-    'seed_maria': '15m',
-    'seed_anastasia': '1h',
-    'seed_ekaterina': '3h',
-    'seed_alexey': '1d',
-  };
-
-  static const _unreadIds = {'seed_sofia', 'seed_anastasia', 'seed_alexey'};
-
-  List<SeededSocialUser> get _conversations {
-    final items = <SeededSocialUser>[];
-    for (final id in _conversationOrder) {
-      final user = SocialSeedRepository.userById(id);
-      if (user != null) items.add(user);
-    }
+  List<ChatConversation> get _conversations {
+    ChatLocalStore.ensureInitialized();
+    final items = ChatLocalStore.orderedConversations();
     final q = _query.trim().toLowerCase();
     if (q.isEmpty) return items;
-    return items.where((user) => user.displayName.toLowerCase().contains(q)).toList();
+    return items.where((conversation) => conversation.participantName.toLowerCase().contains(q)).toList();
   }
 
-  void _onConversationTap(SeededSocialUser user) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Chat with ${user.displayName} coming soon'),
-        behavior: SnackBarBehavior.floating,
+  Future<void> _onConversationTap(ChatConversation conversation) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => ChatConversationScreen(
+          participantUserId: conversation.participantUserId,
+        ),
       ),
     );
+    if (mounted) setState(() {});
   }
 
   @override
@@ -140,14 +115,15 @@ class _MessagesPageState extends State<MessagesPage> {
                           color: Colors.white.withValues(alpha: 0.06),
                         ),
                         itemBuilder: (context, index) {
-                          final user = conversations[index];
-                          final unread = _unreadIds.contains(user.id);
+                          final conversation = conversations[index];
+                          final unread = conversation.unreadCount > 0;
                           return _ConversationRow(
-                            user: user,
-                            lastMessage: _lastMessages[user.id] ?? '',
-                            time: _times[user.id] ?? '',
+                            name: conversation.participantName,
+                            avatarUrl: conversation.avatarUrl,
+                            lastMessage: conversation.lastMessagePreview,
+                            time: ChatLocalStore.formatRelativeTime(conversation.lastMessageTime),
                             unread: unread,
-                            onTap: () => _onConversationTap(user),
+                            onTap: () => _onConversationTap(conversation),
                           );
                         },
                       ),
@@ -162,14 +138,16 @@ class _MessagesPageState extends State<MessagesPage> {
 
 class _ConversationRow extends StatelessWidget {
   const _ConversationRow({
-    required this.user,
+    required this.name,
+    required this.avatarUrl,
     required this.lastMessage,
     required this.time,
     required this.unread,
     required this.onTap,
   });
 
-  final SeededSocialUser user;
+  final String name;
+  final String avatarUrl;
   final String lastMessage;
   final String time;
   final bool unread;
@@ -187,8 +165,8 @@ class _ConversationRow extends StatelessWidget {
           child: Row(
             children: [
               SocialAvatar(
-                name: user.displayName,
-                imageUrl: user.avatarUrl,
+                name: name,
+                imageUrl: avatarUrl,
                 size: 52,
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -200,7 +178,7 @@ class _ConversationRow extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            user.displayName,
+                            name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(

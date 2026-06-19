@@ -10,8 +10,8 @@ import 'home_widgets.dart';
 class ArticlesSection extends StatelessWidget {
   const ArticlesSection({super.key});
 
-  static const _cardWidth = 268.0;
-  static const _carouselHeight = 292.0;
+  static const _cardWidth = 258.0;
+  static const _carouselHeight = 252.0;
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +98,7 @@ class ArticleCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(PremiumRadii.lg)),
                   child: SizedBox(
-                    height: 132,
+                    height: 114,
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -129,7 +129,7 @@ class ArticleCard extends StatelessWidget {
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                    padding: const EdgeInsets.fromLTRB(11, 8, 11, 10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -317,11 +317,48 @@ class _ArticleDetailSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        content.body,
+                        content.intro,
                         style: const TextStyle(
                           color: PremiumColors.textSecondary,
                           fontSize: 15,
                           height: 1.55,
+                        ),
+                      ),
+                      ...content.sections.map((section) => _DetailSection(section: section)),
+                      const SizedBox(height: 20),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: PremiumColors.accentBlue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(PremiumRadii.md),
+                          border: Border.all(
+                            color: PremiumColors.accentBlue.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              content.takeawayHeading,
+                              style: TextStyle(
+                                color: PremiumColors.accentBlue.withValues(alpha: 0.95),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              content.takeaway,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                height: 1.45,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -331,6 +368,75 @@ class _ArticleDetailSheet extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _DetailSection extends StatelessWidget {
+  const _DetailSection({required this.section});
+
+  final ArticleSection section;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            section.title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              height: 1.25,
+            ),
+          ),
+          if (section.body.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              section.body,
+              style: const TextStyle(
+                color: PremiumColors.textSecondary,
+                fontSize: 15,
+                height: 1.55,
+              ),
+            ),
+          ],
+          if (section.bullets.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...section.bullets.map(
+              (bullet) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 7, right: 10),
+                      child: Icon(
+                        Icons.circle,
+                        size: 5,
+                        color: PremiumColors.accentBlue,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        bullet,
+                        style: const TextStyle(
+                          color: PremiumColors.textSecondary,
+                          fontSize: 14,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

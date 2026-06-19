@@ -5,6 +5,7 @@ import '../../../../app/widgets/premium_image_viewer.dart';
 import '../../../social/data/social_api_client.dart';
 import '../../../social/domain/feed_comment.dart';
 import '../../../social/domain/feed_post.dart';
+import '../../../social/domain/social_profile.dart';
 import 'network_image_with_fallback.dart';
 import '../social_avatar.dart';
 
@@ -12,11 +13,13 @@ class SeededFeedPostCard extends StatefulWidget {
   const SeededFeedPostCard({
     super.key,
     required this.post,
+    required this.currentUser,
     required this.onChanged,
     this.onOpenProfile,
   });
 
   final FeedPost post;
+  final SocialProfile currentUser;
   final ValueChanged<FeedPost> onChanged;
   final VoidCallback? onOpenProfile;
 
@@ -65,6 +68,28 @@ class _SeededFeedPostCardState extends State<SeededFeedPostCard> {
     setState(() => _saved = !_saved);
   }
 
+  Future<void> _openComments() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CommentsSheet(
+        post: widget.post,
+        currentUser: widget.currentUser,
+        onCommentsChanged: (comments) {
+          widget.onChanged(
+            widget.post.copyWith(
+              comments: comments,
+              commentCount: comments.length,
+              likedByMe: _liked,
+              likeCount: _likeCount,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   String _relative(DateTime value) {
     final diff = DateTime.now().difference(value);
     if (diff.inMinutes < 1) return 'now';
@@ -89,17 +114,10 @@ class _SeededFeedPostCardState extends State<SeededFeedPostCard> {
       liked: _liked,
       saved: _saved,
       likeCount: _likeCount,
-      commentCount: post.commentCount,
+      commentCount: post.comments.length,
       onLike: _toggleLike,
       onSave: _toggleSave,
-      onComment: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Comments coming soon'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      },
+      onComment: () => _openComments(),
       onMenu: () {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -108,14 +126,7 @@ class _SeededFeedPostCardState extends State<SeededFeedPostCard> {
           ),
         );
       },
-      onCommentFieldTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Comments coming soon'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      },
+      onCommentFieldTap: () => _openComments(),
       onAvatarTap: widget.onOpenProfile,
       onHeaderTap: widget.onOpenProfile,
     );
@@ -127,6 +138,7 @@ class ApiFeedPostCard extends StatefulWidget {
     super.key,
     required this.post,
     required this.client,
+    required this.currentUser,
     required this.onOpenProfile,
     required this.onPostChanged,
     required this.onPostRemoved,
@@ -134,6 +146,7 @@ class ApiFeedPostCard extends StatefulWidget {
 
   final FeedPost post;
   final SocialApiClient client;
+  final SocialProfile currentUser;
   final ValueChanged<FeedPost> onOpenProfile;
   final ValueChanged<FeedPost> onPostChanged;
   final ValueChanged<String> onPostRemoved;
@@ -156,7 +169,7 @@ class _ApiFeedPostCardState extends State<ApiFeedPostCard> {
     super.initState();
     _likedByMe = widget.post.likedByMe;
     _likeCount = widget.post.likeCount;
-    _commentCount = widget.post.commentCount;
+    _commentCount = widget.post.comments.length;
     _savedByMe = widget.client.isPostSaved(widget.post.id);
   }
 
@@ -222,13 +235,15 @@ class _ApiFeedPostCardState extends State<ApiFeedPostCard> {
       builder: (_) => _CommentsSheet(
         post: widget.post,
         client: widget.client,
-        onCommentAdded: () {
-          setState(() => _commentCount += 1);
+        currentUser: widget.currentUser,
+        onCommentsChanged: (comments) {
+          setState(() => _commentCount = comments.length);
           widget.onPostChanged(
             widget.post.copyWith(
               likedByMe: _likedByMe,
               likeCount: _likeCount,
-              commentCount: _commentCount,
+              comments: comments,
+              commentCount: comments.length,
             ),
           );
         },
@@ -548,7 +563,6 @@ class FeedActionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final likeLabel = likeCount == 1 ? '1 like' : '$likeCount likes';
-    final meta = commentCount > 0 ? '$likeLabel · $commentCount comments' : likeLabel;
 
     return Row(
       children: [
@@ -569,13 +583,35 @@ class FeedActionRow extends StatelessWidget {
         ),
         const Spacer(),
         Text(
-          meta,
+          likeLabel,
           style: const TextStyle(
             color: PremiumColors.textSecondary,
             fontWeight: FontWeight.w700,
             fontSize: 13,
           ),
         ),
+        if (commentCount > 0) ...[
+          const Text(
+            ' · ',
+            style: TextStyle(
+              color: PremiumColors.textSecondary,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+          GestureDetector(
+            onTap: onComment,
+            behavior: HitTestBehavior.opaque,
+            child: Text(
+              commentCount == 1 ? '1 comment' : '$commentCount comments',
+              style: const TextStyle(
+                color: PremiumColors.textSecondary,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -661,13 +697,15 @@ class FeedCommentField extends StatelessWidget {
 class _CommentsSheet extends StatefulWidget {
   const _CommentsSheet({
     required this.post,
-    required this.client,
-    required this.onCommentAdded,
+    this.client,
+    this.currentUser,
+    required this.onCommentsChanged,
   });
 
   final FeedPost post;
-  final SocialApiClient client;
-  final VoidCallback onCommentAdded;
+  final SocialApiClient? client;
+  final SocialProfile? currentUser;
+  final ValueChanged<List<FeedComment>> onCommentsChanged;
 
   @override
   State<_CommentsSheet> createState() => _CommentsSheetState();
@@ -684,108 +722,204 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     super.dispose();
   }
 
+  String _relative(DateTime value) {
+    final diff = DateTime.now().difference(value);
+    if (diff.inMinutes < 1) return 'now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inHours < 48) return 'yesterday';
+    return '${diff.inDays}d ago';
+  }
+
   Future<void> _send() async {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
-    setState(() => _sending = true);
-    final comment = await widget.client.addComment(widget.post.id, text);
-    if (!mounted) return;
+    if (text.isEmpty || _sending) return;
+
+    final client = widget.client;
+    if (client != null) {
+      setState(() => _sending = true);
+      final comment = await client.addComment(widget.post.id, text);
+      if (!mounted) return;
+      setState(() {
+        _comments.add(comment);
+        _controller.clear();
+        _sending = false;
+      });
+      widget.onCommentsChanged(List<FeedComment>.from(_comments));
+      return;
+    }
+
+    final author = widget.currentUser;
+    if (author == null) return;
+
+    final comment = FeedComment(
+      id: 'local_${DateTime.now().millisecondsSinceEpoch}',
+      postId: widget.post.id,
+      userId: author.userId,
+      body: text,
+      createdAt: DateTime.now(),
+      author: author,
+    );
     setState(() {
       _comments.add(comment);
       _controller.clear();
-      _sending = false;
     });
-    widget.onCommentAdded();
+    widget.onCommentsChanged(List<FeedComment>.from(_comments));
   }
 
   @override
   Widget build(BuildContext context) {
+    final inputUser = widget.currentUser;
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
     return DraggableScrollableSheet(
       initialChildSize: 0.72,
       minChildSize: 0.45,
       maxChildSize: 0.94,
       builder: (context, scrollController) {
-        return Material(
-          color: PremiumColors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(PremiumRadii.xl)),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              children: [
-                const SizedBox(height: 10),
-                Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: PremiumColors.glassBorder,
-                    borderRadius: BorderRadius.circular(PremiumRadii.pill),
+        return Container(
+          decoration: BoxDecoration(
+            color: PremiumColors.midnightBottom,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(PremiumRadii.xl)),
+            border: Border.all(color: PremiumColors.glassBorder),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: PremiumColors.glassBorder,
+                      borderRadius: BorderRadius.circular(PremiumRadii.pill),
+                    ),
                   ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    'Comments',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'Comments',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: ListView.separated(
-                    controller: scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _comments.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) {
-                      final c = _comments[i];
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SocialAvatar(name: c.author.displayName, imageUrl: c.author.avatarUrl, size: 34),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  c.author.displayName.isEmpty ? 'Athlete' : c.author.displayName,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                                ),
-                                Text(c.body, style: const TextStyle(color: PremiumColors.textSecondary)),
-                              ],
+                  Expanded(
+                    child: _comments.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No comments yet',
+                              style: TextStyle(
+                                color: PremiumColors.textMuted,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
+                          )
+                        : ListView.separated(
+                            controller: scrollController,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: _comments.length,
+                            separatorBuilder: (context, index) => const SizedBox(height: 14),
+                            itemBuilder: (context, i) {
+                              final c = _comments[i];
+                              final name = c.author.displayName.isEmpty ? 'Athlete' : c.author.displayName;
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SocialAvatar(name: name, imageUrl: c.author.avatarUrl, size: 34),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                            Text(
+                                              _relative(c.createdAt),
+                                              style: const TextStyle(
+                                                color: PremiumColors.textMuted,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          c.body,
+                                          style: const TextStyle(
+                                            color: PremiumColors.textSecondary,
+                                            height: 1.35,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
-                        ],
-                      );
-                    },
                   ),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.viewInsetsOf(context).bottom + 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _controller,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: 'Write a comment...',
-                            hintStyle: const TextStyle(color: PremiumColors.textMuted),
-                            filled: true,
-                            fillColor: PremiumColors.midnightBottom,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(PremiumRadii.pill),
-                              borderSide: BorderSide.none,
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
+                    child: Row(
+                      children: [
+                        if (inputUser != null) ...[
+                          SocialAvatar(
+                            name: inputUser.displayName.isEmpty ? 'You' : inputUser.displayName,
+                            imageUrl: inputUser.avatarUrl,
+                            size: 34,
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        Expanded(
+                          child: TextField(
+                            controller: _controller,
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                            decoration: InputDecoration(
+                              hintText: 'Add a comment...',
+                              hintStyle: const TextStyle(color: PremiumColors.textMuted),
+                              filled: true,
+                              fillColor: PremiumColors.surface.withValues(alpha: 0.65),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(PremiumRadii.pill),
+                                borderSide: BorderSide(color: PremiumColors.glassBorder),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(PremiumRadii.pill),
+                                borderSide: BorderSide(
+                                  color: PremiumColors.accentBlue.withValues(alpha: 0.45),
+                                ),
+                              ),
                             ),
+                            onSubmitted: (_) => _send(),
                           ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: _sending ? null : _send,
-                        icon: const Icon(Icons.send_rounded, color: PremiumColors.accentBlue),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        IconButton(
+                          onPressed: _sending ? null : _send,
+                          icon: const Icon(Icons.send_rounded, color: PremiumColors.accentBlue),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );

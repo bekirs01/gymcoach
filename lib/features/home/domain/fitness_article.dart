@@ -1,17 +1,35 @@
+class ArticleSection {
+  const ArticleSection({
+    required this.title,
+    this.body = '',
+    this.bullets = const [],
+  });
+
+  final String title;
+  final String body;
+  final List<String> bullets;
+}
+
 class ArticleContent {
   const ArticleContent({
     required this.title,
     required this.subtitle,
     required this.category,
     required this.readTime,
-    required this.body,
+    required this.intro,
+    required this.sections,
+    required this.takeaway,
+    this.takeawayHeading = 'Key takeaway',
   });
 
   final String title;
   final String subtitle;
   final String category;
   final String readTime;
-  final String body;
+  final String intro;
+  final List<ArticleSection> sections;
+  final String takeaway;
+  final String takeawayHeading;
 }
 
 class FitnessArticle {

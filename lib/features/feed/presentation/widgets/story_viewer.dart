@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -56,15 +57,19 @@ class StoryViewerPage extends StatefulWidget {
   State<StoryViewerPage> createState() => _StoryViewerPageState();
 }
 
-class _StoryViewerPageState extends State<StoryViewerPage> with SingleTickerProviderStateMixin {
+class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderStateMixin {
   static const _slideDuration = Duration(seconds: 5);
+  static const _swipeThresholdRatio = 0.25;
+  static const _swipeVelocityThreshold = 800.0;
 
   late int _storyIndex;
   late int _slideIndex;
   late AnimationController _progressController;
   late PageController _storyPageController;
+  AnimationController? _pageAnimController;
   bool _isPaused = false;
   bool _programmaticPageChange = false;
+  bool _isStoryDragging = false;
 
   FeedStory get _story => widget.stories[_storyIndex];
 
@@ -89,6 +94,7 @@ class _StoryViewerPageState extends State<StoryViewerPage> with SingleTickerProv
 
   @override
   void dispose() {
+    _pageAnimController?.dispose();
     _progressController
       ..removeStatusListener(_onProgressStatus)
       ..dispose();
@@ -153,6 +159,126 @@ class _StoryViewerPageState extends State<StoryViewerPage> with SingleTickerProv
       _slideIndex = 0;
     });
     _resetSlideProgress();
+  }
+
+  void _onHoldStart() {
+    _isStoryDragging = false;
+    _pauseProgress();
+  }
+
+  void _onHoldDragUpdate(double offsetDx) {
+    if (offsetDx.abs() > 6) {
+      _isStoryDragging = true;
+    }
+    _applyStoryDragOffset(offsetDx);
+  }
+
+  void _applyStoryDragOffset(double offsetDx) {
+    if (!_storyPageController.hasClients || !mounted) return;
+    final width = MediaQuery.sizeOf(context).width;
+    final viewport = _storyPageController.position.viewportDimension;
+    var targetPage = _storyIndex - (offsetDx / width);
+    final minPage = _storyIndex > 0 ? _storyIndex - 1.0 : _storyIndex - 0.4;
+    final maxPage =
+        _storyIndex < widget.stories.length - 1 ? _storyIndex + 1.0 : _storyIndex + 0.4;
+    targetPage = targetPage.clamp(minPage, maxPage);
+    _storyPageController.jumpTo(targetPage * viewport);
+  }
+
+  Future<void> _animatePageTo(double targetPage) async {
+    if (!_storyPageController.hasClients || !mounted) return;
+    final viewport = _storyPageController.position.viewportDimension;
+    final startPage = _storyPageController.page ?? _storyIndex.toDouble();
+    _pageAnimController?.dispose();
+    final controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _pageAnimController = controller;
+    final animation = CurvedAnimation(parent: controller, curve: Curves.easeOutCubic);
+    void listener() {
+      if (!_storyPageController.hasClients) return;
+      final page = startPage + (targetPage - startPage) * animation.value;
+      _storyPageController.jumpTo(page * viewport);
+    }
+    controller.addListener(listener);
+    await controller.forward();
+    controller
+      ..removeListener(listener)
+      ..dispose();
+    if (_pageAnimController == controller) {
+      _pageAnimController = null;
+    }
+  }
+
+  Future<void> _completeStoryTransition(int targetIndex, {required bool isNext}) async {
+    _programmaticPageChange = true;
+    await _animatePageTo(targetIndex.toDouble());
+    _programmaticPageChange = false;
+    if (!mounted || targetIndex == _storyIndex) return;
+    setState(() {
+      _storyIndex = targetIndex;
+      if (isNext) {
+        _slideIndex = 0;
+      } else {
+        final slides = _slidesForStory(widget.stories[targetIndex]);
+        _slideIndex = slides.isEmpty ? 0 : slides.length - 1;
+      }
+    });
+    _resetSlideProgress();
+  }
+
+  Future<void> _snapStoryPageBack() async {
+    _programmaticPageChange = true;
+    await _animatePageTo(_storyIndex.toDouble());
+    _programmaticPageChange = false;
+    if (mounted) _resumeProgress();
+  }
+
+  Future<void> _closeFromDrag() async {
+    _programmaticPageChange = true;
+    await _animatePageTo(_storyIndex + 0.45);
+    _programmaticPageChange = false;
+    if (mounted) _close();
+  }
+
+  void _onHoldEnd(double offsetDx, double velocity) {
+    if (!_isStoryDragging) {
+      _resumeProgress();
+      return;
+    }
+    _isStoryDragging = false;
+
+    final width = MediaQuery.sizeOf(context).width;
+    final threshold = width * _swipeThresholdRatio;
+    final shouldGoNext = offsetDx < -threshold || velocity < -_swipeVelocityThreshold;
+    final shouldGoPrev = offsetDx > threshold || velocity > _swipeVelocityThreshold;
+
+    if (shouldGoNext) {
+      if (_storyIndex < widget.stories.length - 1) {
+        unawaited(_completeStoryTransition(_storyIndex + 1, isNext: true));
+        return;
+      }
+      unawaited(_closeFromDrag());
+      return;
+    }
+
+    if (shouldGoPrev && _storyIndex > 0) {
+      unawaited(_completeStoryTransition(_storyIndex - 1, isNext: false));
+      return;
+    }
+
+    unawaited(_snapStoryPageBack());
+  }
+
+  void _onHoldCancel() {
+    _isStoryDragging = false;
+    if (_storyPageController.hasClients &&
+        (_storyPageController.page ?? _storyIndex.toDouble()) != _storyIndex.toDouble()) {
+      unawaited(_snapStoryPageBack());
+      return;
+    }
+    _resumeProgress();
   }
 
   void _goPreviousSlide() {
@@ -244,9 +370,10 @@ class _StoryViewerPageState extends State<StoryViewerPage> with SingleTickerProv
             child: StoryGestureLayer(
               onTapLeft: _goPreviousSlide,
               onTapRight: _goNextSlide,
-              onLongPressStart: _pauseProgress,
-              onLongPressEnd: _resumeProgress,
-              onLongPressCancel: _resumeProgress,
+              onHoldStart: _onHoldStart,
+              onHoldDragUpdate: _onHoldDragUpdate,
+              onHoldEnd: _onHoldEnd,
+              onHoldCancel: _onHoldCancel,
             ),
           ),
           Positioned(
@@ -319,7 +446,7 @@ class CubeStoryPageView extends StatelessWidget {
   Widget build(BuildContext context) {
     return PageView.builder(
       controller: controller,
-      physics: const ClampingScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
       onPageChanged: onPageChanged,
       itemCount: stories.length,
       itemBuilder: (context, index) {
@@ -348,45 +475,86 @@ class CubeStoryPageView extends StatelessWidget {
   }
 }
 
-class StoryGestureLayer extends StatelessWidget {
+class StoryGestureLayer extends StatefulWidget {
   const StoryGestureLayer({
     super.key,
     required this.onTapLeft,
     required this.onTapRight,
-    required this.onLongPressStart,
-    required this.onLongPressEnd,
-    required this.onLongPressCancel,
+    required this.onHoldStart,
+    required this.onHoldDragUpdate,
+    required this.onHoldEnd,
+    required this.onHoldCancel,
   });
 
   final VoidCallback onTapLeft;
   final VoidCallback onTapRight;
-  final VoidCallback onLongPressStart;
-  final VoidCallback onLongPressEnd;
-  final VoidCallback onLongPressCancel;
+  final VoidCallback onHoldStart;
+  final ValueChanged<double> onHoldDragUpdate;
+  final void Function(double offsetDx, double velocity) onHoldEnd;
+  final VoidCallback onHoldCancel;
+
+  @override
+  State<StoryGestureLayer> createState() => _StoryGestureLayerState();
+}
+
+class _StoryGestureLayerState extends State<StoryGestureLayer> {
+  var _didDrag = false;
+  var _lastOffsetDx = 0.0;
+  DateTime? _lastMoveTime;
+  var _velocity = 0.0;
+
+  void _resetDragTracking() {
+    _didDrag = false;
+    _lastOffsetDx = 0.0;
+    _lastMoveTime = null;
+    _velocity = 0.0;
+  }
+
+  void _trackVelocity(double offsetDx) {
+    final now = DateTime.now();
+    if (_lastMoveTime != null) {
+      final elapsedMs = now.difference(_lastMoveTime!).inMicroseconds;
+      if (elapsedMs > 0) {
+        _velocity = ((offsetDx - _lastOffsetDx) / elapsedMs) * 1000000;
+      }
+    }
+    _lastOffsetDx = offsetDx;
+    _lastMoveTime = now;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onTapLeft,
-            onLongPressStart: (_) => onLongPressStart(),
-            onLongPressEnd: (_) => onLongPressEnd(),
-            onLongPressCancel: onLongPressCancel,
-          ),
-        ),
-        Expanded(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onTapRight,
-            onLongPressStart: (_) => onLongPressStart(),
-            onLongPressEnd: (_) => onLongPressEnd(),
-            onLongPressCancel: onLongPressCancel,
-          ),
-        ),
-      ],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapUp: (details) {
+        if (_didDrag) return;
+        final width = MediaQuery.sizeOf(context).width;
+        if (details.localPosition.dx < width * 0.5) {
+          widget.onTapLeft();
+        } else {
+          widget.onTapRight();
+        }
+      },
+      onLongPressStart: (_) {
+        _resetDragTracking();
+        widget.onHoldStart();
+      },
+      onLongPressMoveUpdate: (details) {
+        final offsetDx = details.offsetFromOrigin.dx;
+        if (offsetDx.abs() > 6) {
+          _didDrag = true;
+        }
+        _trackVelocity(offsetDx);
+        widget.onHoldDragUpdate(offsetDx);
+      },
+      onLongPressEnd: (_) {
+        widget.onHoldEnd(_lastOffsetDx, _velocity);
+        _resetDragTracking();
+      },
+      onLongPressCancel: () {
+        widget.onHoldCancel();
+        _resetDragTracking();
+      },
     );
   }
 }
