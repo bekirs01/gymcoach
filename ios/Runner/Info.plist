@@ -70,5 +70,7 @@
 	<string>GymCoach uses the camera to track exercise form and count repetitions on device.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>GymCoach uses your location while the app is open to show your position on the map and record territory capture routes.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>GymCoach uses the microphone to record voice messages in chat.</string>
 </dict>
 </plist>

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -59,17 +58,18 @@ class StoryViewerPage extends StatefulWidget {
 
 class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderStateMixin {
   static const _slideDuration = Duration(seconds: 5);
-  static const _swipeThresholdRatio = 0.25;
+  static const _swipeThresholdRatio = 0.28;
   static const _swipeVelocityThreshold = 800.0;
+  static const _transitionDuration = Duration(milliseconds: 260);
 
   late int _storyIndex;
   late int _slideIndex;
   late AnimationController _progressController;
-  late PageController _storyPageController;
-  AnimationController? _pageAnimController;
+  AnimationController? _dragAnimController;
   bool _isPaused = false;
-  bool _programmaticPageChange = false;
   bool _isStoryDragging = false;
+  bool _isTransitioning = false;
+  double _dragOffset = 0;
 
   FeedStory get _story => widget.stories[_storyIndex];
 
@@ -84,7 +84,6 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
     super.initState();
     _storyIndex = widget.initialStoryIndex.clamp(0, widget.stories.length - 1);
     _slideIndex = 0;
-    _storyPageController = PageController(initialPage: _storyIndex);
     _progressController = AnimationController(vsync: this, duration: _slideDuration);
     _progressController.addStatusListener(_onProgressStatus);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -94,16 +93,15 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
 
   @override
   void dispose() {
-    _pageAnimController?.dispose();
+    _dragAnimController?.dispose();
     _progressController
       ..removeStatusListener(_onProgressStatus)
       ..dispose();
-    _storyPageController.dispose();
     super.dispose();
   }
 
   void _onProgressStatus(AnimationStatus status) {
-    if (!mounted || _isPaused) return;
+    if (!mounted || _isPaused || _isTransitioning || _isStoryDragging) return;
     if (status == AnimationStatus.completed) {
       _goNextSlide();
     }
@@ -142,82 +140,54 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
     Navigator.of(context).pop();
   }
 
-  void _syncStoryPageController(int index) {
-    if (!_storyPageController.hasClients) return;
-    final currentPage = _storyPageController.page?.round() ?? _storyIndex;
-    if (currentPage == index) return;
-    _programmaticPageChange = true;
-    _storyPageController.jumpToPage(index);
-    _programmaticPageChange = false;
+  double _screenWidth() => MediaQuery.sizeOf(context).width;
+
+  double _clampDragOffset(double offsetDx) {
+    final width = _screenWidth();
+    final maxLeft =
+        _storyIndex < widget.stories.length - 1 ? width : width * 0.4;
+    final maxRight = _storyIndex > 0 ? width : width * 0.4;
+    return offsetDx.clamp(-maxLeft, maxRight);
   }
 
-  void _onStoryPageChanged(int index) {
-    if (!mounted || _programmaticPageChange) return;
-    if (index == _storyIndex) return;
-    setState(() {
-      _storyIndex = index;
-      _slideIndex = 0;
-    });
-    _resetSlideProgress();
-  }
-
-  void _onHoldStart() {
-    _isStoryDragging = false;
-    _pauseProgress();
-  }
-
-  void _onHoldDragUpdate(double offsetDx) {
-    if (offsetDx.abs() > 6) {
-      _isStoryDragging = true;
-    }
-    _applyStoryDragOffset(offsetDx);
-  }
-
-  void _applyStoryDragOffset(double offsetDx) {
-    if (!_storyPageController.hasClients || !mounted) return;
-    final width = MediaQuery.sizeOf(context).width;
-    final viewport = _storyPageController.position.viewportDimension;
-    var targetPage = _storyIndex - (offsetDx / width);
-    final minPage = _storyIndex > 0 ? _storyIndex - 1.0 : _storyIndex - 0.4;
-    final maxPage =
-        _storyIndex < widget.stories.length - 1 ? _storyIndex + 1.0 : _storyIndex + 0.4;
-    targetPage = targetPage.clamp(minPage, maxPage);
-    _storyPageController.jumpTo(targetPage * viewport);
-  }
-
-  Future<void> _animatePageTo(double targetPage) async {
-    if (!_storyPageController.hasClients || !mounted) return;
-    final viewport = _storyPageController.position.viewportDimension;
-    final startPage = _storyPageController.page ?? _storyIndex.toDouble();
-    _pageAnimController?.dispose();
-    final controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 280),
-    );
-    _pageAnimController = controller;
+  Future<void> _runDragAnimation({required double target}) async {
+    if (!mounted) return;
+    _isTransitioning = true;
+    final start = _dragOffset;
+    _dragAnimController?.dispose();
+    final controller = AnimationController(vsync: this, duration: _transitionDuration);
+    _dragAnimController = controller;
     final animation = CurvedAnimation(parent: controller, curve: Curves.easeOutCubic);
     void listener() {
-      if (!_storyPageController.hasClients) return;
-      final page = startPage + (targetPage - startPage) * animation.value;
-      _storyPageController.jumpTo(page * viewport);
+      if (!mounted) return;
+      setState(() {
+        _dragOffset = start + (target - start) * animation.value;
+      });
     }
+
     controller.addListener(listener);
     await controller.forward();
     controller
       ..removeListener(listener)
       ..dispose();
-    if (_pageAnimController == controller) {
-      _pageAnimController = null;
+    if (_dragAnimController == controller) {
+      _dragAnimController = null;
     }
   }
 
-  Future<void> _completeStoryTransition(int targetIndex, {required bool isNext}) async {
-    _programmaticPageChange = true;
-    await _animatePageTo(targetIndex.toDouble());
-    _programmaticPageChange = false;
-    if (!mounted || targetIndex == _storyIndex) return;
+  Future<void> _completeStoryTransition({required bool isNext}) async {
+    if (!mounted || _isTransitioning) return;
+    final width = _screenWidth();
+    final targetOffset = isNext ? -width : width;
+    final targetIndex = isNext ? _storyIndex + 1 : _storyIndex - 1;
+
+    await _runDragAnimation(target: targetOffset);
+    if (!mounted) return;
+
     setState(() {
       _storyIndex = targetIndex;
+      _dragOffset = 0;
+      _isTransitioning = false;
       if (isNext) {
         _slideIndex = 0;
       } else {
@@ -229,34 +199,52 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
   }
 
   Future<void> _snapStoryPageBack() async {
-    _programmaticPageChange = true;
-    await _animatePageTo(_storyIndex.toDouble());
-    _programmaticPageChange = false;
-    if (mounted) _resumeProgress();
+    if (!mounted || _isTransitioning) return;
+    await _runDragAnimation(target: 0);
+    if (!mounted) return;
+    setState(() => _isTransitioning = false);
+    _resumeProgress();
   }
 
   Future<void> _closeFromDrag() async {
-    _programmaticPageChange = true;
-    await _animatePageTo(_storyIndex + 0.45);
-    _programmaticPageChange = false;
+    if (!mounted || _isTransitioning) return;
+    await _runDragAnimation(target: -_screenWidth() * 0.42);
     if (mounted) _close();
   }
 
+  void _onHoldStart() {
+    if (_isTransitioning) return;
+    _isStoryDragging = false;
+    _pauseProgress();
+  }
+
+  void _onHoldDragUpdate(double offsetDx) {
+    if (_isTransitioning || !mounted) return;
+    if (offsetDx.abs() > 6) {
+      _isStoryDragging = true;
+    }
+    setState(() {
+      _dragOffset = _clampDragOffset(offsetDx);
+    });
+  }
+
   void _onHoldEnd(double offsetDx, double velocity) {
+    if (_isTransitioning) return;
+
     if (!_isStoryDragging) {
       _resumeProgress();
       return;
     }
     _isStoryDragging = false;
 
-    final width = MediaQuery.sizeOf(context).width;
+    final width = _screenWidth();
     final threshold = width * _swipeThresholdRatio;
     final shouldGoNext = offsetDx < -threshold || velocity < -_swipeVelocityThreshold;
     final shouldGoPrev = offsetDx > threshold || velocity > _swipeVelocityThreshold;
 
     if (shouldGoNext) {
       if (_storyIndex < widget.stories.length - 1) {
-        unawaited(_completeStoryTransition(_storyIndex + 1, isNext: true));
+        unawaited(_completeStoryTransition(isNext: true));
         return;
       }
       unawaited(_closeFromDrag());
@@ -264,7 +252,7 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
     }
 
     if (shouldGoPrev && _storyIndex > 0) {
-      unawaited(_completeStoryTransition(_storyIndex - 1, isNext: false));
+      unawaited(_completeStoryTransition(isNext: false));
       return;
     }
 
@@ -273,8 +261,8 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
 
   void _onHoldCancel() {
     _isStoryDragging = false;
-    if (_storyPageController.hasClients &&
-        (_storyPageController.page ?? _storyIndex.toDouble()) != _storyIndex.toDouble()) {
+    if (_isTransitioning) return;
+    if (_dragOffset != 0) {
       unawaited(_snapStoryPageBack());
       return;
     }
@@ -282,6 +270,7 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
   }
 
   void _goPreviousSlide() {
+    if (_isTransitioning || _isStoryDragging) return;
     if (_slideIndex > 0) {
       setState(() => _slideIndex -= 1);
       _resetSlideProgress();
@@ -293,8 +282,8 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
       setState(() {
         _storyIndex -= 1;
         _slideIndex = previousSlides.isEmpty ? 0 : previousSlides.length - 1;
+        _dragOffset = 0;
       });
-      _syncStoryPageController(_storyIndex);
       _resetSlideProgress();
       return;
     }
@@ -302,6 +291,7 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
   }
 
   void _goNextSlide() {
+    if (_isTransitioning || _isStoryDragging) return;
     if (_slideIndex < _slides.length - 1) {
       setState(() => _slideIndex += 1);
       _resetSlideProgress();
@@ -311,8 +301,8 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
       setState(() {
         _storyIndex += 1;
         _slideIndex = 0;
+        _dragOffset = 0;
       });
-      _syncStoryPageController(_storyIndex);
       _resetSlideProgress();
       return;
     }
@@ -328,6 +318,9 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
     if (storyIndex == _storyIndex) {
       return slides[_slideIndex.clamp(0, slides.length - 1)];
     }
+    if (storyIndex < _storyIndex) {
+      return slides.last;
+    }
     return slides.first;
   }
 
@@ -341,11 +334,11 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
         fit: StackFit.expand,
         children: [
           Positioned.fill(
-            child: CubeStoryPageView(
-              controller: _storyPageController,
+            child: StorySwipeTransition(
               stories: widget.stories,
+              storyIndex: _storyIndex,
+              dragOffset: _dragOffset,
               slideForStoryAt: _slideForStoryAt,
-              onPageChanged: _onStoryPageChanged,
             ),
           ),
           Positioned.fill(
@@ -368,6 +361,7 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
           ),
           Positioned.fill(
             child: StoryGestureLayer(
+              enabled: !_isTransitioning,
               onTapLeft: _goPreviousSlide,
               onTapRight: _goNextSlide,
               onHoldStart: _onHoldStart,
@@ -428,49 +422,100 @@ class _StoryViewerPageState extends State<StoryViewerPage> with TickerProviderSt
   }
 }
 
-class CubeStoryPageView extends StatelessWidget {
-  const CubeStoryPageView({
+const _storyMaxRotationY = 0.32;
+
+class StorySwipeTransition extends StatelessWidget {
+  const StorySwipeTransition({
     super.key,
-    required this.controller,
     required this.stories,
+    required this.storyIndex,
+    required this.dragOffset,
     required this.slideForStoryAt,
-    required this.onPageChanged,
   });
 
-  final PageController controller;
   final List<FeedStory> stories;
+  final int storyIndex;
+  final double dragOffset;
   final FeedStorySlide Function(int storyIndex) slideForStoryAt;
-  final ValueChanged<int> onPageChanged;
 
   @override
   Widget build(BuildContext context) {
-    return PageView.builder(
-      controller: controller,
-      physics: const NeverScrollableScrollPhysics(),
-      onPageChanged: onPageChanged,
-      itemCount: stories.length,
-      itemBuilder: (context, index) {
-        return AnimatedBuilder(
-          animation: controller,
-          builder: (context, child) {
-            var delta = 0.0;
-            if (controller.position.haveDimensions) {
-              delta = controller.page! - index;
-            }
-            delta = delta.clamp(-1.0, 1.0);
-            final rotationY = delta * (math.pi / 2);
-            final transform = Matrix4.identity()
-              ..setEntry(3, 2, 0.001)
-              ..rotateY(-rotationY);
-            return Transform(
-              transform: transform,
-              alignment: delta > 0 ? Alignment.centerLeft : Alignment.centerRight,
-              child: child,
-            );
-          },
-          child: _StorySlideImage(slide: slideForStoryAt(index)),
-        );
-      },
+    final width = MediaQuery.sizeOf(context).width;
+    if (width <= 0) {
+      return _StorySlideImage(slide: slideForStoryAt(storyIndex));
+    }
+
+    final progress = (dragOffset / width).clamp(-1.0, 1.0);
+    final hasPrevious = storyIndex > 0;
+    final hasNext = storyIndex < stories.length - 1;
+    final showPrevious = hasPrevious && dragOffset > 0;
+    final showNext = hasNext && dragOffset < 0;
+
+    return ClipRect(
+      child: ColoredBox(
+        color: Colors.black,
+        child: Stack(
+          fit: StackFit.expand,
+          clipBehavior: Clip.hardEdge,
+          children: [
+            if (showPrevious)
+              _StoryTransitionLayer(
+                slide: slideForStoryAt(storyIndex - 1),
+                offsetX: dragOffset - width,
+                rotationY: (progress - 1) * _storyMaxRotationY,
+                pivot: Alignment.centerRight,
+              ),
+            if (showNext)
+              _StoryTransitionLayer(
+                slide: slideForStoryAt(storyIndex + 1),
+                offsetX: dragOffset + width,
+                rotationY: (1 + progress) * _storyMaxRotationY,
+                pivot: Alignment.centerLeft,
+              ),
+            _StoryTransitionLayer(
+              slide: slideForStoryAt(storyIndex),
+              offsetX: dragOffset,
+              rotationY: progress * _storyMaxRotationY,
+              pivot: progress >= 0 ? Alignment.centerRight : Alignment.centerLeft,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StoryTransitionLayer extends StatelessWidget {
+  const _StoryTransitionLayer({
+    required this.slide,
+    required this.offsetX,
+    required this.rotationY,
+    required this.pivot,
+  });
+
+  final FeedStorySlide slide;
+  final double offsetX;
+  final double rotationY;
+  final Alignment pivot;
+
+  @override
+  Widget build(BuildContext context) {
+    final depth = rotationY.abs() / _storyMaxRotationY;
+    final scale = 1.0 - depth * 0.035;
+    final rotation = Matrix4.identity()
+      ..setEntry(3, 2, 0.001)
+      ..rotateY(-rotationY);
+
+    return Transform.translate(
+      offset: Offset(offsetX, 0),
+      child: Transform(
+        transform: rotation,
+        alignment: pivot,
+        child: Transform.scale(
+          scale: scale,
+          child: _StorySlideImage(slide: slide),
+        ),
+      ),
     );
   }
 }
@@ -478,6 +523,7 @@ class CubeStoryPageView extends StatelessWidget {
 class StoryGestureLayer extends StatefulWidget {
   const StoryGestureLayer({
     super.key,
+    required this.enabled,
     required this.onTapLeft,
     required this.onTapRight,
     required this.onHoldStart,
@@ -486,6 +532,7 @@ class StoryGestureLayer extends StatefulWidget {
     required this.onHoldCancel,
   });
 
+  final bool enabled;
   final VoidCallback onTapLeft;
   final VoidCallback onTapRight;
   final VoidCallback onHoldStart;
@@ -527,7 +574,7 @@ class _StoryGestureLayerState extends State<StoryGestureLayer> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapUp: (details) {
-        if (_didDrag) return;
+        if (!widget.enabled || _didDrag) return;
         final width = MediaQuery.sizeOf(context).width;
         if (details.localPosition.dx < width * 0.5) {
           widget.onTapLeft();
@@ -536,10 +583,12 @@ class _StoryGestureLayerState extends State<StoryGestureLayer> {
         }
       },
       onLongPressStart: (_) {
+        if (!widget.enabled) return;
         _resetDragTracking();
         widget.onHoldStart();
       },
       onLongPressMoveUpdate: (details) {
+        if (!widget.enabled) return;
         final offsetDx = details.offsetFromOrigin.dx;
         if (offsetDx.abs() > 6) {
           _didDrag = true;
@@ -548,10 +597,12 @@ class _StoryGestureLayerState extends State<StoryGestureLayer> {
         widget.onHoldDragUpdate(offsetDx);
       },
       onLongPressEnd: (_) {
+        if (!widget.enabled) return;
         widget.onHoldEnd(_lastOffsetDx, _velocity);
         _resetDragTracking();
       },
       onLongPressCancel: () {
+        if (!widget.enabled) return;
         widget.onHoldCancel();
         _resetDragTracking();
       },

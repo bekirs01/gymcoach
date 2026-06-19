@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
 import '../../chat/data/chat_local_store.dart';
+import '../../chat/data/chat_repository.dart';
+import '../../chat/data/supabase_chat_repository.dart';
 import '../../chat/domain/chat_conversation.dart';
 import '../../chat/presentation/chat_conversation_screen.dart';
 import 'social_avatar.dart';
@@ -16,13 +19,47 @@ class MessagesPage extends StatefulWidget {
 
 class _MessagesPageState extends State<MessagesPage> {
   var _query = '';
+  var _loading = true;
+  var _loadFailed = false;
+  List<ChatConversation> _remoteConversations = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConversations();
+  }
+
+  Future<void> _loadConversations() async {
+    setState(() {
+      _loading = true;
+      _loadFailed = false;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final repository = SupabaseChatRepository(prefs: prefs);
+      final conversations = await repository.loadConversations();
+      if (!mounted) return;
+      setState(() {
+        _remoteConversations = conversations;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadFailed = true;
+      });
+    }
+  }
 
   List<ChatConversation> get _conversations {
-    ChatLocalStore.ensureInitialized();
-    final items = ChatLocalStore.orderedConversations();
+    final source = _remoteConversations.isNotEmpty
+        ? _remoteConversations
+        : ChatLocalStore.orderedConversations();
     final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return items;
-    return items.where((conversation) => conversation.participantName.toLowerCase().contains(q)).toList();
+    if (q.isEmpty) return source;
+    return source.where((conversation) => conversation.participantName.toLowerCase().contains(q)).toList();
   }
 
   Future<void> _onConversationTap(ChatConversation conversation) async {
@@ -30,10 +67,12 @@ class _MessagesPageState extends State<MessagesPage> {
       MaterialPageRoute<void>(
         builder: (_) => ChatConversationScreen(
           participantUserId: conversation.participantUserId,
+          conversationId: conversation.isRemote ? conversation.id : null,
         ),
       ),
     );
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    await _loadConversations();
   }
 
   @override
@@ -100,33 +139,51 @@ class _MessagesPageState extends State<MessagesPage> {
               ),
               const SizedBox(height: AppSpacing.sm),
               Expanded(
-                child: conversations.isEmpty
+                child: _loading
                     ? const Center(
-                        child: Text(
-                          'No conversations found',
-                          style: TextStyle(color: PremiumColors.textSecondary),
-                        ),
+                        child: CircularProgressIndicator(color: PremiumColors.accentBlue),
                       )
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.xl),
-                        itemCount: conversations.length,
-                        separatorBuilder: (context, index) => Divider(
-                          height: 1,
-                          color: Colors.white.withValues(alpha: 0.06),
-                        ),
-                        itemBuilder: (context, index) {
-                          final conversation = conversations[index];
-                          final unread = conversation.unreadCount > 0;
-                          return _ConversationRow(
-                            name: conversation.participantName,
-                            avatarUrl: conversation.avatarUrl,
-                            lastMessage: conversation.lastMessagePreview,
-                            time: ChatLocalStore.formatRelativeTime(conversation.lastMessageTime),
-                            unread: unread,
-                            onTap: () => _onConversationTap(conversation),
-                          );
-                        },
-                      ),
+                    : conversations.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _loadFailed && _remoteConversations.isEmpty
+                                      ? 'Could not load conversations'
+                                      : 'No conversations found',
+                                  style: const TextStyle(color: PremiumColors.textSecondary),
+                                ),
+                                if (_loadFailed) ...[
+                                  const SizedBox(height: AppSpacing.sm),
+                                  TextButton(
+                                    onPressed: _loadConversations,
+                                    child: const Text('Retry'),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.xl),
+                            itemCount: conversations.length,
+                            separatorBuilder: (context, index) => Divider(
+                              height: 1,
+                              color: Colors.white.withValues(alpha: 0.06),
+                            ),
+                            itemBuilder: (context, index) {
+                              final conversation = conversations[index];
+                              final unread = conversation.unreadCount > 0;
+                              return _ConversationRow(
+                                name: conversation.participantName,
+                                avatarUrl: conversation.avatarUrl,
+                                lastMessage: conversation.lastMessagePreview,
+                                time: ChatRepository.formatRelativeTime(conversation.lastMessageTime),
+                                unread: unread,
+                                onTap: () => _onConversationTap(conversation),
+                              );
+                            },
+                          ),
               ),
             ],
           ),

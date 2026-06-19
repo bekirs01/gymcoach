@@ -256,12 +256,13 @@ abstract final class SocialSeedRepository {
     }).toList();
   }
 
-  static StoryUser ownStoryUser(UserProfile profile) {
+  static StoryUser ownStoryUser(UserProfile profile, {String? userId, String? avatarUrlOverride}) {
     final displayName = profile.displayName.trim().isEmpty ? 'You' : profile.displayName;
+    final avatar = (avatarUrlOverride ?? profile.avatarUrl).trim();
     return StoryUser(
-      id: currentUserId,
+      id: userId ?? currentUserId,
       displayName: 'Your story',
-      avatarUrl: profile.avatarUrl.trim(),
+      avatarUrl: avatar,
       fallbackName: displayName,
       isCurrentUser: true,
     );

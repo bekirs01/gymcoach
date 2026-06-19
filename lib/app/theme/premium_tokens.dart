@@ -19,6 +19,7 @@ abstract final class PremiumColors {
   static const Color dockFill = Color(0xE8121824);
 
   static const Color successGreen = Color(0xFF6BBF8A);
+  static const Color errorRed = Color(0xFFE57373);
 
   static const Color tabActive = Color(0xFF2E4058);
   static const Color bannerBlue = Color(0xFF4A7FB0);

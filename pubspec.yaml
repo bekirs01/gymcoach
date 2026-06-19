@@ -47,6 +47,9 @@ dependencies:
   maplibre_gl: ^0.25.0
   geolocator: ^14.0.2
   image_picker: ^1.2.2
+  record: ^6.0.0
+  just_audio: ^0.10.4
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:

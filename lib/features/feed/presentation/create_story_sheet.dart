@@ -4,23 +4,32 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../app/theme/premium_tokens.dart';
+import '../../social/data/social_api_client.dart';
 import '../domain/feed_story.dart';
 
 Future<FeedStory?> showCreateStorySheet({
   required BuildContext context,
+  required SocialApiClient client,
   required StoryUser ownStoryUser,
 }) {
   return showModalBottomSheet<FeedStory>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => _CreateStorySheet(ownStoryUser: ownStoryUser),
+    builder: (_) => _CreateStorySheet(
+      client: client,
+      ownStoryUser: ownStoryUser,
+    ),
   );
 }
 
 class _CreateStorySheet extends StatefulWidget {
-  const _CreateStorySheet({required this.ownStoryUser});
+  const _CreateStorySheet({
+    required this.client,
+    required this.ownStoryUser,
+  });
 
+  final SocialApiClient client;
   final StoryUser ownStoryUser;
 
   @override
@@ -28,42 +37,70 @@ class _CreateStorySheet extends StatefulWidget {
 }
 
 class _CreateStorySheetState extends State<_CreateStorySheet> {
+  final _caption = TextEditingController();
   final _picker = ImagePicker();
-  Uint8List? _imageBytes;
+  XFile? _image;
+  Uint8List? _previewBytes;
   var _picking = false;
+  var _saving = false;
+  String? _error;
 
-  Future<void> _pickImage() async {
-    setState(() => _picking = true);
+  @override
+  void dispose() {
+    _caption.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    setState(() {
+      _picking = true;
+      _error = null;
+    });
     try {
-      final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 86, maxWidth: 1400);
+      final picked = await _picker.pickImage(
+        source: source,
+        imageQuality: 86,
+        maxWidth: 1400,
+      );
       if (picked == null) return;
       final bytes = await picked.readAsBytes();
       if (!mounted) return;
-      setState(() => _imageBytes = bytes);
+      setState(() {
+        _image = picked;
+        _previewBytes = bytes;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _picking = false);
     }
   }
 
-  void _publish() {
-    if (_imageBytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Add a photo for your story'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+  Future<void> _publish() async {
+    final image = _image;
+    if (image == null) {
+      setState(() => _error = 'Add a photo for your story.');
       return;
     }
-
-    Navigator.pop(
-      context,
-      FeedStory(
-        id: 'own_${DateTime.now().millisecondsSinceEpoch}',
-        user: widget.ownStoryUser,
-        slides: [FeedStorySlide(imageBytes: _imageBytes)],
-      ),
-    );
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final story = await widget.client.createStory(
+        image: image,
+        caption: _caption.text,
+        ownStoryUser: widget.ownStoryUser,
+      );
+      if (mounted) Navigator.pop(context, story);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _error = e.toString();
+      });
+    }
   }
 
   @override
@@ -96,7 +133,7 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
                       ),
                     ),
                     IconButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: _saving ? null : () => Navigator.pop(context),
                       icon: const Icon(Icons.close_rounded, color: PremiumColors.textSecondary),
                     ),
                   ],
@@ -108,7 +145,7 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
                 ),
                 const SizedBox(height: 14),
                 GestureDetector(
-                  onTap: _picking ? null : _pickImage,
+                  onTap: _picking || _saving ? null : () => _pickImage(ImageSource.gallery),
                   child: AspectRatio(
                     aspectRatio: 9 / 16,
                     child: Container(
@@ -118,7 +155,7 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
                         border: Border.all(color: PremiumColors.glassBorder),
                       ),
                       clipBehavior: Clip.antiAlias,
-                      child: _imageBytes == null
+                      child: _previewBytes == null
                           ? Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -134,15 +171,63 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
                                 ),
                               ],
                             )
-                          : Image.memory(_imageBytes!, fit: BoxFit.cover, width: double.infinity),
+                          : Image.memory(_previewBytes!, fit: BoxFit.cover, width: double.infinity),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _picking || _saving ? null : () => _pickImage(ImageSource.gallery),
+                        icon: const Icon(Icons.photo_library_outlined),
+                        label: const Text('Gallery'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _picking || _saving ? null : () => _pickImage(ImageSource.camera),
+                        icon: const Icon(Icons.photo_camera_outlined),
+                        label: const Text('Camera'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _caption,
+                  maxLines: 2,
+                  minLines: 1,
+                  enabled: !_saving,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Add a caption (optional)',
+                    hintStyle: const TextStyle(color: PremiumColors.textMuted),
+                    filled: true,
+                    fillColor: PremiumColors.midnightBottom,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(PremiumRadii.lg),
+                      borderSide: const BorderSide(color: PremiumColors.glassBorder),
                     ),
                   ),
                 ),
                 const SizedBox(height: 14),
                 FilledButton(
-                  onPressed: _picking ? null : _publish,
-                  child: const Text('Share story'),
+                  onPressed: _picking || _saving ? null : _publish,
+                  child: _saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Share story'),
                 ),
+                if (_error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+                ],
               ],
             ),
           ),

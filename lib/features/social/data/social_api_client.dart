@@ -1,8 +1,10 @@
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/device_user_id.dart';
+import '../../feed/domain/feed_story.dart';
 import '../../profile/domain/user_profile.dart';
 import '../domain/feed_comment.dart';
 import '../domain/feed_post.dart';
@@ -17,6 +19,7 @@ final class SocialApiClient {
         _client = client ?? Supabase.instance.client;
 
   static const bucket = 'profile-media';
+  static const storyBucket = 'story-media';
 
   final SharedPreferences _prefs;
   final SupabaseClient _client;
@@ -105,6 +108,91 @@ final class SocialApiClient {
           fileOptions: FileOptions(contentType: _contentType(safeExt), upsert: true),
         );
     return _client.storage.from(bucket).getPublicUrl(path);
+  }
+
+  Future<String> uploadStoryImage(XFile file, String storyId) async {
+    final uid = await currentUserId();
+    final ext = file.name.split('.').last.toLowerCase();
+    final safeExt = ext.length <= 5 ? ext : 'jpg';
+    final path = '$uid/$storyId-${DateTime.now().millisecondsSinceEpoch}.$safeExt';
+    final bytes = await file.readAsBytes();
+    await _client.storage.from(storyBucket).uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(contentType: _contentType(safeExt), upsert: false),
+        );
+    return path;
+  }
+
+  String storyMediaPublicUrl(String path) {
+    return _client.storage.from(storyBucket).getPublicUrl(path);
+  }
+
+  Future<List<FeedStory>> fetchActiveStories() async {
+    final uid = await currentUserId();
+    final now = DateTime.now().toUtc().toIso8601String();
+    final rows = await _client
+        .from('stories')
+        .select('*, author:profiles!stories_user_id_fkey(id, display_name, avatar_url)')
+        .filter('deleted_at', 'is', null)
+        .gt('expires_at', now)
+        .order('created_at', ascending: true);
+
+    final grouped = <String, List<Map<String, dynamic>>>{};
+    for (final row in rows) {
+      final map = Map<String, dynamic>.from(row as Map);
+      final userId = map['user_id'] as String;
+      grouped.putIfAbsent(userId, () => []).add(map);
+    }
+
+    final stories = grouped.entries.map((entry) {
+      final userRows = entry.value;
+      final author = userRows.first['author'] as Map<String, dynamic>?;
+      final user = FeedStory.storyUserFromAuthor(
+        author,
+        entry.key,
+        isCurrentUser: entry.key == uid,
+      );
+      return FeedStory.fromStoryRows(entry.key, user, userRows);
+    }).toList();
+
+    stories.sort((a, b) {
+      final aTime = a.latestAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bTime = b.latestAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bTime.compareTo(aTime);
+    });
+    return stories;
+  }
+
+  Future<FeedStory> createStory({
+    required XFile image,
+    String caption = '',
+    required StoryUser ownStoryUser,
+  }) async {
+    final uid = await currentUserId();
+    final storyId = const Uuid().v4();
+    final mediaPath = await uploadStoryImage(image, storyId);
+    final mediaUrl = storyMediaPublicUrl(mediaPath);
+
+    await _client.from('stories').insert({
+      'id': storyId,
+      'user_id': uid,
+      'media_path': mediaPath,
+      'media_url': mediaUrl,
+      'media_type': 'image',
+      'caption': caption.trim(),
+    });
+
+    final activeStories = await fetchActiveStories();
+    final ownStory = activeStories.where((story) => story.user.id == uid).firstOrNull;
+    if (ownStory != null) return ownStory;
+
+    return FeedStory(
+      id: 'story_$uid',
+      user: ownStoryUser,
+      slides: [FeedStorySlide(imageUrl: mediaUrl)],
+      latestAt: DateTime.now(),
+    );
   }
 
   Future<List<FeedPost>> fetchFeed({int limit = 40}) async {

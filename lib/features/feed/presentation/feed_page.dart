@@ -42,15 +42,31 @@ class _FeedPageState extends State<FeedPage> {
   List<FeedPost> _feedPosts = const [];
   final List<FeedStory> _demoStories = FeedDemoData.demoStories();
   FeedStory? _userStory;
+  List<FeedStory> _apiStories = const [];
+  String? _deviceUserId;
+  String? _avatarUrlOverride;
 
-  StoryUser get _ownStoryUser => SocialSeedRepository.ownStoryUser(widget.profile);
+  StoryUser get _ownStoryUser => SocialSeedRepository.ownStoryUser(
+        widget.profile,
+        userId: _deviceUserId,
+        avatarUrlOverride: _avatarUrlOverride,
+      );
+
+  List<FeedStory> get _rowStories {
+    if (_apiStories.isNotEmpty) return _apiStories;
+    return _demoStories;
+  }
 
   List<FeedStory> get _playableStories {
     final items = <FeedStory>[];
     if (_userStory != null && _userStory!.hasSlides) {
       items.add(_userStory!);
     }
-    items.addAll(_demoStories.where((story) => story.hasSlides));
+    if (_apiStories.isNotEmpty) {
+      items.addAll(_apiStories.where((story) => story.hasSlides));
+    } else {
+      items.addAll(_demoStories.where((story) => story.hasSlides));
+    }
     return items;
   }
 
@@ -66,9 +82,18 @@ class _FeedPageState extends State<FeedPage> {
       final prefs = await SharedPreferences.getInstance();
       final client = SocialApiClient(prefs: prefs);
       await client.ensureProfile(widget.profile);
+      final deviceUserId = await client.currentUserId();
+      final apiProfile = await client.getCurrentProfile();
       if (!mounted) return;
-      setState(() => _client = client);
+      setState(() {
+        _client = client;
+        _deviceUserId = deviceUserId;
+        if (apiProfile != null && apiProfile.avatarUrl.trim().isNotEmpty) {
+          _avatarUrlOverride = apiProfile.avatarUrl.trim();
+        }
+      });
       await _syncApiPosts();
+      await _syncStories();
     } catch (_) {
       if (!mounted) return;
     }
@@ -96,6 +121,31 @@ class _FeedPageState extends State<FeedPage> {
     }
   }
 
+  Future<void> _syncStories() async {
+    final client = _client;
+    if (client == null) return;
+    try {
+      final stories = await client.fetchActiveStories();
+      if (!mounted) return;
+      final uid = _deviceUserId ?? await client.currentUserId();
+      FeedStory? own;
+      final others = <FeedStory>[];
+      for (final story in stories) {
+        if (story.user.id == uid) {
+          own = story.copyWithUser(_ownStoryUser);
+        } else {
+          others.add(story);
+        }
+      }
+      setState(() {
+        _userStory = own;
+        _apiStories = others;
+      });
+    } catch (_) {
+      if (!mounted) return;
+    }
+  }
+
   Future<void> _onRefresh() async {
     setState(() => _refreshing = true);
     await Future<void>.delayed(const Duration(milliseconds: 700));
@@ -105,6 +155,7 @@ class _FeedPageState extends State<FeedPage> {
       _refreshing = false;
     });
     await _syncApiPosts();
+    await _syncStories();
   }
 
   Future<void> _openCreateChoice({bool storyOnly = false}) async {
@@ -142,12 +193,25 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Future<void> _openCreateStory() async {
+    final client = _client;
+    if (client == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Story upload is unavailable right now. Check your connection and try again.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     final story = await showCreateStorySheet(
       context: context,
+      client: client,
       ownStoryUser: _ownStoryUser,
     );
     if (!mounted || story == null) return;
     setState(() => _userStory = story);
+    await _syncStories();
   }
 
   void _openSeededProfile(String userId) {
@@ -185,7 +249,25 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   void _onStoryOwnerTap(FeedStory story) {
-    _openSeededProfile(story.user.id);
+    if (story.user.isCurrentUser || story.user.id == _deviceUserId) {
+      widget.onOpenOwnProfile?.call();
+      return;
+    }
+    if (SocialSeedRepository.isSeededUser(story.user.id)) {
+      _openSeededProfile(story.user.id);
+      return;
+    }
+    final client = _client;
+    if (client == null) return;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => PublicProfilePage(
+          userId: story.user.id,
+          client: client,
+          currentProfile: widget.profile,
+        ),
+      ),
+    );
   }
 
   void _onStoryRowTap(int rowIndex) {
@@ -200,14 +282,15 @@ class _FeedPageState extends State<FeedPage> {
           ),
         );
       } else {
-        unawaited(_openCreateChoice(storyOnly: true));
+        unawaited(_openCreateStory());
       }
       return;
     }
 
-    final demoIndex = rowIndex - 1;
-    if (demoIndex < 0 || demoIndex >= _demoStories.length) return;
-    final target = _demoStories[demoIndex];
+    final rowStories = _rowStories;
+    final storyIndex = rowIndex - 1;
+    if (storyIndex < 0 || storyIndex >= rowStories.length) return;
+    final target = rowStories[storyIndex];
     final initialIndex = _playableStories.indexWhere((story) => story.id == target.id);
     unawaited(
       StoryViewerPage.open(
@@ -249,7 +332,8 @@ class _FeedPageState extends State<FeedPage> {
   Widget build(BuildContext context) {
     final bottomPad = FloatingTabBar.reservedBottomSpace(context) + AppSpacing.lg;
     final ownUser = _ownStoryUser;
-    final rowCount = 1 + _demoStories.length;
+    final rowStories = _rowStories;
+    final rowCount = 1 + rowStories.length;
 
     return PremiumBackground(
       child: RefreshIndicator(
@@ -290,7 +374,7 @@ class _FeedPageState extends State<FeedPage> {
                             );
                           }
 
-                          final story = _demoStories[index - 1];
+                          final story = rowStories[index - 1];
                           return StoryAvatar(
                             label: story.user.displayName,
                             avatarUrl: story.user.avatarUrl,

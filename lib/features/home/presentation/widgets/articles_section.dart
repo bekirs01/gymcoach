@@ -10,8 +10,8 @@ import 'home_widgets.dart';
 class ArticlesSection extends StatelessWidget {
   const ArticlesSection({super.key});
 
-  static const _cardWidth = 258.0;
-  static const _carouselHeight = 252.0;
+  static const _cardWidth = 180.0;
+  static const _carouselHeight = 176.0;
 
   @override
   Widget build(BuildContext context) {
@@ -98,13 +98,13 @@ class ArticleCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(PremiumRadii.lg)),
                   child: SizedBox(
-                    height: 114,
+                    height: 80,
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        NetworkImageWithFallback(
+                        _ArticleCoverImage(
                           url: article.imageUrl,
-                          fit: BoxFit.cover,
+                          category: content.category,
                         ),
                         DecoratedBox(
                           decoration: BoxDecoration(
@@ -119,8 +119,8 @@ class ArticleCard extends StatelessWidget {
                           ),
                         ),
                         Positioned(
-                          left: 10,
-                          bottom: 10,
+                          left: 8,
+                          bottom: 8,
                           child: _CategoryChip(label: content.category),
                         ),
                       ],
@@ -129,7 +129,7 @@ class ArticleCard extends StatelessWidget {
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(11, 8, 11, 10),
+                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 7),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -139,28 +139,28 @@ class ArticleCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 15,
+                            fontSize: 13,
                             fontWeight: FontWeight.w800,
                             height: 1.2,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 3),
                         Text(
                           content.subtitle,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: PremiumColors.textSecondary,
-                            fontSize: 12,
-                            height: 1.3,
+                            fontSize: 11,
+                            height: 1.25,
                           ),
                         ),
-                        const Spacer(),
+                        const SizedBox(height: 5),
                         Text(
                           content.readTime,
                           style: const TextStyle(
                             color: PremiumColors.textMuted,
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -185,7 +185,7 @@ class _CategoryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: PremiumColors.accentBlue.withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(PremiumRadii.pill),
@@ -195,7 +195,7 @@ class _CategoryChip extends StatelessWidget {
         label,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 10,
+          fontSize: 9,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -259,13 +259,13 @@ class _ArticleDetailSheet extends StatelessWidget {
               padding: EdgeInsets.zero,
               children: [
                 SizedBox(
-                  height: 220,
+                  height: 190,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      NetworkImageWithFallback(
+                      _ArticleCoverImage(
                         url: article.imageUrl,
-                        fit: BoxFit.cover,
+                        category: content.category,
                       ),
                       DecoratedBox(
                         decoration: BoxDecoration(
@@ -524,11 +524,11 @@ class _AllArticlesSheet extends StatelessWidget {
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(PremiumRadii.md),
                                 child: SizedBox(
-                                  width: 64,
-                                  height: 64,
-                                  child: NetworkImageWithFallback(
+                                  width: 52,
+                                  height: 52,
+                                  child: _ArticleCoverImage(
                                     url: article.imageUrl,
-                                    fit: BoxFit.cover,
+                                    category: content.category,
                                   ),
                                 ),
                               ),
@@ -571,6 +571,50 @@ class _AllArticlesSheet extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _ArticleCoverImage extends StatelessWidget {
+  const _ArticleCoverImage({
+    required this.url,
+    required this.category,
+  });
+
+  final String url;
+  final String category;
+
+  IconData get _placeholderIcon {
+    final normalized = category.toLowerCase();
+    if (normalized.contains('nutrition') ||
+        normalized.contains('питание') ||
+        normalized.contains('diet') ||
+        normalized.contains('диета')) {
+      return Icons.restaurant_rounded;
+    }
+    if (normalized.contains('training') || normalized.contains('тренировки')) {
+      return Icons.fitness_center_rounded;
+    }
+    if (normalized.contains('recovery') || normalized.contains('восстановление')) {
+      return Icons.self_improvement_rounded;
+    }
+    if (normalized.contains('habit') || normalized.contains('привычки')) {
+      return Icons.event_repeat_rounded;
+    }
+    if (normalized.contains('guide') || normalized.contains('гид')) {
+      return Icons.menu_book_rounded;
+    }
+    return Icons.article_outlined;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.expand(
+      child: NetworkImageWithFallback(
+        url: url,
+        fit: BoxFit.cover,
+        placeholderIcon: _placeholderIcon,
+      ),
     );
   }
 }

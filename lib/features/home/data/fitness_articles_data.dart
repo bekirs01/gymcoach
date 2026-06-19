@@ -4,7 +4,7 @@ abstract final class FitnessArticlesData {
   static const articles = [
     FitnessArticle(
       id: 'article_weight_loss',
-      imageUrl: 'https://images.unsplash.com/photo-1495521121287-af80b39efa2c?w=900&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1490645935967-10de6ba34261?w=900&q=80',
       english: ArticleContent(
         title: 'Healthy weight loss',
         subtitle: 'Lose fat without sacrificing muscle or energy.',
@@ -214,7 +214,7 @@ abstract final class FitnessArticlesData {
     ),
     FitnessArticle(
       id: 'article_protein',
-      imageUrl: 'https://images.unsplash.com/photo-1467003909035-1258827a5c4b?w=900&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a1e63c?w=900&q=80',
       english: ArticleContent(
         title: 'Protein basics',
         subtitle: 'How much protein you need and when to eat it.',
@@ -317,7 +317,7 @@ abstract final class FitnessArticlesData {
     ),
     FitnessArticle(
       id: 'article_pre_workout_food',
-      imageUrl: 'https://images.unsplash.com/photo-1574323347407-f5b1d81a078d?w=900&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1494390248081-4e521b594110?w=900&q=80',
       english: ArticleContent(
         title: 'Pre-workout food',
         subtitle: 'What to eat before training for better energy.',
@@ -420,7 +420,7 @@ abstract final class FitnessArticlesData {
     ),
     FitnessArticle(
       id: 'article_consistency',
-      imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=900&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=900&q=80',
       english: ArticleContent(
         title: 'Stay consistent',
         subtitle: 'Small habits that make training easier.',
@@ -521,7 +521,7 @@ abstract final class FitnessArticlesData {
     ),
     FitnessArticle(
       id: 'article_cardio_strength',
-      imageUrl: 'https://images.unsplash.com/photo-1576678927484-cc907957088c?w=900&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=900&q=80',
       english: ArticleContent(
         title: 'Cardio or strength?',
         subtitle: 'Choose the right balance for fat loss.',
@@ -622,7 +622,7 @@ abstract final class FitnessArticlesData {
     ),
     FitnessArticle(
       id: 'article_recovery',
-      imageUrl: 'https://images.unsplash.com/photo-1511295740922-8b90cf370686?w=900&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-154178324583-b3efe43eae27?w=900&q=80',
       english: ArticleContent(
         title: 'Sleep and recovery',
         subtitle: 'Why progress depends on rest too.',
@@ -723,7 +723,7 @@ abstract final class FitnessArticlesData {
     ),
     FitnessArticle(
       id: 'article_beginner_mistakes',
-      imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=900&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c149a?w=900&q=80',
       english: ArticleContent(
         title: 'Beginner gym mistakes',
         subtitle: 'Avoid the most common early training errors.',
