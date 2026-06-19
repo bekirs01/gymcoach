@@ -5,54 +5,90 @@ import '../../../../app/widgets/premium_image_viewer.dart';
 import '../../../social/data/social_api_client.dart';
 import '../../../social/domain/feed_comment.dart';
 import '../../../social/domain/feed_post.dart';
-import '../../data/feed_demo_data.dart';
 import 'network_image_with_fallback.dart';
 import '../social_avatar.dart';
 
-class DemoFeedPostCard extends StatefulWidget {
-  const DemoFeedPostCard({
+class SeededFeedPostCard extends StatefulWidget {
+  const SeededFeedPostCard({
     super.key,
     required this.post,
     required this.onChanged,
     this.onOpenProfile,
   });
 
-  final DemoFeedPost post;
-  final ValueChanged<DemoFeedPost> onChanged;
+  final FeedPost post;
+  final ValueChanged<FeedPost> onChanged;
   final VoidCallback? onOpenProfile;
 
   @override
-  State<DemoFeedPostCard> createState() => _DemoFeedPostCardState();
+  State<SeededFeedPostCard> createState() => _SeededFeedPostCardState();
 }
 
-class _DemoFeedPostCardState extends State<DemoFeedPostCard> {
+class _SeededFeedPostCardState extends State<SeededFeedPostCard> {
+  late bool _liked;
+  late int _likeCount;
+  late bool _saved;
+
+  @override
+  void initState() {
+    super.initState();
+    _liked = widget.post.likedByMe;
+    _likeCount = widget.post.likeCount;
+    _saved = false;
+  }
+
+  @override
+  void didUpdateWidget(covariant SeededFeedPostCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.post.id != widget.post.id) {
+      _liked = widget.post.likedByMe;
+      _likeCount = widget.post.likeCount;
+      _saved = false;
+    }
+  }
+
   void _toggleLike() {
-    final next = !widget.post.liked;
+    final next = !_liked;
+    setState(() {
+      _liked = next;
+      _likeCount = (_likeCount + (next ? 1 : -1)).clamp(0, 999999);
+    });
     widget.onChanged(
       widget.post.copyWith(
-        liked: next,
-        likeCount: (widget.post.likeCount + (next ? 1 : -1)).clamp(0, 999999),
+        likedByMe: _liked,
+        likeCount: _likeCount,
       ),
     );
   }
 
   void _toggleSave() {
-    widget.onChanged(widget.post.copyWith(saved: !widget.post.saved));
+    setState(() => _saved = !_saved);
+  }
+
+  String _relative(DateTime value) {
+    final diff = DateTime.now().difference(value);
+    if (diff.inMinutes < 1) return 'now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inHours < 48) return 'yesterday';
+    return '${diff.inDays}d ago';
   }
 
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
+    final displayName = post.author.displayName.isEmpty ? 'Athlete' : post.author.displayName;
+    final imageUrl = post.media.isNotEmpty ? post.media.first.url : '';
 
     return _FeedPostShell(
-      userName: post.userName,
-      avatarUrl: post.avatarUrl,
-      timeLabel: post.timeLabel,
-      imageUrl: post.imageUrl,
+      userName: displayName,
+      avatarUrl: post.author.avatarUrl,
+      timeLabel: _relative(post.createdAt),
+      imageUrl: imageUrl,
       caption: post.caption,
-      liked: post.liked,
-      saved: post.saved,
-      likeCount: post.likeCount,
+      liked: _liked,
+      saved: _saved,
+      likeCount: _likeCount,
       commentCount: post.commentCount,
       onLike: _toggleLike,
       onSave: _toggleSave,

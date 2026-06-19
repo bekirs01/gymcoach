@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:gym/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/premium_tokens.dart';
@@ -18,6 +17,7 @@ import '../domain/feed_story.dart';
 import 'create_choice_sheet.dart';
 import 'create_post_sheet.dart';
 import 'create_story_sheet.dart';
+import 'messages_page.dart';
 import 'widgets/feed_post_card.dart';
 import 'widgets/story_avatar.dart';
 import 'widgets/story_viewer.dart';
@@ -38,12 +38,8 @@ class FeedPage extends StatefulWidget {
 
 class _FeedPageState extends State<FeedPage> {
   SocialApiClient? _client;
-  var _loading = true;
   var _refreshing = false;
-  String? _error;
-  List<FeedPost> _posts = const [];
-  var _usingDemo = false;
-  List<DemoFeedPost> _demoPosts = FeedDemoData.initialPosts();
+  List<FeedPost> _feedPosts = const [];
   final List<FeedStory> _demoStories = FeedDemoData.demoStories();
   FeedStory? _userStory;
 
@@ -61,7 +57,7 @@ class _FeedPageState extends State<FeedPage> {
   @override
   void initState() {
     super.initState();
-    _demoPosts = FeedDemoData.initialPosts(currentProfile: widget.profile);
+    _feedPosts = SocialSeedRepository.allFeedPosts(currentProfile: widget.profile);
     unawaited(_bootstrap());
   }
 
@@ -72,61 +68,43 @@ class _FeedPageState extends State<FeedPage> {
       await client.ensureProfile(widget.profile);
       if (!mounted) return;
       setState(() => _client = client);
-      await _load(showSpinner: true);
+      await _syncApiPosts();
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _usingDemo = true;
-        _loading = false;
-        _error = null;
-      });
     }
   }
 
-  Future<void> _load({bool showSpinner = false}) async {
+  Future<void> _syncApiPosts() async {
     final client = _client;
     if (client == null) return;
-    if (showSpinner) {
-      setState(() {
-        _loading = true;
-        _error = null;
-      });
-    }
     try {
-      final posts = await client.fetchFeed();
+      final apiPosts = await client.fetchFeed();
       if (!mounted) return;
+      final refreshExtras = _feedPosts.where((post) => post.id.startsWith('seed_refresh_'));
       setState(() {
-        _posts = posts;
-        _usingDemo = posts.isEmpty;
-        if (_usingDemo) {
-          _demoPosts = FeedDemoData.initialPosts(currentProfile: widget.profile);
-        }
-        _loading = false;
-        _error = null;
+        _feedPosts = SocialSeedRepository.mergeWithApiPosts(
+          apiPosts,
+          currentProfile: widget.profile,
+          extraSeeded: refreshExtras,
+        );
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
-        _usingDemo = true;
-        _demoPosts = FeedDemoData.initialPosts();
-        _loading = false;
+        _feedPosts = SocialSeedRepository.allFeedPosts(currentProfile: widget.profile);
       });
     }
   }
 
   Future<void> _onRefresh() async {
-    if (_usingDemo || _client == null) {
-      setState(() => _refreshing = true);
-      await Future<void>.delayed(const Duration(milliseconds: 900));
-      if (!mounted) return;
-      setState(() {
-        _demoPosts = FeedDemoData.refreshPosts(_demoPosts, currentProfile: widget.profile);
-        _refreshing = false;
-      });
-      return;
-    }
-    await _load();
+    setState(() => _refreshing = true);
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    setState(() {
+      _feedPosts = SocialSeedRepository.refreshFeedPosts(currentProfile: widget.profile);
+      _refreshing = false;
+    });
+    await _syncApiPosts();
   }
 
   Future<void> _openCreateChoice({bool storyOnly = false}) async {
@@ -150,7 +128,7 @@ class _FeedPageState extends State<FeedPage> {
     if (client != null) {
       final created = await showCreatePostSheet(context: context, client: client);
       if (created == true) {
-        await _load(showSpinner: true);
+        await _syncApiPosts();
       }
       return;
     }
@@ -241,26 +219,35 @@ class _FeedPageState extends State<FeedPage> {
     );
   }
 
-  void _onPostChanged(int index, FeedPost post) {
-    if (index < 0 || index >= _posts.length) return;
-    setState(() => _posts[index] = post);
+  void _onSeededPostChanged(int index, FeedPost post) {
+    if (index < 0 || index >= _feedPosts.length) return;
+    setState(() => _feedPosts[index] = post);
   }
 
-  void _onPostRemoved(String postId) {
-    setState(() => _posts.removeWhere((p) => p.id == postId));
+  void _onApiPostChanged(int index, FeedPost post) {
+    if (index < 0 || index >= _feedPosts.length) return;
+    setState(() => _feedPosts[index] = post);
   }
 
-  void _onDemoPostChanged(int index, DemoFeedPost post) {
-    if (index < 0 || index >= _demoPosts.length) return;
-    setState(() => _demoPosts[index] = post);
+  void _onApiPostRemoved(String postId) {
+    setState(() => _feedPosts.removeWhere((post) => post.id == postId));
+  }
+
+  void _openMessages() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => const MessagesPage(),
+      ),
+    );
+  }
+
+  bool _isSeededPost(FeedPost post) {
+    return post.id.startsWith('seed_') || SocialSeedRepository.isSeededUser(post.userId);
   }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final bottomPad = FloatingTabBar.reservedBottomSpace(context) + AppSpacing.lg;
-    final hasApiPosts = !_usingDemo && _posts.isNotEmpty && _client != null;
-    final waitingForApi = _loading && _client != null && !_usingDemo;
     final ownUser = _ownStoryUser;
     final rowCount = 1 + _demoStories.length;
 
@@ -278,13 +265,10 @@ class _FeedPageState extends State<FeedPage> {
                 child: Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.xs, AppSpacing.md, 0),
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: _CompactPostButton(
-                          label: l10n.feedPost,
-                          onPressed: () => unawaited(_openCreateChoice()),
-                        ),
+                      padding: const EdgeInsets.fromLTRB(AppSpacing.sm, AppSpacing.xs, AppSpacing.sm, 0),
+                      child: _FeedTopHeader(
+                        onCreateTap: () => unawaited(_openCreateChoice()),
+                        onMessagesTap: _openMessages,
                       ),
                     ),
                     SizedBox(
@@ -320,52 +304,46 @@ class _FeedPageState extends State<FeedPage> {
                 ),
               ),
             ),
-            if (waitingForApi)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: CircularProgressIndicator(color: PremiumColors.accentBlue),
-                ),
-              )
-            else if (hasApiPosts)
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, bottomPad),
-                sliver: SliverList.separated(
-                  itemCount: _posts.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.lg),
-                  itemBuilder: (context, i) {
-                    return ApiFeedPostCard(
-                      post: _posts[i],
-                      client: _client!,
-                      onOpenProfile: _openProfile,
-                      onPostChanged: (p) => _onPostChanged(i, p),
-                      onPostRemoved: _onPostRemoved,
-                    );
-                  },
-                ),
-              )
-            else if (_error != null && _client != null && !_usingDemo)
+            if (_feedPosts.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: _FeedMessage(
-                  icon: Icons.error_outline_rounded,
-                  title: 'Feed error',
-                  body: _error!,
-                  actionLabel: 'Retry',
-                  onAction: () => _load(showSpinner: true),
+                  icon: Icons.photo_library_outlined,
+                  title: 'No posts yet',
+                  body: 'Check back soon for new workouts and updates.',
+                  actionLabel: 'Refresh',
+                  onAction: () => unawaited(_onRefresh()),
                 ),
               )
             else
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, bottomPad),
                 sliver: SliverList.separated(
-                  itemCount: _demoPosts.length,
+                  itemCount: _feedPosts.length,
                   separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.lg),
-                  itemBuilder: (context, i) {
-                    return DemoFeedPostCard(
-                      post: _demoPosts[i],
-                      onChanged: (p) => _onDemoPostChanged(i, p),
-                      onOpenProfile: () => _openSeededProfile(_demoPosts[i].userId),
+                  itemBuilder: (context, index) {
+                    final post = _feedPosts[index];
+                    if (_isSeededPost(post)) {
+                      return SeededFeedPostCard(
+                        post: post,
+                        onChanged: (updated) => _onSeededPostChanged(index, updated),
+                        onOpenProfile: () => _openSeededProfile(post.userId),
+                      );
+                    }
+                    final client = _client;
+                    if (client == null) {
+                      return SeededFeedPostCard(
+                        post: post,
+                        onChanged: (updated) => _onSeededPostChanged(index, updated),
+                        onOpenProfile: () => _openProfile(post),
+                      );
+                    }
+                    return ApiFeedPostCard(
+                      post: post,
+                      client: client,
+                      onOpenProfile: _openProfile,
+                      onPostChanged: (updated) => _onApiPostChanged(index, updated),
+                      onPostRemoved: _onApiPostRemoved,
                     );
                   },
                 ),
@@ -393,56 +371,130 @@ class _FeedPageState extends State<FeedPage> {
   }
 }
 
-class _CompactPostButton extends StatelessWidget {
-  const _CompactPostButton({
-    required this.label,
-    required this.onPressed,
+class _FeedTopHeader extends StatelessWidget {
+  const _FeedTopHeader({
+    required this.onCreateTap,
+    required this.onMessagesTap,
   });
 
-  final String label;
-  final VoidCallback onPressed;
+  final VoidCallback onCreateTap;
+  final VoidCallback onMessagesTap;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(PremiumRadii.lg),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
+    return SizedBox(
+      height: 52,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _FeedHeaderIconButton(
+                icon: Icons.add_rounded,
+                onTap: onCreateTap,
+              ),
+              _FeedHeaderIconButton(
+                icon: Icons.send_rounded,
+                onTap: onMessagesTap,
+              ),
+            ],
           ),
+          const _GymCoachBrandLogo(),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(PremiumRadii.lg),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.add_photo_alternate_outlined,
-                  size: 17,
-                  color: PremiumColors.accentBlueSoft,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: PremiumColors.midnightTop,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
-                ),
+    );
+  }
+}
+
+class _GymCoachBrandLogo extends StatelessWidget {
+  const _GymCoachBrandLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                PremiumColors.accentBlue.withValues(alpha: 0.35),
+                const Color(0xFFFF8A50).withValues(alpha: 0.28),
               ],
             ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            boxShadow: [
+              BoxShadow(
+                color: PremiumColors.accentBlue.withValues(alpha: 0.35),
+                blurRadius: 14,
+              ),
+            ],
           ),
+          child: const Icon(
+            Icons.local_fire_department_rounded,
+            size: 16,
+            color: Color(0xFFFF8A50),
+          ),
+        ),
+        const SizedBox(width: 8),
+        ShaderMask(
+          shaderCallback: (bounds) => const LinearGradient(
+            colors: [Colors.white, PremiumColors.accentBlueSoft],
+          ).createShader(bounds),
+          child: const Text(
+            'Gym Koç',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.6,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FeedHeaderIconButton extends StatelessWidget {
+  const _FeedHeaderIconButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(PremiumRadii.pill),
+        child: Ink(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: PremiumColors.surface.withValues(alpha: 0.55),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            boxShadow: [
+              BoxShadow(
+                color: PremiumColors.accentBlue.withValues(alpha: 0.22),
+                blurRadius: 12,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(icon, size: 21, color: Colors.white),
         ),
       ),
     );

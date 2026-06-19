@@ -476,6 +476,18 @@ abstract class AppLocalizations {
   /// **'More'**
   String get homeMore;
 
+  /// No description provided for @homeArticles.
+  ///
+  /// In en, this message translates to:
+  /// **'Articles'**
+  String get homeArticles;
+
+  /// No description provided for @homeViewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View all'**
+  String get homeViewAll;
+
   /// No description provided for @homeNoWorkoutsOnDate.
   ///
   /// In en, this message translates to:

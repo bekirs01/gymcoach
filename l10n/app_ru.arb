@@ -108,6 +108,8 @@
   },
   "homeTrainingSchedule": "Расписание",
   "homeMore": "Ещё",
+  "homeArticles": "Статьи",
+  "homeViewAll": "Все",
   "homeNoWorkoutsOnDate": "No workouts scheduled for this date",
   "homeFeaturedEmptyTitle": "Нет планов",
   "homeFeaturedEmptySubtitle": "Создайте первую тренировку",

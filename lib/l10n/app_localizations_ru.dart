@@ -216,6 +216,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeMore => 'Ещё';
 
   @override
+  String get homeArticles => 'Статьи';
+
+  @override
+  String get homeViewAll => 'Все';
+
+  @override
   String get homeNoWorkoutsOnDate => 'No workouts scheduled for this date';
 
   @override

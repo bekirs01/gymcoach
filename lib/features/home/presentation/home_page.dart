@@ -8,6 +8,7 @@ import '../../../core/training_stats.dart';
 import '../../plans/domain/workout_plan.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../workout/domain/workout_completion.dart';
+import 'widgets/articles_section.dart';
 import 'widgets/home_widgets.dart';
 
 WorkoutPlan? pickFeaturedPlan(List<WorkoutPlan> plans) {
@@ -197,6 +198,7 @@ class _HomePageState extends State<HomePage> {
                 onMonthChanged: _shiftMonth,
                 onDaySelected: (d) => setState(() => _selectedDay = d),
               ),
+              const ArticlesSection(),
               ],
             ],
           ),

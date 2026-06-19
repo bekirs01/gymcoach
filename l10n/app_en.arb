@@ -69,6 +69,8 @@
   "@homeCompletedSessions": {"placeholders": {"count": {"type": "int"}}},
   "homeTrainingSchedule": "Training Schedule",
   "homeMore": "More",
+  "homeArticles": "Articles",
+  "homeViewAll": "View all",
   "homeNoWorkoutsOnDate": "No workouts scheduled for this date",
   "homeFeaturedEmptyTitle": "No training plan yet",
   "homeFeaturedEmptySubtitle": "Create your first workout to get started",

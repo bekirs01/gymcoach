@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
@@ -60,19 +62,29 @@ class _StoryViewerPageState extends State<StoryViewerPage> with SingleTickerProv
   late int _storyIndex;
   late int _slideIndex;
   late AnimationController _progressController;
+  late PageController _storyPageController;
+  bool _isPaused = false;
+  bool _programmaticPageChange = false;
 
   FeedStory get _story => widget.stories[_storyIndex];
-  List<FeedStorySlide> get _slides => _story.slides.where((slide) => slide.hasContent).toList();
-  FeedStorySlide get _slide => _slides[_slideIndex];
+
+  List<FeedStorySlide> _slidesForStory(FeedStory story) {
+    return story.slides.where((slide) => slide.hasContent).toList();
+  }
+
+  List<FeedStorySlide> get _slides => _slidesForStory(_story);
 
   @override
   void initState() {
     super.initState();
     _storyIndex = widget.initialStoryIndex.clamp(0, widget.stories.length - 1);
     _slideIndex = 0;
+    _storyPageController = PageController(initialPage: _storyIndex);
     _progressController = AnimationController(vsync: this, duration: _slideDuration);
     _progressController.addStatusListener(_onProgressStatus);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startSlideTimer());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _startSlideProgress();
+    });
   }
 
   @override
@@ -80,51 +92,93 @@ class _StoryViewerPageState extends State<StoryViewerPage> with SingleTickerProv
     _progressController
       ..removeStatusListener(_onProgressStatus)
       ..dispose();
+    _storyPageController.dispose();
     super.dispose();
   }
 
   void _onProgressStatus(AnimationStatus status) {
+    if (!mounted || _isPaused) return;
     if (status == AnimationStatus.completed) {
       _goNextSlide();
     }
   }
 
-  void _startSlideTimer() {
+  void _startSlideProgress() {
+    if (!mounted) return;
     _progressController
       ..stop()
       ..reset();
     _progressController.forward();
   }
 
-  void _resetSlideTimer() {
-    _startSlideTimer();
+  void _resetSlideProgress() {
+    _startSlideProgress();
+  }
+
+  void _pauseProgress() {
+    if (_isPaused) return;
+    _isPaused = true;
+    _progressController.stop();
+  }
+
+  void _resumeProgress() {
+    if (!_isPaused || !mounted) return;
+    _isPaused = false;
+    if (_progressController.status == AnimationStatus.completed) {
+      _goNextSlide();
+      return;
+    }
+    _progressController.forward();
   }
 
   void _close() {
+    _progressController.stop();
     Navigator.of(context).pop();
+  }
+
+  void _syncStoryPageController(int index) {
+    if (!_storyPageController.hasClients) return;
+    final currentPage = _storyPageController.page?.round() ?? _storyIndex;
+    if (currentPage == index) return;
+    _programmaticPageChange = true;
+    _storyPageController.jumpToPage(index);
+    _programmaticPageChange = false;
+  }
+
+  void _onStoryPageChanged(int index) {
+    if (!mounted || _programmaticPageChange) return;
+    if (index == _storyIndex) return;
+    setState(() {
+      _storyIndex = index;
+      _slideIndex = 0;
+    });
+    _resetSlideProgress();
   }
 
   void _goPreviousSlide() {
     if (_slideIndex > 0) {
       setState(() => _slideIndex -= 1);
-      _resetSlideTimer();
+      _resetSlideProgress();
       return;
     }
     if (_storyIndex > 0) {
+      final previousStory = widget.stories[_storyIndex - 1];
+      final previousSlides = _slidesForStory(previousStory);
       setState(() {
         _storyIndex -= 1;
-        _slideIndex = widget.stories[_storyIndex].slides.where((slide) => slide.hasContent).length - 1;
+        _slideIndex = previousSlides.isEmpty ? 0 : previousSlides.length - 1;
       });
-      _resetSlideTimer();
+      _syncStoryPageController(_storyIndex);
+      _resetSlideProgress();
       return;
     }
-    _resetSlideTimer();
+    _resetSlideProgress();
   }
 
   void _goNextSlide() {
     if (_slideIndex < _slides.length - 1) {
       setState(() => _slideIndex += 1);
-      _resetSlideTimer();
+      _resetSlideProgress();
       return;
     }
     if (_storyIndex < widget.stories.length - 1) {
@@ -132,16 +186,28 @@ class _StoryViewerPageState extends State<StoryViewerPage> with SingleTickerProv
         _storyIndex += 1;
         _slideIndex = 0;
       });
-      _resetSlideTimer();
+      _syncStoryPageController(_storyIndex);
+      _resetSlideProgress();
       return;
     }
     _close();
   }
 
+  FeedStorySlide _slideForStoryAt(int storyIndex) {
+    final story = widget.stories[storyIndex];
+    final slides = _slidesForStory(story);
+    if (slides.isEmpty) {
+      return const FeedStorySlide();
+    }
+    if (storyIndex == _storyIndex) {
+      return slides[_slideIndex.clamp(0, slides.length - 1)];
+    }
+    return slides.first;
+  }
+
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
-    final headerHeight = topInset + 72;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -149,7 +215,12 @@ class _StoryViewerPageState extends State<StoryViewerPage> with SingleTickerProv
         fit: StackFit.expand,
         children: [
           Positioned.fill(
-            child: _StorySlideImage(slide: _slide),
+            child: CubeStoryPageView(
+              controller: _storyPageController,
+              stories: widget.stories,
+              slideForStoryAt: _slideForStoryAt,
+              onPageChanged: _onStoryPageChanged,
+            ),
           ),
           Positioned.fill(
             child: IgnorePointer(
@@ -169,26 +240,13 @@ class _StoryViewerPageState extends State<StoryViewerPage> with SingleTickerProv
               ),
             ),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            top: headerHeight,
-            bottom: 0,
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _goPreviousSlide,
-                  ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _goNextSlide,
-                  ),
-                ),
-              ],
+          Positioned.fill(
+            child: StoryGestureLayer(
+              onTapLeft: _goPreviousSlide,
+              onTapRight: _goNextSlide,
+              onLongPressStart: _pauseProgress,
+              onLongPressEnd: _resumeProgress,
+              onLongPressCancel: _resumeProgress,
             ),
           ),
           Positioned(
@@ -199,7 +257,6 @@ class _StoryViewerPageState extends State<StoryViewerPage> with SingleTickerProv
               mainAxisSize: MainAxisSize.min,
               children: [
                 StoryProgressBar(
-                  key: ValueKey('progress_${_story.id}_$_slideIndex'),
                   slideCount: _slides.length,
                   activeIndex: _slideIndex,
                   progress: _progressController,
@@ -244,6 +301,96 @@ class _StoryViewerPageState extends State<StoryViewerPage> with SingleTickerProv
   }
 }
 
+class CubeStoryPageView extends StatelessWidget {
+  const CubeStoryPageView({
+    super.key,
+    required this.controller,
+    required this.stories,
+    required this.slideForStoryAt,
+    required this.onPageChanged,
+  });
+
+  final PageController controller;
+  final List<FeedStory> stories;
+  final FeedStorySlide Function(int storyIndex) slideForStoryAt;
+  final ValueChanged<int> onPageChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return PageView.builder(
+      controller: controller,
+      physics: const ClampingScrollPhysics(),
+      onPageChanged: onPageChanged,
+      itemCount: stories.length,
+      itemBuilder: (context, index) {
+        return AnimatedBuilder(
+          animation: controller,
+          builder: (context, child) {
+            var delta = 0.0;
+            if (controller.position.haveDimensions) {
+              delta = controller.page! - index;
+            }
+            delta = delta.clamp(-1.0, 1.0);
+            final rotationY = delta * (math.pi / 2);
+            final transform = Matrix4.identity()
+              ..setEntry(3, 2, 0.001)
+              ..rotateY(-rotationY);
+            return Transform(
+              transform: transform,
+              alignment: delta > 0 ? Alignment.centerLeft : Alignment.centerRight,
+              child: child,
+            );
+          },
+          child: _StorySlideImage(slide: slideForStoryAt(index)),
+        );
+      },
+    );
+  }
+}
+
+class StoryGestureLayer extends StatelessWidget {
+  const StoryGestureLayer({
+    super.key,
+    required this.onTapLeft,
+    required this.onTapRight,
+    required this.onLongPressStart,
+    required this.onLongPressEnd,
+    required this.onLongPressCancel,
+  });
+
+  final VoidCallback onTapLeft;
+  final VoidCallback onTapRight;
+  final VoidCallback onLongPressStart;
+  final VoidCallback onLongPressEnd;
+  final VoidCallback onLongPressCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTapLeft,
+            onLongPressStart: (_) => onLongPressStart(),
+            onLongPressEnd: (_) => onLongPressEnd(),
+            onLongPressCancel: onLongPressCancel,
+          ),
+        ),
+        Expanded(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTapRight,
+            onLongPressStart: (_) => onLongPressStart(),
+            onLongPressEnd: (_) => onLongPressEnd(),
+            onLongPressCancel: onLongPressCancel,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class StoryProgressBar extends StatelessWidget {
   const StoryProgressBar({
     super.key,
@@ -254,44 +401,78 @@ class StoryProgressBar extends StatelessWidget {
 
   final int slideCount;
   final int activeIndex;
-  final AnimationController progress;
+  final Animation<double> progress;
 
   @override
   Widget build(BuildContext context) {
+    if (slideCount <= 0) {
+      return const SizedBox(height: 2.5);
+    }
+
     return Row(
       children: List.generate(slideCount, (index) {
         return Expanded(
           child: Padding(
             padding: EdgeInsets.only(right: index == slideCount - 1 ? 0 : 4),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(PremiumRadii.pill),
-              child: SizedBox(
-                height: 2.5,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ColoredBox(color: Colors.white.withValues(alpha: 0.28)),
-                    if (index < activeIndex)
-                      const ColoredBox(color: Colors.white),
-                    if (index == activeIndex)
-                      AnimatedBuilder(
-                        animation: progress,
-                        builder: (context, child) {
-                          return Align(
-                            alignment: Alignment.centerLeft,
-                            widthFactor: progress.value.clamp(0.0, 1.0),
-                            child: child,
-                          );
-                        },
-                        child: const ColoredBox(color: Colors.white),
-                      ),
-                  ],
-                ),
-              ),
+            child: StoryProgressSegment(
+              isCompleted: index < activeIndex,
+              isActive: index == activeIndex,
+              progress: index == activeIndex ? progress : null,
             ),
           ),
         );
       }),
+    );
+  }
+}
+
+class StoryProgressSegment extends StatelessWidget {
+  const StoryProgressSegment({
+    super.key,
+    required this.isCompleted,
+    required this.isActive,
+    this.progress,
+  });
+
+  final bool isCompleted;
+  final bool isActive;
+  final Animation<double>? progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(PremiumRadii.pill),
+      child: SizedBox(
+        height: 2.5,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth;
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                ColoredBox(color: Colors.white.withValues(alpha: 0.28)),
+                if (isCompleted)
+                  const ColoredBox(color: Colors.white),
+                if (isActive && progress != null)
+                  AnimatedBuilder(
+                    animation: progress!,
+                    builder: (context, _) {
+                      final fillWidth = maxWidth * progress!.value.clamp(0.0, 1.0);
+                      return Align(
+                        alignment: Alignment.centerLeft,
+                        child: SizedBox(
+                          width: fillWidth,
+                          height: 2.5,
+                          child: const ColoredBox(color: Colors.white),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -303,6 +484,10 @@ class _StorySlideImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!slide.hasContent) {
+      return const _StoryImageFallback();
+    }
+
     if (slide.imageBytes != null) {
       return Image.memory(
         slide.imageBytes!,

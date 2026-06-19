@@ -273,6 +273,30 @@ abstract final class SocialSeedRepository {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
+  static List<FeedPost> mergeWithApiPosts(
+    List<FeedPost> apiPosts, {
+    UserProfile? currentProfile,
+    Iterable<FeedPost> extraSeeded = const [],
+  }) {
+    final byId = <String, FeedPost>{};
+    for (final post in allFeedPosts(currentProfile: currentProfile)) {
+      byId[post.id] = post;
+    }
+    for (final post in extraSeeded) {
+      byId[post.id] = post;
+    }
+    final seededIds = byId.keys.toSet();
+    final apiOnly = apiPosts.where((post) => !seededIds.contains(post.id)).toList();
+    return [...apiOnly, ...byId.values]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  static List<FeedPost> refreshFeedPosts({UserProfile? currentProfile}) {
+    final base = allFeedPosts(currentProfile: currentProfile);
+    final fresh = refreshPost();
+    return [fresh, ...base.where((post) => post.id != fresh.id)]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
   static List<FeedPost> postsForUser(String userId, {UserProfile? currentProfile}) {
     return allFeedPosts(currentProfile: currentProfile).where((p) => p.userId == userId).toList();
   }
@@ -351,7 +375,7 @@ abstract final class SocialSeedRepository {
         userName: user('seed_sofia').displayName,
         avatarUrl: user('seed_sofia').avatarUrl,
         imageUrl: _gymImages[5],
-        caption: 'morning session done',
+        caption: 'morning training done',
         timeLabel: '4m ago',
         createdAt: now.subtract(const Duration(minutes: 4)),
         likeCount: 32,
@@ -363,30 +387,30 @@ abstract final class SocialSeedRepository {
         userName: user('seed_maria').displayName,
         avatarUrl: user('seed_maria').avatarUrl,
         imageUrl: _gymImages[7],
-        caption: 'post-workout stretch',
+        caption: 'small progress every day',
         timeLabel: '11m ago',
         createdAt: now.subtract(const Duration(minutes: 11)),
         likeCount: 28,
         commentCount: 4,
       ),
       _SeedPostDef(
-        id: 'seed_post_sofia_2',
-        userId: user('seed_sofia').id,
-        userName: user('seed_sofia').displayName,
-        avatarUrl: user('seed_sofia').avatarUrl,
-        imageUrl: _gymImages[11],
-        caption: 'feeling stronger this week',
+        id: 'seed_post_anastasia_1',
+        userId: user('seed_anastasia').id,
+        userName: user('seed_anastasia').displayName,
+        avatarUrl: user('seed_anastasia').avatarUrl,
+        imageUrl: _gymImages[4],
+        caption: 'post-workout stretch',
         timeLabel: '26m ago',
         createdAt: now.subtract(const Duration(minutes: 26)),
         likeCount: 21,
         commentCount: 3,
       ),
       _SeedPostDef(
-        id: 'seed_post_maria_2',
-        userId: user('seed_maria').id,
-        userName: user('seed_maria').displayName,
-        avatarUrl: user('seed_maria').avatarUrl,
-        imageUrl: _gymImages[0],
+        id: 'seed_post_ekaterina_1',
+        userId: user('seed_ekaterina').id,
+        userName: user('seed_ekaterina').displayName,
+        avatarUrl: user('seed_ekaterina').avatarUrl,
+        imageUrl: _gymImages[6],
         caption: 'leg day complete',
         timeLabel: '38m ago',
         createdAt: now.subtract(const Duration(minutes: 38)),
@@ -394,23 +418,23 @@ abstract final class SocialSeedRepository {
         commentCount: 6,
       ),
       _SeedPostDef(
-        id: 'seed_post_1',
-        userId: user('seed_anastasia').id,
-        userName: user('seed_anastasia').displayName,
-        avatarUrl: user('seed_anastasia').avatarUrl,
-        imageUrl: _gymImages[4],
-        caption: 'small progress every day',
+        id: 'seed_post_alexey_1',
+        userId: user('seed_alexey').id,
+        userName: user('seed_alexey').displayName,
+        avatarUrl: user('seed_alexey').avatarUrl,
+        imageUrl: _gymImages[1],
+        caption: 'back day felt great',
         timeLabel: '52m ago',
         createdAt: now.subtract(const Duration(minutes: 52)),
         likeCount: 31,
         commentCount: 4,
       ),
       _SeedPostDef(
-        id: 'seed_post_2',
-        userId: user('seed_ekaterina').id,
-        userName: user('seed_ekaterina').displayName,
-        avatarUrl: user('seed_ekaterina').avatarUrl,
-        imageUrl: _gymImages[6],
+        id: 'seed_post_dmitry_1',
+        userId: user('seed_dmitry').id,
+        userName: user('seed_dmitry').displayName,
+        avatarUrl: user('seed_dmitry').avatarUrl,
+        imageUrl: _gymImages[2],
         caption: 'consistency beats motivation',
         timeLabel: '1h ago',
         createdAt: now.subtract(const Duration(hours: 1)),
@@ -418,64 +442,28 @@ abstract final class SocialSeedRepository {
         commentCount: 7,
       ),
       _SeedPostDef(
-        id: 'seed_post_3',
-        userId: user('seed_alexey').id,
-        userName: user('seed_alexey').displayName,
-        avatarUrl: user('seed_alexey').avatarUrl,
-        imageUrl: _gymImages[1],
-        caption: 'morning push session done',
+        id: 'seed_post_maxim_1',
+        userId: user('seed_maxim').id,
+        userName: user('seed_maxim').displayName,
+        avatarUrl: user('seed_maxim').avatarUrl,
+        imageUrl: _gymImages[3],
+        caption: 'evening cardio',
         timeLabel: '2h ago',
         createdAt: now.subtract(const Duration(hours: 2)),
         likeCount: 18,
         commentCount: 3,
       ),
       _SeedPostDef(
-        id: 'seed_post_4',
-        userId: user('seed_dmitry').id,
-        userName: user('seed_dmitry').displayName,
-        avatarUrl: user('seed_dmitry').avatarUrl,
-        imageUrl: _gymImages[2],
-        caption: 'back day felt great',
-        timeLabel: '3h ago',
-        createdAt: now.subtract(const Duration(hours: 3)),
-        likeCount: 24,
-        commentCount: 5,
-      ),
-      _SeedPostDef(
-        id: 'seed_post_5',
-        userId: user('seed_maxim').id,
-        userName: user('seed_maxim').displayName,
-        avatarUrl: user('seed_maxim').avatarUrl,
-        imageUrl: _gymImages[3],
-        caption: "today's session was light but clean",
-        timeLabel: '5h ago',
-        createdAt: now.subtract(const Duration(hours: 5)),
-        likeCount: 15,
-        commentCount: 2,
-      ),
-      _SeedPostDef(
-        id: 'seed_post_6',
+        id: 'seed_post_ivan_1',
         userId: user('seed_ivan').id,
         userName: user('seed_ivan').displayName,
         avatarUrl: user('seed_ivan').avatarUrl,
         imageUrl: _gymImages[10],
-        caption: 'early floor work',
-        timeLabel: '7h ago',
-        createdAt: now.subtract(const Duration(hours: 7)),
-        likeCount: 12,
-        commentCount: 2,
-      ),
-      _SeedPostDef(
-        id: 'seed_post_7',
-        userId: user('seed_alexey').id,
-        userName: user('seed_alexey').displayName,
-        avatarUrl: user('seed_alexey').avatarUrl,
-        imageUrl: _gymImages[9],
-        caption: 'evening recovery walk',
-        timeLabel: 'yesterday',
-        createdAt: now.subtract(const Duration(hours: 26)),
-        likeCount: 9,
-        commentCount: 1,
+        caption: 'one more clean session',
+        timeLabel: '3h ago',
+        createdAt: now.subtract(const Duration(hours: 3)),
+        likeCount: 24,
+        commentCount: 5,
       ),
     ];
   }
