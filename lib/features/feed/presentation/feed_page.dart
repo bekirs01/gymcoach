@@ -99,26 +99,35 @@ class _FeedPageState extends State<FeedPage> {
     }
   }
 
-  Future<void> _syncApiPosts() async {
+  Future<void> _syncApiPosts({bool allowNewPosts = false}) async {
     final client = _client;
     if (client == null) return;
     try {
       final apiPosts = await client.fetchFeed();
       if (!mounted) return;
-      final refreshExtras = _feedPosts.where((post) => post.id.startsWith('seed_refresh_'));
+      final merged = SocialSeedRepository.mergeWithApiPosts(
+        apiPosts,
+        currentProfile: widget.profile,
+      );
       setState(() {
-        _feedPosts = SocialSeedRepository.mergeWithApiPosts(
-          apiPosts,
-          currentProfile: widget.profile,
-          extraSeeded: refreshExtras,
-        );
+        if (allowNewPosts) {
+          _feedPosts = merged;
+          return;
+        }
+        final byId = {for (final post in merged) post.id: post};
+        _feedPosts = _feedPosts.map((post) => byId[post.id] ?? post).toList();
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _feedPosts = SocialSeedRepository.allFeedPosts(currentProfile: widget.profile);
-      });
     }
+  }
+
+  Future<void> _onRefresh() async {
+    setState(() => _refreshing = true);
+    await _syncApiPosts(allowNewPosts: true);
+    await _syncStories();
+    if (!mounted) return;
+    setState(() => _refreshing = false);
   }
 
   Future<void> _syncStories() async {
@@ -146,18 +155,6 @@ class _FeedPageState extends State<FeedPage> {
     }
   }
 
-  Future<void> _onRefresh() async {
-    setState(() => _refreshing = true);
-    await Future<void>.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    setState(() {
-      _feedPosts = SocialSeedRepository.refreshFeedPosts(currentProfile: widget.profile);
-      _refreshing = false;
-    });
-    await _syncApiPosts();
-    await _syncStories();
-  }
-
   Future<void> _openCreateChoice({bool storyOnly = false}) async {
     if (storyOnly) {
       await _openCreateStory();
@@ -179,7 +176,7 @@ class _FeedPageState extends State<FeedPage> {
     if (client != null) {
       final created = await showCreatePostSheet(context: context, client: client);
       if (created == true) {
-        await _syncApiPosts();
+        await _syncApiPosts(allowNewPosts: true);
       }
       return;
     }

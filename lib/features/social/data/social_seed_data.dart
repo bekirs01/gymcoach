@@ -278,25 +278,16 @@ abstract final class SocialSeedRepository {
   static List<FeedPost> mergeWithApiPosts(
     List<FeedPost> apiPosts, {
     UserProfile? currentProfile,
-    Iterable<FeedPost> extraSeeded = const [],
   }) {
     final byId = <String, FeedPost>{};
     for (final post in allFeedPosts(currentProfile: currentProfile)) {
       byId[post.id] = post;
     }
-    for (final post in extraSeeded) {
+    for (final post in apiPosts) {
+      if (post.id.isEmpty || byId.containsKey(post.id)) continue;
       byId[post.id] = post;
     }
-    final seededIds = byId.keys.toSet();
-    final apiOnly = apiPosts.where((post) => !seededIds.contains(post.id)).toList();
-    return [...apiOnly, ...byId.values]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-  }
-
-  static List<FeedPost> refreshFeedPosts({UserProfile? currentProfile}) {
-    final base = allFeedPosts(currentProfile: currentProfile);
-    final fresh = refreshPost();
-    return [fresh, ...base.where((post) => post.id != fresh.id)]
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return byId.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   static List<FeedPost> postsForUser(String userId, {UserProfile? currentProfile}) {
@@ -317,30 +308,6 @@ abstract final class SocialSeedRepository {
           ),
         );
     return [...gallery, ...postMedia];
-  }
-
-  static FeedPost refreshPost() {
-    final user = socialUsers.firstWhere((entry) => entry.id == 'seed_sofia');
-    return FeedPost(
-      id: 'seed_refresh_${DateTime.now().millisecondsSinceEpoch}',
-      userId: user.id,
-      caption: 'new day, new reps',
-      createdAt: DateTime.now(),
-      author: user.toSocialProfile(),
-      media: [
-        FeedMedia(
-          id: 'seed_refresh_media',
-          postId: '',
-          url: _gymImages[3],
-          path: '',
-          sortOrder: 0,
-        ),
-      ],
-      comments: const [],
-      likeCount: 0,
-      commentCount: 0,
-      likedByMe: false,
-    );
   }
 
   static FeedPost _toFeedPost(_SeedPostDef def, {UserProfile? currentProfile}) {
@@ -442,8 +409,10 @@ abstract final class SocialSeedRepository {
     ],
   };
 
+  static final DateTime _seedAnchor = DateTime.utc(2026, 6, 1, 12, 0);
+
   static List<_SeedPostDef> _seedPostDefinitions({UserProfile? currentProfile}) {
-    final now = DateTime.now();
+    final now = _seedAnchor;
     SeededSocialUser user(String id) => socialUsers.firstWhere((u) => u.id == id);
 
     return [
