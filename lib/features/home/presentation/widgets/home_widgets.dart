@@ -7,8 +7,11 @@ import 'package:gym/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
+import '../../../../app/widgets/workout_image.dart';
 import '../../../../core/workout_exercise_catalog.dart';
 import '../../../../core/workout_exercise_l10n.dart';
+import '../../../feed/presentation/social_avatar.dart';
+import '../../../profile/domain/profile_image_assets.dart';
 import '../../../plans/domain/workout_plan.dart';
 import '../../../plans/presentation/delete_workout_sheet.dart';
 import '../../../workout_share/presentation/widgets/workout_share_button.dart';
@@ -28,16 +31,6 @@ class HomeReferenceHeader extends StatelessWidget {
   final String avatarUrl;
   final VoidCallback onStreakTap;
   final VoidCallback onProfileTap;
-
-  static String _initials(String raw) {
-    final parts = raw.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) {
-      final p = parts.first;
-      return p.length >= 2 ? p.substring(0, 2).toUpperCase() : p.toUpperCase();
-    }
-    return '${parts.first[0]}${parts[1][0]}'.toUpperCase();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,40 +84,17 @@ class HomeReferenceHeader extends StatelessWidget {
               child: Container(
                 width: 44,
                 height: 44,
-                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [PremiumColors.accentBlue, PremiumColors.accentBlueSoft],
-                  ),
                   border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: avatarUrl.trim().isEmpty
-                    ? Text(
-                        _initials(name),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                        ),
-                      )
-                    : Image.network(
-                        avatarUrl,
-                        width: 44,
-                        height: 44,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Text(
-                          _initials(name),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
+                child: SocialAvatar(
+                  name: name,
+                  imageUrl: avatarUrl,
+                  defaultAssetPath: ProfileImageAssets.defaultMaleAvatar,
+                  size: 44,
+                ),
               ),
             ),
           ),
@@ -309,6 +279,8 @@ class HomeFeaturedTrainingCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onShare;
 
+  static const _heroCoverAsset = 'assets/workout_categories/home_banner.jpg';
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -331,8 +303,9 @@ class HomeFeaturedTrainingCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Image.asset(
-              'assets/workout_categories/home_banner.jpg',
+              _heroCoverAsset,
               fit: BoxFit.cover,
+              filterQuality: FilterQuality.high,
               errorBuilder: (_, _, _) => const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -604,43 +577,53 @@ class HomeMonthlyCalendar extends StatelessWidget {
           const SizedBox(height: 6),
           LayoutBuilder(
             builder: (context, constraints) {
-              final cellWidth = (constraints.maxWidth - 12) / 7;
+              final cellWidth = constraints.maxWidth / 7;
               const cellHeight = 48.0;
-              return Wrap(
-                spacing: 2,
-                runSpacing: 2,
+              final rowCount = cells.length ~/ 7;
+              return Column(
                 children: [
-                  for (final cell in cells)
-                    SizedBox(
-                      width: cellWidth,
-                      height: cellHeight,
-                      child: Builder(
-                        builder: (context) {
-                          final key = DateTime(
-                            cell.date.year,
-                            cell.date.month,
-                            cell.date.day,
-                          );
-                          final dayPlans = plansByDate[key] ?? const [];
-                          final showWorkoutThumbnail = !cell.outsideMonth && dayPlans.isNotEmpty;
-                          final isSelected = _sameDay(key, selectedDay);
-                          return _CalendarDayCell(
-                            day: cell.date.day,
-                            outsideMonth: cell.outsideMonth,
-                            selected: isSelected,
-                            hasPlan: plannedDays.contains(key),
-                            completed: completedDays.contains(key),
-                            showWorkoutThumbnail: showWorkoutThumbnail,
-                            thumbnailAsset: showWorkoutThumbnail
-                                ? _planThumbnailAsset(dayPlans.first)
-                                : null,
-                            extraWorkoutCount:
-                                showWorkoutThumbnail && dayPlans.length > 1 ? dayPlans.length - 1 : 0,
-                            onTap: () => onDaySelected(key),
-                          );
-                        },
-                      ),
+                  for (var row = 0; row < rowCount; row++) ...[
+                    if (row > 0) const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        for (var col = 0; col < 7; col++)
+                          SizedBox(
+                            width: cellWidth,
+                            height: cellHeight,
+                            child: Builder(
+                              builder: (context) {
+                                final cell = cells[row * 7 + col];
+                                final key = DateTime(
+                                  cell.date.year,
+                                  cell.date.month,
+                                  cell.date.day,
+                                );
+                                final dayPlans = plansByDate[key] ?? const [];
+                                final showWorkoutThumbnail =
+                                    !cell.outsideMonth && dayPlans.isNotEmpty;
+                                final isSelected = _sameDay(key, selectedDay);
+                                return _CalendarDayCell(
+                                  day: cell.date.day,
+                                  outsideMonth: cell.outsideMonth,
+                                  selected: isSelected,
+                                  hasPlan: plannedDays.contains(key),
+                                  completed: completedDays.contains(key),
+                                  showWorkoutThumbnail: showWorkoutThumbnail,
+                                  thumbnailAsset: showWorkoutThumbnail
+                                      ? _planThumbnailAsset(dayPlans.first)
+                                      : null,
+                                  extraWorkoutCount: showWorkoutThumbnail &&
+                                          dayPlans.length > 1
+                                      ? dayPlans.length - 1
+                                      : 0,
+                                  onTap: () => onDaySelected(key),
+                                );
+                              },
+                            ),
+                          ),
+                      ],
                     ),
+                  ],
                 ],
               );
             },
@@ -694,17 +677,13 @@ class _CalendarDayCell extends StatelessWidget {
   final int extraWorkoutCount;
   final VoidCallback onTap;
 
-  static const double _dayNumberHeight = 14;
-  static const double _thumbnailGap = 2;
-  static const double _normalThumbnailSize = 18;
-  static const double _selectedThumbnailSize = 20;
-
-  double get _thumbnailSize =>
-      selected ? _selectedThumbnailSize : _normalThumbnailSize;
+  static const double _dayNumberSlotHeight = 16;
+  static const double _markerSlotHeight = 20;
+  static const double _thumbnailSize = 18;
+  static const double _dayFontSize = 13;
 
   @override
   Widget build(BuildContext context) {
-    final showDot = !outsideMonth && !showWorkoutThumbnail && (hasPlan || completed);
     final color = outsideMonth
         ? PremiumColors.textMuted.withValues(alpha: 0.48)
         : selected
@@ -715,6 +694,7 @@ class _CalendarDayCell extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected ? PremiumColors.accentBlue.withValues(alpha: 0.28) : null,
           borderRadius: BorderRadius.circular(9),
@@ -723,51 +703,86 @@ class _CalendarDayCell extends StatelessWidget {
               : null,
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(
-              height: _dayNumberHeight,
-              child: Center(
+              height: _dayNumberSlotHeight,
+              child: Align(
+                alignment: Alignment.center,
                 child: Text(
                   '$day',
                   style: TextStyle(
                     color: color,
-                    fontSize: showWorkoutThumbnail ? 12 : 14,
-                    fontWeight: selected
-                        ? FontWeight.w800
-                        : (showWorkoutThumbnail ? FontWeight.w600 : FontWeight.w500),
+                    fontSize: _dayFontSize,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                     height: 1,
+                  ),
+                  textHeightBehavior: const TextHeightBehavior(
+                    applyHeightToFirstAscent: false,
+                    applyHeightToLastDescent: false,
                   ),
                 ),
               ),
             ),
-            if (showWorkoutThumbnail) ...[
-              const SizedBox(height: _thumbnailGap),
-              SizedBox(
-                width: _thumbnailSize,
-                height: _thumbnailSize,
-                child: _CalendarWorkoutThumbnail(
-                  imageAsset: thumbnailAsset,
-                  extraCount: extraWorkoutCount,
-                  selected: selected,
-                  size: _thumbnailSize,
-                ),
+            SizedBox(
+              height: _markerSlotHeight,
+              child: Align(
+                alignment: Alignment.center,
+                child: _buildMarker(),
               ),
-            ] else if (showDot) ...[
-              const SizedBox(height: 2),
-              Container(
-                width: 4,
-                height: 4,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: completed
-                      ? PremiumColors.successGreen
-                      : PremiumColors.accentBlue,
-                ),
-              ),
-            ],
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMarker() {
+    if (outsideMonth) {
+      return const SizedBox(width: _thumbnailSize, height: _thumbnailSize);
+    }
+    if (showWorkoutThumbnail && thumbnailAsset != null) {
+      return SizedBox(
+        width: _thumbnailSize,
+        height: _thumbnailSize,
+        child: _CalendarWorkoutThumbnail(
+          imageAsset: thumbnailAsset!,
+          extraCount: extraWorkoutCount,
+          selected: selected,
+          size: _thumbnailSize,
+        ),
+      );
+    }
+    if (hasPlan || completed) {
+      return Container(
+        width: 5,
+        height: 5,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: completed
+              ? PremiumColors.successGreen
+              : PremiumColors.accentBlue,
+        ),
+      );
+    }
+    return const _CalendarEmptyDayMarker();
+  }
+}
+
+class _CalendarEmptyDayMarker extends StatelessWidget {
+  const _CalendarEmptyDayMarker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 7,
+      height: 7,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: PremiumColors.textMuted.withValues(alpha: 0.24),
+          width: 1,
         ),
       ),
     );
@@ -782,7 +797,7 @@ class _CalendarWorkoutThumbnail extends StatelessWidget {
     required this.size,
   });
 
-  final String? imageAsset;
+  final String imageAsset;
   final int extraCount;
   final bool selected;
   final double size;
@@ -823,21 +838,19 @@ class _CalendarWorkoutThumbnail extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(innerRadius),
               child: ColoredBox(
-                color: const Color(0xFF121A26),
-                child: imageAsset == null
-                    ? _CalendarWorkoutThumbnailFallback(size: size)
-                    : Padding(
-                        padding: const EdgeInsets.all(1),
-                        child: ColoredBox(
-                          color: const Color(0xFFF3F5F8),
-                          child: Image.asset(
-                            imageAsset!,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, _, _) =>
-                                _CalendarWorkoutThumbnailFallback(size: size),
-                          ),
-                        ),
-                      ),
+                color: const Color(0xFFF3F5F8),
+                child: Padding(
+                  padding: const EdgeInsets.all(1),
+                  child: Image.asset(
+                    imageAsset,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, _, _) => Icon(
+                      Icons.fitness_center_rounded,
+                      size: size * 0.46,
+                      color: PremiumColors.accentBlue.withValues(alpha: 0.72),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -849,26 +862,6 @@ class _CalendarWorkoutThumbnail extends StatelessWidget {
             child: _CalendarWorkoutBadge(count: extraCount),
           ),
       ],
-    );
-  }
-}
-
-class _CalendarWorkoutThumbnailFallback extends StatelessWidget {
-  const _CalendarWorkoutThumbnailFallback({required this.size});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: const Color(0xFF121A26),
-      child: Center(
-        child: Icon(
-          Icons.fitness_center_rounded,
-          size: size * 0.46,
-          color: PremiumColors.accentBlue,
-        ),
-      ),
     );
   }
 }
@@ -1927,9 +1920,6 @@ class _WorkoutPlanTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageAsset = WorkoutExerciseCatalog.imageForName(plan.exerciseNames.isEmpty
-        ? null
-        : plan.exerciseNames.first);
     final progressPercent = _workoutProgressPercent(plan);
 
     return Material(
@@ -1954,25 +1944,10 @@ class _WorkoutPlanTile extends StatelessWidget {
                 child: SizedBox(
                   width: 56,
                   height: 56,
-                  child: imageAsset == null
-                      ? Container(
-                          color: PremiumColors.accentBlue.withValues(alpha: 0.16),
-                          child: const Icon(
-                            Icons.fitness_center_rounded,
-                            color: PremiumColors.accentBlue,
-                          ),
-                        )
-                      : Image.asset(
-                          imageAsset,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => Container(
-                            color: PremiumColors.accentBlue.withValues(alpha: 0.16),
-                            child: const Icon(
-                              Icons.fitness_center_rounded,
-                              color: PremiumColors.accentBlue,
-                            ),
-                          ),
-                        ),
+                  child: WorkoutImage(
+                    exerciseNames: plan.exerciseNames,
+                    workoutName: plan.name,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -2379,8 +2354,10 @@ Map<DateTime, List<WorkoutPlan>> _groupPlansByDate(List<WorkoutPlan> plans) {
   return map;
 }
 
-String? _planThumbnailAsset(WorkoutPlan plan) {
-  return WorkoutExerciseCatalog.imageForName(
-    plan.exerciseNames.isEmpty ? null : plan.exerciseNames.first,
-  );
+String _planThumbnailAsset(WorkoutPlan plan) {
+  for (final name in plan.exerciseNames) {
+    final asset = WorkoutExerciseCatalog.imageForName(name);
+    if (asset != null) return asset;
+  }
+  return WorkoutExerciseCatalog.allExercises.first.imageAsset;
 }
