@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
+import '../../presentation/social_avatar.dart';
 import 'network_image_with_fallback.dart';
 
 class StoryAvatar extends StatelessWidget {
@@ -8,15 +9,21 @@ class StoryAvatar extends StatelessWidget {
     super.key,
     required this.label,
     required this.avatarUrl,
+    this.fallbackName = '',
     this.isOwnStory = false,
-    this.size = 68,
+    this.hasUnseenStory = true,
     this.onTap,
   });
 
+  static const double itemWidth = 88;
+  static const double itemHeight = 112;
+  static const double avatarSize = 68;
+
   final String label;
   final String avatarUrl;
+  final String fallbackName;
   final bool isOwnStory;
-  final double size;
+  final bool hasUnseenStory;
   final VoidCallback? onTap;
 
   static const _ringGradient = LinearGradient(
@@ -30,86 +37,105 @@ class StoryAvatar extends StatelessWidget {
     ],
   );
 
+  static const _seenRingColor = PremiumColors.textMuted;
+
   @override
   Widget build(BuildContext context) {
-    final innerSize = size - 6;
+    final innerSize = avatarSize - 8;
+    final name = fallbackName.isNotEmpty ? fallbackName : label;
 
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: size + 4,
+        width: itemWidth,
+        height: itemHeight,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: size,
-                  height: size,
-                  padding: const EdgeInsets.all(2.5),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: _ringGradient,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x336B8FC7),
-                        blurRadius: 10,
-                        spreadRadius: 0,
-                      ),
-                    ],
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(
+            SizedBox(
+              width: avatarSize,
+              height: avatarSize,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: avatarSize,
+                    height: avatarSize,
+                    padding: const EdgeInsets.all(2.5),
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: PremiumColors.midnightTop,
+                      gradient: hasUnseenStory ? _ringGradient : null,
+                      color: hasUnseenStory ? null : _seenRingColor.withValues(alpha: 0.35),
+                      border: hasUnseenStory
+                          ? null
+                          : Border.all(color: _seenRingColor.withValues(alpha: 0.5), width: 2),
+                      boxShadow: hasUnseenStory
+                          ? const [
+                              BoxShadow(
+                                color: Color(0x336B8FC7),
+                                blurRadius: 10,
+                              ),
+                            ]
+                          : null,
                     ),
-                    child: ClipOval(
-                      child: NetworkImageWithFallback(
-                        url: avatarUrl,
-                        width: innerSize,
-                        height: innerSize,
-                        fit: BoxFit.cover,
-                        placeholderIcon: Icons.person_outline_rounded,
-                      ),
-                    ),
-                  ),
-                ),
-                if (isOwnStory)
-                  Positioned(
-                    right: -1,
-                    bottom: -1,
                     child: Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: PremiumColors.accentBlue,
-                        border: Border.all(color: PremiumColors.midnightTop, width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: PremiumColors.accentBlue.withValues(alpha: 0.45),
-                            blurRadius: 8,
-                          ),
-                        ],
+                        color: PremiumColors.midnightTop,
                       ),
-                      child: const Icon(Icons.add_rounded, size: 14, color: Colors.white),
+                      child: ClipOval(
+                        child: avatarUrl.trim().isNotEmpty
+                            ? NetworkImageWithFallback(
+                                url: avatarUrl,
+                                width: innerSize,
+                                height: innerSize,
+                                fit: BoxFit.cover,
+                                placeholderIcon: Icons.person_outline_rounded,
+                              )
+                            : SocialAvatar(name: name, imageUrl: '', size: innerSize),
+                      ),
                     ),
                   ),
-              ],
+                  if (isOwnStory)
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: PremiumColors.accentBlue,
+                          border: Border.all(color: PremiumColors.midnightTop, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: PremiumColors.accentBlue.withValues(alpha: 0.45),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.add_rounded, size: 13, color: Colors.white),
+                      ),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(height: 6),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: PremiumColors.textPrimary,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+            SizedBox(
+              width: itemWidth,
+              height: 14,
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: PremiumColors.textPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  height: 1.1,
+                ),
               ),
             ),
           ],

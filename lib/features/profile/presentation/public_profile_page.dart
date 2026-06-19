@@ -6,6 +6,7 @@ import 'package:gym/l10n/app_localizations.dart';
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
 import '../../social/data/social_api_client.dart';
+import '../../social/data/social_seed_data.dart';
 import '../../social/domain/feed_media.dart';
 import '../../social/domain/feed_post.dart';
 import '../../social/domain/social_profile.dart';
@@ -46,6 +47,24 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   }
 
   Future<void> _load() async {
+    if (SocialSeedRepository.isSeededUser(widget.userId)) {
+      final user = SocialSeedRepository.seededUserFor(
+        widget.userId,
+        currentProfile: widget.currentProfile,
+      );
+      if (!mounted) return;
+      setState(() {
+        _isMine = widget.userId == SocialSeedRepository.currentUserId;
+        _profile = user?.toSocialProfile() ?? widget.initialProfile;
+        _posts = SocialSeedRepository.postsForUser(
+          widget.userId,
+          currentProfile: widget.currentProfile,
+        );
+        _loading = false;
+      });
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;
@@ -71,7 +90,14 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     }
   }
 
-  List<FeedMedia> get _allMedia => _posts.expand((p) => p.media).toList();
+  List<FeedMedia> get _allMedia {
+    final postMedia = _posts.expand((p) => p.media).toList();
+    if (postMedia.isNotEmpty) return postMedia;
+    return SocialSeedRepository.photosForUser(
+      widget.userId,
+      currentProfile: widget.currentProfile,
+    );
+  }
 
   Future<void> _menu() async {
     if (_isMine) return;
@@ -266,7 +292,27 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           heroTagPrefix: 'public-photo-${widget.userId}',
         );
       case 1:
-        return ProfileAboutSection(bio: profile.bio);
+        final user = SocialSeedRepository.seededUserFor(
+          widget.userId,
+          currentProfile: widget.currentProfile,
+        );
+        return ProfileAboutSection(
+          bio: profile.bio,
+          extraSections: user == null
+              ? const []
+              : [
+                  ProfileAboutBlock(
+                    title: 'Focus',
+                    body: user.trainingFocus,
+                    icon: Icons.fitness_center_rounded,
+                  ),
+                  ProfileAboutBlock(
+                    title: 'Location',
+                    body: user.city,
+                    icon: Icons.location_on_outlined,
+                  ),
+                ],
+        );
       case 2:
       default:
         return ProfileFeedSection(

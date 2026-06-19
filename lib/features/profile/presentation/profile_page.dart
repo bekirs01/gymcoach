@@ -11,6 +11,7 @@ import '../../../app/widgets/premium_background.dart';
 import '../../feed/presentation/social_avatar.dart';
 import 'widgets/profile_view_widgets.dart';
 import '../../social/data/social_api_client.dart';
+import '../../social/data/social_seed_data.dart';
 import '../../social/domain/feed_post.dart';
 import '../domain/user_profile.dart';
 
@@ -98,7 +99,10 @@ class _ProfilePageState extends State<ProfilePage> {
       await _loadSocial();
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loadingSocial = false);
+      setState(() {
+        _loadingSocial = false;
+        _applySeedFallback();
+      });
     }
   }
 
@@ -124,11 +128,30 @@ class _ProfilePageState extends State<ProfilePage> {
             isPublic: social.isPublic,
           );
         }
+        _applySeedFallback();
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loadingSocial = false);
+      setState(() {
+        _loadingSocial = false;
+        _applySeedFallback();
+      });
     }
+  }
+
+  void _applySeedFallback() {
+    final seed = SocialSeedRepository.currentUserSeed(_profile);
+    final seedPosts = SocialSeedRepository.postsForUser(
+      SocialSeedRepository.currentUserId,
+      currentProfile: _profile,
+    );
+    if (_posts.isEmpty && seedPosts.isNotEmpty) {
+      _posts = seedPosts;
+    }
+    _profile = _profile.copyWith(
+      bio: _profile.bio.trim().isEmpty ? seed.bio : _profile.bio,
+      avatarUrl: _profile.avatarUrl.trim().isEmpty ? seed.avatarUrl : _profile.avatarUrl,
+    );
   }
 
   Future<void> _editProfile() async {
@@ -357,10 +380,21 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _aboutSliver(AppLocalizations l10n) {
+    final seed = SocialSeedRepository.currentUserSeed(_profile);
     return SliverToBoxAdapter(
       child: ProfileAboutSection(
         bio: _profile.bio,
         extraSections: [
+          ProfileAboutBlock(
+            title: 'Focus',
+            body: seed.trainingFocus,
+            icon: Icons.fitness_center_rounded,
+          ),
+          ProfileAboutBlock(
+            title: 'Location',
+            body: seed.city,
+            icon: Icons.location_on_outlined,
+          ),
           ProfileAboutBlock(
             title: l10n.profilePrivateNotes,
             body: _profile.privateNotes.isEmpty
@@ -371,7 +405,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ProfileAboutBlock(
             title: l10n.profileFitnessSummary,
             body: '${_profile.fitnessGoal}\n${_profile.weightKg} кг · ${_profile.heightCm} см',
-            icon: Icons.fitness_center_rounded,
+            icon: Icons.monitor_heart_outlined,
           ),
         ],
       ),
@@ -401,9 +435,14 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _photosSliver(AppLocalizations l10n) {
     final media = _posts.expand((p) => p.media).toList();
+    final seedPhotos = SocialSeedRepository.photosForUser(
+      SocialSeedRepository.currentUserId,
+      currentProfile: _profile,
+    );
+    final photos = media.isNotEmpty ? media : seedPhotos;
     return SliverToBoxAdapter(
       child: ProfilePhotoGrid(
-        media: media,
+        media: photos,
         heroTagPrefix: 'own-photo',
       ),
     );

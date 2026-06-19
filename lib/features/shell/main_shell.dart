@@ -324,7 +324,10 @@ class _MainShellState extends State<MainShell> {
           onLogWorkout: () => _logWorkout(context),
         );
       case 1:
-        return FeedPage(profile: profile);
+        return FeedPage(
+          profile: profile,
+          onOpenOwnProfile: () => _openProfile(context),
+        );
       case 2:
         return TerritoryMapPage(profile: profile);
       case 3:

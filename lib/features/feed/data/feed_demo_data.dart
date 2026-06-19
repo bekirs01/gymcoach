@@ -1,53 +1,51 @@
-class DemoStory {
-  const DemoStory({
-    required this.id,
-    required this.label,
-    required this.avatarUrl,
-    this.isOwnStory = false,
-  });
-
-  final String id;
-  final String label;
-  final String avatarUrl;
-  final bool isOwnStory;
-}
+import '../../profile/domain/user_profile.dart';
+import '../../social/data/social_seed_data.dart';
+import '../../social/domain/feed_post.dart';
+import '../domain/feed_story.dart';
 
 class DemoFeedPost {
   DemoFeedPost({
     required this.id,
+    required this.userId,
     required this.userName,
     required this.avatarUrl,
     required this.imageUrl,
     required this.caption,
     required this.timeLabel,
     this.likeCount = 1,
+    this.commentCount = 0,
     this.liked = false,
     this.saved = false,
   });
 
   final String id;
+  final String userId;
   final String userName;
   final String avatarUrl;
   final String imageUrl;
   final String caption;
   final String timeLabel;
-  int likeCount;
+  final int likeCount;
+  final int commentCount;
   bool liked;
   bool saved;
 
   DemoFeedPost copyWith({
     int? likeCount,
+    int? commentCount,
     bool? liked,
     bool? saved,
   }) {
     return DemoFeedPost(
       id: id,
+      userId: userId,
       userName: userName,
       avatarUrl: avatarUrl,
       imageUrl: imageUrl,
       caption: caption,
       timeLabel: timeLabel,
       likeCount: likeCount ?? this.likeCount,
+      commentCount: commentCount ?? this.commentCount,
       liked: liked ?? this.liked,
       saved: saved ?? this.saved,
     );
@@ -55,91 +53,50 @@ class DemoFeedPost {
 }
 
 abstract final class FeedDemoData {
-  static const stories = [
-    DemoStory(
-      id: 'own',
-      label: 'Your story',
-      avatarUrl: 'https://randomuser.me/api/portraits/men/75.jpg',
-      isOwnStory: true,
-    ),
-    DemoStory(
-      id: 'alex',
-      label: 'Alex',
-      avatarUrl: 'https://randomuser.me/api/portraits/men/32.jpg',
-    ),
-    DemoStory(
-      id: 'emma',
-      label: 'Emma',
-      avatarUrl: 'https://randomuser.me/api/portraits/women/44.jpg',
-    ),
-    DemoStory(
-      id: 'leo',
-      label: 'Leo',
-      avatarUrl: 'https://randomuser.me/api/portraits/men/22.jpg',
-    ),
-    DemoStory(
-      id: 'mia',
-      label: 'Mia',
-      avatarUrl: 'https://randomuser.me/api/portraits/women/65.jpg',
-    ),
-    DemoStory(
-      id: 'noah',
-      label: 'Noah',
-      avatarUrl: 'https://randomuser.me/api/portraits/men/46.jpg',
-    ),
-  ];
+  static List<FeedStory> demoStories() => SocialSeedRepository.demoStories();
 
-  static List<DemoFeedPost> initialPosts() {
-    return [
-      DemoFeedPost(
-        id: 'demo_1',
-        userName: 'Alex Morgan',
-        avatarUrl: 'https://randomuser.me/api/portraits/men/32.jpg',
-        imageUrl: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=800&q=80',
-        caption: 'look at that beauty',
-        timeLabel: '7m ago',
-        likeCount: 1,
-      ),
-      DemoFeedPost(
-        id: 'demo_2',
-        userName: 'Emma Reed',
-        avatarUrl: 'https://randomuser.me/api/portraits/women/44.jpg',
-        imageUrl: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80',
-        caption: 'morning training done',
-        timeLabel: '45m ago',
-        likeCount: 3,
-      ),
-      DemoFeedPost(
-        id: 'demo_3',
-        userName: 'Leo Chen',
-        avatarUrl: 'https://randomuser.me/api/portraits/men/22.jpg',
-        imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80',
-        caption: 'small progress every day',
-        timeLabel: '2h ago',
-        likeCount: 5,
-      ),
-      DemoFeedPost(
-        id: 'demo_4',
-        userName: 'Mia Brooks',
-        avatarUrl: 'https://randomuser.me/api/portraits/women/65.jpg',
-        imageUrl: 'https://images.unsplash.com/photo-1476480862128-209b5b09368a?w=800&q=80',
-        caption: 'post-workout walk',
-        timeLabel: '3h ago',
-        likeCount: 2,
-      ),
-    ];
+  static StoryUser ownStoryUser({
+    required String displayName,
+    required String avatarUrl,
+  }) {
+    return StoryUser(
+      id: SocialSeedRepository.currentUserId,
+      displayName: 'Your story',
+      avatarUrl: avatarUrl,
+      fallbackName: displayName,
+      isCurrentUser: true,
+    );
   }
 
-  static List<DemoFeedPost> refreshPosts(List<DemoFeedPost> current) {
-    final fresh = DemoFeedPost(
-      id: 'demo_refresh_${DateTime.now().millisecondsSinceEpoch}',
-      userName: 'Noah Ellis',
-      avatarUrl: 'https://randomuser.me/api/portraits/men/46.jpg',
-      imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80',
-      caption: 'new day, new reps',
-      timeLabel: 'now',
-      likeCount: 0,
+  static List<DemoFeedPost> initialPosts({UserProfile? currentProfile}) {
+    return SocialSeedRepository.allFeedPosts(currentProfile: currentProfile).map(_fromFeedPost).toList();
+  }
+
+  static List<DemoFeedPost> refreshPosts(List<DemoFeedPost> current, {UserProfile? currentProfile}) {
+    final freshPost = SocialSeedRepository.refreshPost();
+    return [_fromFeedPost(freshPost), ...current];
+  }
+
+  static DemoFeedPost _fromFeedPost(FeedPost post) {
+    return DemoFeedPost(
+      id: post.id,
+      userId: post.userId,
+      userName: post.author.displayName,
+      avatarUrl: post.author.avatarUrl,
+      imageUrl: post.media.isNotEmpty ? post.media.first.url : '',
+      caption: post.caption,
+      timeLabel: _timeLabel(post.createdAt),
+      likeCount: post.likeCount,
+      commentCount: post.commentCount,
     );
-    return [fresh, ...current];
+  }
+
+  static String _timeLabel(DateTime createdAt) {
+    final diff = DateTime.now().difference(createdAt);
+    if (diff.inMinutes < 1) return 'now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inHours < 48) return 'yesterday';
+    return '${diff.inDays}d ago';
   }
 }

@@ -14,10 +14,12 @@ class DemoFeedPostCard extends StatefulWidget {
     super.key,
     required this.post,
     required this.onChanged,
+    this.onOpenProfile,
   });
 
   final DemoFeedPost post;
   final ValueChanged<DemoFeedPost> onChanged;
+  final VoidCallback? onOpenProfile;
 
   @override
   State<DemoFeedPostCard> createState() => _DemoFeedPostCardState();
@@ -51,6 +53,7 @@ class _DemoFeedPostCardState extends State<DemoFeedPostCard> {
       liked: post.liked,
       saved: post.saved,
       likeCount: post.likeCount,
+      commentCount: post.commentCount,
       onLike: _toggleLike,
       onSave: _toggleSave,
       onComment: () {
@@ -77,6 +80,8 @@ class _DemoFeedPostCardState extends State<DemoFeedPostCard> {
           ),
         );
       },
+      onAvatarTap: widget.onOpenProfile,
+      onHeaderTap: widget.onOpenProfile,
     );
   }
 }
@@ -271,6 +276,7 @@ class _ApiFeedPostCardState extends State<ApiFeedPostCard> {
       liked: _likedByMe,
       saved: _savedByMe,
       likeCount: _likeCount,
+      commentCount: _commentCount,
       onLike: _toggleLike,
       onSave: _saving ? null : _toggleSave,
       onComment: _openComments,
@@ -336,6 +342,7 @@ class _FeedPostShell extends StatelessWidget {
     required this.liked,
     required this.saved,
     required this.likeCount,
+    this.commentCount = 0,
     required this.onLike,
     required this.onSave,
     required this.onComment,
@@ -354,6 +361,7 @@ class _FeedPostShell extends StatelessWidget {
   final bool liked;
   final bool saved;
   final int likeCount;
+  final int commentCount;
   final VoidCallback onLike;
   final VoidCallback? onSave;
   final VoidCallback onComment;
@@ -454,6 +462,7 @@ class _FeedPostShell extends StatelessWidget {
                   liked: liked,
                   saved: saved,
                   likeCount: likeCount,
+                  commentCount: commentCount,
                   onLike: onLike,
                   onComment: onComment,
                   onSave: onSave,
@@ -488,12 +497,14 @@ class FeedActionRow extends StatelessWidget {
     required this.likeCount,
     required this.onLike,
     required this.onComment,
+    this.commentCount = 0,
     this.onSave,
   });
 
   final bool liked;
   final bool saved;
   final int likeCount;
+  final int commentCount;
   final VoidCallback onLike;
   final VoidCallback onComment;
   final VoidCallback? onSave;
@@ -501,6 +512,7 @@ class FeedActionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final likeLabel = likeCount == 1 ? '1 like' : '$likeCount likes';
+    final meta = commentCount > 0 ? '$likeLabel · $commentCount comments' : likeLabel;
 
     return Row(
       children: [
@@ -521,7 +533,7 @@ class FeedActionRow extends StatelessWidget {
         ),
         const Spacer(),
         Text(
-          likeLabel,
+          meta,
           style: const TextStyle(
             color: PremiumColors.textSecondary,
             fontWeight: FontWeight.w700,
