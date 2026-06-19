@@ -836,6 +836,30 @@ abstract class AppLocalizations {
   /// **'Delete \"{name}\" permanently?'**
   String deletePlanConfirm(String name);
 
+  /// No description provided for @deleteWorkoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete workout?'**
+  String get deleteWorkoutTitle;
+
+  /// No description provided for @deleteWorkoutSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently delete \"{name}\" and its exercises.'**
+  String deleteWorkoutSubtitle(String name);
+
+  /// No description provided for @deleteWorkoutWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get deleteWorkoutWarning;
+
+  /// No description provided for @deleteWorkoutConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete workout'**
+  String get deleteWorkoutConfirm;
+
   /// No description provided for @createPlanTitle.
   ///
   /// In en, this message translates to:
@@ -1082,6 +1106,12 @@ abstract class AppLocalizations {
   /// **'Streak details'**
   String get streakDetailsTitle;
 
+  /// No description provided for @streakDetailsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Track your training consistency'**
+  String get streakDetailsSubtitle;
+
   /// No description provided for @streakDayStreak.
   ///
   /// In en, this message translates to:
@@ -1093,6 +1123,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Train today to keep momentum.'**
   String get streakMomentum;
+
+  /// No description provided for @streakTrainTodayStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Train today to start your streak'**
+  String get streakTrainTodayStart;
+
+  /// No description provided for @streakBuildingMomentum.
+  ///
+  /// In en, this message translates to:
+  /// **'You are building momentum'**
+  String get streakBuildingMomentum;
+
+  /// No description provided for @streakBestStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Best streak'**
+  String get streakBestStreak;
+
+  /// No description provided for @streakThisWeekSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get streakThisWeekSessions;
+
+  /// No description provided for @streakLastWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Last workout'**
+  String get streakLastWorkout;
+
+  /// No description provided for @streakActiveDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Active days'**
+  String get streakActiveDays;
+
+  /// No description provided for @streakWeeklyCompletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly completion'**
+  String get streakWeeklyCompletion;
+
+  /// No description provided for @streakNextMilestone.
+  ///
+  /// In en, this message translates to:
+  /// **'Next milestone'**
+  String get streakNextMilestone;
+
+  /// No description provided for @streakDaysShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days'**
+  String streakDaysShort(int count);
+
+  /// No description provided for @streakMilestoneDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}-day streak'**
+  String streakMilestoneDays(int count);
+
+  /// No description provided for @streakThisWeekSection.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get streakThisWeekSection;
+
+  /// Singular workout count label
+  ///
+  /// In en, this message translates to:
+  /// **'{count} workout'**
+  String streakWorkoutsThisWeek(int count);
+
+  /// No description provided for @streakWorkoutsThisWeekPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} workouts'**
+  String streakWorkoutsThisWeekPlural(int count);
+
+  /// No description provided for @streakCompletionPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String streakCompletionPercent(int percent);
+
+  /// No description provided for @streakNoLastWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'No workouts yet'**
+  String get streakNoLastWorkout;
 
   /// No description provided for @streakRecentDays.
   ///
@@ -1106,11 +1226,41 @@ abstract class AppLocalizations {
   /// **'Complete a workout to start your streak.'**
   String get streakEmpty;
 
+  /// No description provided for @streakEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish your first session to build momentum here.'**
+  String get streakEmptyHint;
+
+  /// No description provided for @streakTipShortSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Even a short session counts.'**
+  String get streakTipShortSession;
+
+  /// No description provided for @streakTipSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule tomorrow\'s workout in advance.'**
+  String get streakTipSchedule;
+
+  /// No description provided for @streakTipConsistency.
+  ///
+  /// In en, this message translates to:
+  /// **'Consistency matters more than intensity.'**
+  String get streakTipConsistency;
+
   /// No description provided for @streakOpenProgress.
   ///
   /// In en, this message translates to:
   /// **'Open Progress'**
   String get streakOpenProgress;
+
+  /// No description provided for @streakViewProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'View progress'**
+  String get streakViewProgress;
 
   /// No description provided for @profileTitle.
   ///
@@ -1181,13 +1331,13 @@ abstract class AppLocalizations {
   /// No description provided for @profilePostsEmpty.
   ///
   /// In en, this message translates to:
-  /// **'This user has not shared any posts yet.'**
+  /// **'No posts yet'**
   String get profilePostsEmpty;
 
   /// No description provided for @profileSavedEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No saved posts yet. Tap bookmark on a feed post to save it here.'**
+  /// **'No saved posts yet'**
   String get profileSavedEmpty;
 
   /// No description provided for @profilePrivateNotes.
@@ -1561,6 +1711,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Equipment'**
   String get sessionChipEquipment;
+
+  /// No description provided for @sessionCommonMistakes.
+  ///
+  /// In en, this message translates to:
+  /// **'COMMON MISTAKES'**
+  String get sessionCommonMistakes;
+
+  /// No description provided for @sessionInfoSets.
+  ///
+  /// In en, this message translates to:
+  /// **'How many rounds of this exercise you do.'**
+  String get sessionInfoSets;
+
+  /// No description provided for @sessionInfoReps.
+  ///
+  /// In en, this message translates to:
+  /// **'How many repetitions you perform in each set.'**
+  String get sessionInfoReps;
+
+  /// No description provided for @sessionInfoRest.
+  ///
+  /// In en, this message translates to:
+  /// **'How long you rest between sets.'**
+  String get sessionInfoRest;
+
+  /// No description provided for @sessionInfoTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Main muscle group trained by this exercise.'**
+  String get sessionInfoTarget;
+
+  /// No description provided for @sessionInfoTempo.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed of the movement. Example 2-0-2 means 2 seconds down, no pause, 2 seconds up.'**
+  String get sessionInfoTempo;
+
+  /// No description provided for @sessionInfoEquipment.
+  ///
+  /// In en, this message translates to:
+  /// **'What you need to perform this exercise.'**
+  String get sessionInfoEquipment;
 
   /// No description provided for @sessionSummaryTitle.
   ///
@@ -1981,6 +2173,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Plan deleted'**
   String get snackbarPlanDeleted;
+
+  /// No description provided for @snackbarWorkoutDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout deleted'**
+  String get snackbarWorkoutDeleted;
+
+  /// No description provided for @snackbarWorkoutDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete workout'**
+  String get snackbarWorkoutDeleteFailed;
 
   /// No description provided for @snackbarWorkoutLogged.
   ///
@@ -2579,20 +2783,38 @@ abstract class AppLocalizations {
   /// No description provided for @mapLocationServiceDisabled.
   ///
   /// In en, this message translates to:
-  /// **'Location services are off. Turn on GPS to see where you are.'**
+  /// **'Turn on Location Services to use the map.'**
   String get mapLocationServiceDisabled;
 
   /// No description provided for @mapLocationPermissionDenied.
   ///
   /// In en, this message translates to:
-  /// **'Location permission is required to show your position on the map.'**
+  /// **'Location permission is required to show your current position.'**
   String get mapLocationPermissionDenied;
+
+  /// No description provided for @mapSimulatorLocationUnset.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a simulated location in the iOS Simulator (Features > Location) to use the map.'**
+  String get mapSimulatorLocationUnset;
+
+  /// No description provided for @mapRetryLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get mapRetryLocation;
 
   /// No description provided for @mapLocationTimeout.
   ///
   /// In en, this message translates to:
   /// **'GPS is taking too long. Move outdoors and tap My location again.'**
   String get mapLocationTimeout;
+
+  /// No description provided for @mapTilesUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Map tiles could not load. Check your internet connection and try again.'**
+  String get mapTilesUnavailable;
 
   /// No description provided for @mapOpenLocationSettings.
   ///
@@ -2669,19 +2891,19 @@ abstract class AppLocalizations {
   /// No description provided for @mapPermissionBody.
   ///
   /// In en, this message translates to:
-  /// **'GymCoach uses your location while the app is open to show your position and record territory capture routes.'**
+  /// **'Location permission is required to show your current position.'**
   String get mapPermissionBody;
 
   /// No description provided for @mapPermissionServiceDisabled.
   ///
   /// In en, this message translates to:
-  /// **'Turn on location services in system settings to use the territory map.'**
+  /// **'Turn on Location Services to use the map.'**
   String get mapPermissionServiceDisabled;
 
   /// No description provided for @mapAllowLocation.
   ///
   /// In en, this message translates to:
-  /// **'Allow location'**
+  /// **'Enable location'**
   String get mapAllowLocation;
 
   /// No description provided for @mapOpenSettings.

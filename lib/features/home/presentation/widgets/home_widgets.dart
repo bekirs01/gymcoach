@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +10,8 @@ import '../../../../app/theme/premium_tokens.dart';
 import '../../../../core/workout_exercise_catalog.dart';
 import '../../../../core/workout_exercise_l10n.dart';
 import '../../../plans/domain/workout_plan.dart';
+import '../../../plans/presentation/delete_workout_sheet.dart';
+import '../../../workout_share/presentation/widgets/workout_share_button.dart';
 
 class HomeReferenceHeader extends StatelessWidget {
   const HomeReferenceHeader({
@@ -506,6 +510,7 @@ class HomeMonthlyCalendar extends StatelessWidget {
     super.key,
     required this.month,
     required this.selectedDay,
+    required this.plans,
     required this.plannedDays,
     required this.completedDays,
     required this.onMonthChanged,
@@ -515,6 +520,7 @@ class HomeMonthlyCalendar extends StatelessWidget {
 
   final DateTime month;
   final DateTime selectedDay;
+  final List<WorkoutPlan> plans;
   final Set<DateTime> plannedDays;
   final Set<DateTime> completedDays;
   final ValueChanged<int> onMonthChanged;
@@ -526,6 +532,7 @@ class HomeMonthlyCalendar extends StatelessWidget {
     final locale = Localizations.localeOf(context).toString();
     final monthLabel = DateFormat.yMMMM(locale).format(month);
     final cells = _buildMonthCells(month);
+    final plansByDate = _groupPlansByDate(plans);
     final weekdays = [
       l10n.calendarDow1,
       l10n.calendarDow2,
@@ -598,6 +605,7 @@ class HomeMonthlyCalendar extends StatelessWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final cellWidth = (constraints.maxWidth - 12) / 7;
+              const cellHeight = 48.0;
               return Wrap(
                 spacing: 2,
                 runSpacing: 2,
@@ -605,7 +613,7 @@ class HomeMonthlyCalendar extends StatelessWidget {
                   for (final cell in cells)
                     SizedBox(
                       width: cellWidth,
-                      height: 37,
+                      height: cellHeight,
                       child: Builder(
                         builder: (context) {
                           final key = DateTime(
@@ -613,12 +621,21 @@ class HomeMonthlyCalendar extends StatelessWidget {
                             cell.date.month,
                             cell.date.day,
                           );
+                          final dayPlans = plansByDate[key] ?? const [];
+                          final showWorkoutThumbnail = !cell.outsideMonth && dayPlans.isNotEmpty;
+                          final isSelected = _sameDay(key, selectedDay);
                           return _CalendarDayCell(
                             day: cell.date.day,
                             outsideMonth: cell.outsideMonth,
-                            selected: _sameDay(key, selectedDay),
+                            selected: isSelected,
                             hasPlan: plannedDays.contains(key),
                             completed: completedDays.contains(key),
+                            showWorkoutThumbnail: showWorkoutThumbnail,
+                            thumbnailAsset: showWorkoutThumbnail
+                                ? _planThumbnailAsset(dayPlans.first)
+                                : null,
+                            extraWorkoutCount:
+                                showWorkoutThumbnail && dayPlans.length > 1 ? dayPlans.length - 1 : 0,
                             onTap: () => onDaySelected(key),
                           );
                         },
@@ -661,6 +678,9 @@ class _CalendarDayCell extends StatelessWidget {
     required this.selected,
     required this.hasPlan,
     required this.completed,
+    required this.showWorkoutThumbnail,
+    required this.thumbnailAsset,
+    required this.extraWorkoutCount,
     required this.onTap,
   });
 
@@ -669,10 +689,14 @@ class _CalendarDayCell extends StatelessWidget {
   final bool selected;
   final bool hasPlan;
   final bool completed;
+  final bool showWorkoutThumbnail;
+  final String? thumbnailAsset;
+  final int extraWorkoutCount;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final showDot = !outsideMonth && !showWorkoutThumbnail && (hasPlan || completed);
     final color = outsideMonth
         ? PremiumColors.textMuted.withValues(alpha: 0.48)
         : selected
@@ -697,11 +721,19 @@ class _CalendarDayCell extends StatelessWidget {
               '$day',
               style: TextStyle(
                 color: color,
-                fontSize: 14,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                fontSize: showWorkoutThumbnail ? 13 : 14,
+                fontWeight: selected ? FontWeight.w800 : (showWorkoutThumbnail ? FontWeight.w600 : FontWeight.w500),
+                height: showWorkoutThumbnail ? 1 : 1.1,
               ),
             ),
-            if (!outsideMonth && (hasPlan || completed)) ...[
+            if (showWorkoutThumbnail) ...[
+              const SizedBox(height: 4),
+              _CalendarWorkoutThumbnail(
+                imageAsset: thumbnailAsset,
+                extraCount: extraWorkoutCount,
+                selected: selected,
+              ),
+            ] else if (showDot) ...[
               const SizedBox(height: 2),
               Container(
                 width: 4,
@@ -721,6 +753,142 @@ class _CalendarDayCell extends StatelessWidget {
   }
 }
 
+class _CalendarWorkoutThumbnail extends StatelessWidget {
+  const _CalendarWorkoutThumbnail({
+    required this.imageAsset,
+    required this.extraCount,
+    required this.selected,
+  });
+
+  final String? imageAsset;
+  final int extraCount;
+  final bool selected;
+
+  static const double _normalSize = 24;
+  static const double _selectedSize = 26;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = selected ? _selectedSize : _normalSize;
+    final radius = selected ? 8.0 : 7.0;
+    final innerRadius = radius - 1.5;
+    final hasBadge = extraCount > 0;
+    final stackExtent = hasBadge ? size + 6 : size;
+
+    return SizedBox(
+      width: stackExtent,
+      height: stackExtent,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius),
+              color: const Color(0xFF0A1018),
+              border: Border.all(
+                color: selected
+                    ? PremiumColors.accentBlue.withValues(alpha: 0.88)
+                    : PremiumColors.accentBlue.withValues(alpha: 0.38),
+                width: selected ? 1.2 : 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: selected
+                      ? PremiumColors.accentBlue.withValues(alpha: 0.2)
+                      : Colors.black.withValues(alpha: 0.32),
+                  blurRadius: selected ? 6 : 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(1.5),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(innerRadius),
+              child: imageAsset == null
+                  ? _CalendarWorkoutThumbnailFallback(size: size)
+                  : ColoredBox(
+                      color: const Color(0xFFF3F5F8),
+                      child: Image.asset(
+                        imageAsset!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) => _CalendarWorkoutThumbnailFallback(size: size),
+                      ),
+                    ),
+            ),
+          ),
+          if (hasBadge)
+            Positioned(
+              top: (stackExtent - size) / 2 - 3,
+              right: (stackExtent - size) / 2 - 5,
+              child: _CalendarWorkoutBadge(count: extraCount),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CalendarWorkoutThumbnailFallback extends StatelessWidget {
+  const _CalendarWorkoutThumbnailFallback({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: const Color(0xFF121A26),
+      child: Center(
+        child: Icon(
+          Icons.fitness_center_rounded,
+          size: size * 0.46,
+          color: PremiumColors.accentBlue,
+        ),
+      ),
+    );
+  }
+}
+
+class _CalendarWorkoutBadge extends StatelessWidget {
+  const _CalendarWorkoutBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B121C),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(
+          color: PremiumColors.accentBlue.withValues(alpha: 0.72),
+          width: 0.8,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.38),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Text(
+        '+$count',
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.96),
+          fontSize: 7,
+          fontWeight: FontWeight.w800,
+          height: 1,
+          letterSpacing: -0.2,
+        ),
+      ),
+    );
+  }
+}
+
 class HomeWorkoutBuilderPanel extends StatefulWidget {
   const HomeWorkoutBuilderPanel({
     super.key,
@@ -728,12 +896,16 @@ class HomeWorkoutBuilderPanel extends StatefulWidget {
     required this.onAddPlan,
     required this.onOpenPlan,
     required this.onStartPlan,
+    required this.onDeletePlan,
+    required this.onSharePlan,
   });
 
   final List<WorkoutPlan> plans;
   final ValueChanged<WorkoutPlan> onAddPlan;
   final ValueChanged<WorkoutPlan> onOpenPlan;
   final ValueChanged<WorkoutPlan> onStartPlan;
+  final Future<void> Function(WorkoutPlan plan) onDeletePlan;
+  final ValueChanged<WorkoutPlan> onSharePlan;
 
   @override
   State<HomeWorkoutBuilderPanel> createState() => _HomeWorkoutBuilderPanelState();
@@ -773,6 +945,17 @@ class _HomeWorkoutBuilderPanelState extends State<HomeWorkoutBuilderPanel> {
               l10n: l10n,
               onOpen: () => widget.onOpenPlan(plan),
               onStart: () => widget.onStartPlan(plan),
+              onShare: () => widget.onSharePlan(plan),
+              onLongPressDelete: () {
+                HapticFeedback.mediumImpact();
+                unawaited(
+                  confirmDeleteWorkout(
+                    context: context,
+                    plan: plan,
+                    onDelete: () => widget.onDeletePlan(plan),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 10),
           ],
@@ -1704,12 +1887,16 @@ class _WorkoutPlanTile extends StatelessWidget {
     required this.l10n,
     required this.onOpen,
     required this.onStart,
+    required this.onShare,
+    required this.onLongPressDelete,
   });
 
   final WorkoutPlan plan;
   final AppLocalizations l10n;
   final VoidCallback onOpen;
   final VoidCallback onStart;
+  final VoidCallback onShare;
+  final VoidCallback onLongPressDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -1723,13 +1910,14 @@ class _WorkoutPlanTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(PremiumRadii.md),
       child: InkWell(
         onTap: onOpen,
+        onLongPress: onLongPressDelete,
         borderRadius: BorderRadius.circular(PremiumRadii.md),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(PremiumRadii.md),
             border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           ),
-          padding: const EdgeInsets.fromLTRB(10, 10, 4, 10),
+          padding: const EdgeInsets.fromLTRB(10, 10, 2, 10),
           child: Row(
             children: [
               _WorkoutProgressRing(percent: progressPercent),
@@ -1788,8 +1976,11 @@ class _WorkoutPlanTile extends StatelessWidget {
                   ],
                 ),
               ),
+              WorkoutShareButton(onPressed: onShare),
               IconButton(
                 onPressed: onStart,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                 icon: const Icon(Icons.play_arrow_rounded),
                 color: PremiumColors.accentBlue,
               ),
@@ -2144,3 +2335,25 @@ List<_MonthCell> _buildMonthCells(DateTime month) {
 
 bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
+
+Map<DateTime, List<WorkoutPlan>> _groupPlansByDate(List<WorkoutPlan> plans) {
+  final map = <DateTime, List<WorkoutPlan>>{};
+  for (final plan in plans) {
+    final key = WorkoutPlan.dateOnly(plan.scheduledDate);
+    (map[key] ??= []).add(plan);
+  }
+  for (final entry in map.entries) {
+    entry.value.sort((a, b) {
+      final ta = a.scheduledTime.hour * 60 + a.scheduledTime.minute;
+      final tb = b.scheduledTime.hour * 60 + b.scheduledTime.minute;
+      return ta.compareTo(tb);
+    });
+  }
+  return map;
+}
+
+String? _planThumbnailAsset(WorkoutPlan plan) {
+  return WorkoutExerciseCatalog.imageForName(
+    plan.exerciseNames.isEmpty ? null : plan.exerciseNames.first,
+  );
+}

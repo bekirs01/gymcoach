@@ -20,14 +20,16 @@ class SocialProfile {
   bool get hasAvatar => avatarUrl.trim().isNotEmpty;
 
   factory SocialProfile.fromRow(Map<String, dynamic> row) {
+    final publicBio = row['public_bio'] as String? ?? row['bio'] as String? ?? '';
+    final isPublic = row['is_public_profile'] as bool? ?? row['is_public'] as bool? ?? true;
     return SocialProfile(
       userId: row['id'] as String? ?? row['user_id'] as String? ?? '',
       displayName: row['display_name'] as String? ?? '',
-      bio: row['bio'] as String? ?? '',
+      bio: publicBio,
       privateNotes: row['private_notes'] as String? ?? '',
       avatarUrl: row['avatar_url'] as String? ?? '',
       coverUrl: row['cover_url'] as String? ?? '',
-      isPublic: row['is_public'] as bool? ?? true,
+      isPublic: isPublic,
     );
   }
 }

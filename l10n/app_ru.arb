@@ -231,6 +231,17 @@
       }
     }
   },
+  "deleteWorkoutTitle": "Удалить тренировку?",
+  "deleteWorkoutSubtitle": "Это навсегда удалит \"{name}\" и её упражнения.",
+  "@deleteWorkoutSubtitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteWorkoutWarning": "Это действие нельзя отменить.",
+  "deleteWorkoutConfirm": "Удалить тренировку",
   "createPlanTitle": "Создать план",
   "editPlanSheetTitle": "Изменить план",
   "savePlan": "Сохранить план",
@@ -300,6 +311,7 @@
   "progressWorkoutHistory": "История тренировок",
   "progressHistoryEmpty": "Завершенных сессий пока нет. Завершите тренировку, чтобы увидеть ее здесь.",
   "streakDetailsTitle": "Детали серии",
+  "streakDetailsSubtitle": "Отслеживайте регулярность тренировок",
   "streakDayStreak": "{count} day streak",
   "@streakDayStreak": {
     "placeholders": {
@@ -309,9 +321,64 @@
     }
   },
   "streakMomentum": "Тренируйтесь сегодня, чтобы сохранить темп.",
+  "streakTrainTodayStart": "Тренируйтесь сегодня, чтобы начать серию",
+  "streakBuildingMomentum": "Вы набираете темп",
+  "streakBestStreak": "Лучшая серия",
+  "streakThisWeekSessions": "На этой неделе",
+  "streakLastWorkout": "Последняя тренировка",
+  "streakActiveDays": "Активные дни",
+  "streakWeeklyCompletion": "Выполнение за неделю",
+  "streakNextMilestone": "Следующая цель",
+  "streakDaysShort": "{count} дн.",
+  "@streakDaysShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "streakMilestoneDays": "Серия {count} дн.",
+  "@streakMilestoneDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "streakThisWeekSection": "Эта неделя",
+  "streakWorkoutsThisWeek": "{count} тренировка",
+  "@streakWorkoutsThisWeek": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "streakWorkoutsThisWeekPlural": "{count} тренировок",
+  "@streakWorkoutsThisWeekPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "streakCompletionPercent": "{percent}%",
+  "@streakCompletionPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "streakNoLastWorkout": "Пока нет тренировок",
   "streakRecentDays": "Последние тренировочные дни",
   "streakEmpty": "Завершите тренировку, чтобы начать серию.",
+  "streakEmptyHint": "Завершите первую тренировку, чтобы увидеть прогресс здесь.",
+  "streakTipShortSession": "Даже короткая тренировка засчитывается.",
+  "streakTipSchedule": "Запланируйте завтрашнюю тренировку заранее.",
+  "streakTipConsistency": "Регулярность важнее интенсивности.",
   "streakOpenProgress": "Открыть прогресс",
+  "streakViewProgress": "Смотреть прогресс",
   "profileTitle": "Профиль",
   "profileTabPhotos": "Фото",
   "profileTabAbout": "О себе",
@@ -323,8 +390,8 @@
   "profileNoBio": "Публичное описание пока пустое.",
   "profileAboutEmpty": "Пользователь ещё не добавил информацию о себе.",
   "profilePhotosEmpty": "Пользователь ещё не добавил фото.",
-  "profilePostsEmpty": "Пользователь ещё не опубликовал посты.",
-  "profileSavedEmpty": "Нет сохранённых постов. Нажмите закладку в ленте, чтобы сохранить.",
+  "profilePostsEmpty": "Пока нет постов",
+  "profileSavedEmpty": "Нет сохранённых постов",
   "profilePrivateNotes": "Личные заметки",
   "profilePrivateNotesEmpty": "Добавьте заметки, видимые только вам.",
   "profileFitnessSummary": "Сводка",
@@ -393,6 +460,13 @@
   "sessionChipTarget": "Цель",
   "sessionChipTempo": "Темп",
   "sessionChipEquipment": "Инвентарь",
+  "sessionCommonMistakes": "ЧАСТЫЕ ОШИБКИ",
+  "sessionInfoSets": "Сколько подходов вы выполняете в этом упражнении.",
+  "sessionInfoReps": "Сколько повторений в каждом подходе.",
+  "sessionInfoRest": "Сколько отдыхаете между подходами.",
+  "sessionInfoTarget": "Основная мышечная группа, которую нагружает упражнение.",
+  "sessionInfoTempo": "Скорость движения. Например, 2-0-2 — 2 секунды вниз, без паузы, 2 секунды вверх.",
+  "sessionInfoEquipment": "Что нужно для выполнения упражнения.",
   "sessionSummaryTitle": "Итоги сессии",
   "sessionSummaryDuration": "Длительность",
   "sessionSummaryCalories": "Калории",
@@ -528,6 +602,8 @@
   "snackbarWorkoutSavedHistory": "Тренировка сохранена в историю",
   "snackbarPlanUpdated": "План обновлен",
   "snackbarPlanDeleted": "План удален",
+  "snackbarWorkoutDeleted": "Тренировка удалена",
+  "snackbarWorkoutDeleteFailed": "Не удалось удалить тренировку",
   "snackbarWorkoutLogged": "Тренировка записана",
   "snackbarCalendarAdded": "Тренировка добавлена в календарь",
   "categorySubtitle": "{count} exercises",
@@ -634,9 +710,12 @@
   "mapLocateMe": "Моё местоположение",
   "mapLocating": "Определяем местоположение…",
   "mapLocationUnavailable": "Не удалось найти вас. Включите GPS и попробуйте снова.",
-  "mapLocationServiceDisabled": "Геолокация выключена. Включите GPS, чтобы видеть себя на карте.",
-  "mapLocationPermissionDenied": "Нужен доступ к геолокации для отображения на карте.",
+  "mapLocationServiceDisabled": "Включите службы геолокации, чтобы использовать карту.",
+  "mapLocationPermissionDenied": "Для отображения вашего местоположения нужен доступ к геолокации.",
+  "mapSimulatorLocationUnset": "Задайте симулированное местоположение в iOS Simulator (Features > Location), чтобы использовать карту.",
+  "mapRetryLocation": "Повторить",
   "mapLocationTimeout": "GPS отвечает слишком долго. Выйдите на открытое место и нажмите снова.",
+  "mapTilesUnavailable": "Не удалось загрузить карту. Проверьте интернет и попробуйте снова.",
   "mapOpenLocationSettings": "Открыть настройки",
   "mapModeMap": "Карта",
   "mapModeSatellite": "Спутник",
@@ -649,9 +728,9 @@
   "mapGpsAccuracy": "Точность GPS",
   "mapFinishCapture": "Завершить",
   "mapPermissionTitle": "Нужен доступ к геолокации",
-  "mapPermissionBody": "GymCoach использует геолокацию, пока приложение открыто, чтобы показывать вас на карте и записывать маршруты захвата.",
-  "mapPermissionServiceDisabled": "Включите геолокацию в настройках системы для карты территорий.",
-  "mapAllowLocation": "Разрешить геолокацию",
+  "mapPermissionBody": "Для отображения вашего местоположения нужен доступ к геолокации.",
+  "mapPermissionServiceDisabled": "Включите службы геолокации, чтобы использовать карту.",
+  "mapAllowLocation": "Включить геолокацию",
   "mapOpenSettings": "Открыть настройки",
   "mapPermissionDialogTitle": "Включите геолокацию для захвата",
   "mapPermissionDialogBody": "GPS используется только во время активного захвата. Маршрут отправляется на сервер после завершения.",

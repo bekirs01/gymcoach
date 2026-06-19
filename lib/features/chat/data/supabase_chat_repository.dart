@@ -7,9 +7,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/device_user_id.dart';
+import '../../../core/supabase_operation_error.dart';
+import '../../social/data/social_seed_data.dart';
 import '../domain/chat_attachment.dart';
 import '../domain/chat_conversation.dart';
 import '../domain/chat_message.dart';
+import 'chat_local_store.dart';
 import 'waveform_utils.dart';
 
 final class SupabaseChatRepository {
@@ -29,18 +32,41 @@ final class SupabaseChatRepository {
   Future<String> ensureAuthenticatedUserId() async {
     final session = _client.auth.currentSession;
     if (session == null) {
-      await _client.auth.signInAnonymously();
+      try {
+        await _client.auth.signInAnonymously();
+      } catch (error, stackTrace) {
+        throw SupabaseOperationError.classify(
+          operation: 'chat_sign_in',
+          action: 'signInAnonymously',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
     }
 
     final authId = _client.auth.currentUser?.id;
     if (authId == null) {
-      throw StateError('Unable to authenticate chat user');
+      throw SupabaseOperationError.classify(
+        operation: 'chat_auth',
+        action: 'currentUser',
+        error: StateError('Unable to authenticate chat user'),
+      );
     }
 
-    await _client.from('profiles').upsert({
-      'id': authId,
-      'display_name': 'Athlete',
-    });
+    try {
+      await _client.from('profiles').upsert({
+        'id': authId,
+        'display_name': 'Athlete',
+      });
+    } catch (error, stackTrace) {
+      SupabaseOperationError.classify(
+        operation: 'chat_ensure_profile',
+        table: 'profiles',
+        action: 'upsert',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
     return authId;
   }
 
@@ -55,41 +81,168 @@ final class SupabaseChatRepository {
   bool get isAuthenticated => _client.auth.currentSession != null;
 
   Future<List<ChatConversation>> loadConversations() async {
-    final uid = await ensureAuthenticatedUserId();
+    final local = ChatLocalStore.orderedConversations();
+    List<ChatConversation> remote = const [];
+
+    try {
+      remote = await _loadRemoteConversations();
+    } catch (error, stackTrace) {
+      SupabaseOperationError.classify(
+        operation: 'chat_load_conversations',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return _mergeConversations(local, remote);
+  }
+
+  List<ChatConversation> _mergeConversations(
+    List<ChatConversation> local,
+    List<ChatConversation> remote,
+  ) {
+    final byParticipant = <String, ChatConversation>{
+      for (final conversation in local) conversation.participantUserId: conversation,
+    };
+
+    for (final conversation in remote) {
+      byParticipant[conversation.participantUserId] = conversation;
+    }
+
+    final merged = byParticipant.values.toList();
+    merged.sort((a, b) {
+      final aTime = a.lastMessageTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bTime = b.lastMessageTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bTime.compareTo(aTime);
+    });
+    return merged;
+  }
+
+  Future<List<ChatConversation>> _loadRemoteConversations() async {
+    final seeded = await loadSeededConversations();
+    final real = await _loadRealConversations();
+    final all = [...seeded, ...real];
+    all.sort((a, b) {
+      final aTime = a.lastMessageTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bTime = b.lastMessageTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bTime.compareTo(aTime);
+    });
+    return all;
+  }
+
+  Future<List<ChatConversation>> loadSeededConversations() async {
+    try {
+      await ensureAuthenticatedUserId();
+    } catch (error, stackTrace) {
+      SupabaseOperationError.classify(
+        operation: 'chat_load_seeded_auth',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return const [];
+    }
+
+    final conversations = <ChatConversation>[];
+
+    for (final seedUserId in ChatLocalStore.conversationOrder) {
+      final user = SocialSeedRepository.userById(seedUserId);
+      if (user == null) continue;
+
+      try {
+        final conversationId = await _client.rpc<String>(
+          'get_or_create_seeded_conversation',
+          params: {
+            'p_seed_user_id': seedUserId,
+            'p_display_name': user.displayName,
+            'p_username': user.username,
+            'p_avatar_url': user.avatarUrl,
+          },
+        );
+
+        final summary = await loadConversationSummary(conversationId);
+        if (summary != null) conversations.add(summary);
+      } catch (error, stackTrace) {
+        SupabaseOperationError.classify(
+          operation: 'chat_load_seeded_conversation',
+          table: 'conversations',
+          action: 'rpc:get_or_create_seeded_conversation',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+
+    return conversations;
+  }
+
+  Future<List<ChatConversation>> _loadRealConversations() async {
+    try {
+      await ensureAuthenticatedUserId();
+    } catch (error, stackTrace) {
+      SupabaseOperationError.classify(
+        operation: 'chat_load_real_auth',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return [];
+    }
+
+    final uid = _client.auth.currentUser?.id;
+    if (uid == null) return [];
 
     final participantRows = await _client
         .from('conversation_participants')
         .select('conversation_id, last_read_at')
         .eq('user_id', uid);
 
-    final conversationIds = participantRows
-        .map((row) => row['conversation_id'] as String)
-        .toSet()
-        .toList();
-    if (conversationIds.isEmpty) return [];
-
+    final conversationIds = <String>[];
     final readAtByConversation = <String, DateTime?>{};
     for (final row in participantRows) {
       final conversationId = row['conversation_id'] as String;
+      try {
+        final conversationRow = await _client
+            .from('conversations')
+            .select('is_seeded')
+            .eq('id', conversationId)
+            .maybeSingle();
+        if (conversationRow?['is_seeded'] == true) continue;
+      } catch (error, stackTrace) {
+        SupabaseOperationError.classify(
+          operation: 'chat_load_real_conversation_meta',
+          table: 'conversations',
+          action: 'select',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        continue;
+      }
+
+      conversationIds.add(conversationId);
       final lastReadRaw = row['last_read_at'] as String?;
       readAtByConversation[conversationId] =
           lastReadRaw == null ? null : DateTime.parse(lastReadRaw);
     }
 
+    if (conversationIds.isEmpty) return [];
+
     final conversations = <ChatConversation>[];
     for (final conversationId in conversationIds) {
-      final conversation = await loadConversationSummary(
-        conversationId,
-        lastReadAt: readAtByConversation[conversationId],
-      );
-      if (conversation != null) conversations.add(conversation);
+      try {
+        final conversation = await loadConversationSummary(
+          conversationId,
+          lastReadAt: readAtByConversation[conversationId],
+        );
+        if (conversation != null) conversations.add(conversation);
+      } catch (error, stackTrace) {
+        SupabaseOperationError.classify(
+          operation: 'chat_load_real_conversation',
+          table: 'conversations',
+          action: 'select',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
     }
-
-    conversations.sort((a, b) {
-      final aTime = a.lastMessageTime ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final bTime = b.lastMessageTime ?? DateTime.fromMillisecondsSinceEpoch(0);
-      return bTime.compareTo(aTime);
-    });
     return conversations;
   }
 
@@ -105,6 +258,38 @@ final class SupabaseChatRepository {
         .eq('id', conversationId)
         .maybeSingle();
     if (conversationRow == null) return null;
+
+    final isSeeded = conversationRow['is_seeded'] == true;
+    if (isSeeded) {
+      final seededContactId = conversationRow['seeded_contact_id'] as String?;
+      if (seededContactId == null) return null;
+
+      final contactRow = await _client
+          .from('chat_contacts')
+          .select('seed_user_id, display_name, avatar_url')
+          .eq('id', seededContactId)
+          .maybeSingle();
+      if (contactRow == null) return null;
+
+      final lastMessageAtRaw = conversationRow['last_message_at'] as String?;
+      final lastMessageAt =
+          lastMessageAtRaw == null ? null : DateTime.parse(lastMessageAtRaw);
+      final lastMessageText = conversationRow['last_message_text'] as String?;
+
+      return ChatConversation(
+        id: conversationId,
+        participantUserId: contactRow['seed_user_id'] as String,
+        participantName: contactRow['display_name'] as String? ?? 'Athlete',
+        avatarUrl: contactRow['avatar_url'] as String? ?? '',
+        messages: const [],
+        unreadCount: 0,
+        statusText: 'Online',
+        isRemote: true,
+        isSeeded: true,
+        cachedLastMessageText: lastMessageText,
+        cachedLastMessageTime: lastMessageAt,
+      );
+    }
 
     final participantRows = await _client
         .from('conversation_participants')
@@ -214,6 +399,25 @@ final class SupabaseChatRepository {
     }
   }
 
+  Future<ChatConversation?> getOrCreateSeededConversation(String seedUserId) async {
+    final user = SocialSeedRepository.userById(seedUserId);
+    if (user == null) return null;
+
+    await ensureAuthenticatedUserId();
+
+    final conversationId = await _client.rpc<String>(
+      'get_or_create_seeded_conversation',
+      params: {
+        'p_seed_user_id': seedUserId,
+        'p_display_name': user.displayName,
+        'p_username': user.username,
+        'p_avatar_url': user.avatarUrl,
+      },
+    );
+
+    return loadConversation(conversationId);
+  }
+
   Future<ChatConversation?> getOrCreateConversationWithUser(String otherUserId) async {
     await ensureAuthenticatedUserId();
 
@@ -248,6 +452,7 @@ final class SupabaseChatRepository {
         .insert({
           'conversation_id': conversationId,
           'sender_id': uid,
+          'sender_type': 'user',
           'body': trimmed,
           'message_type': 'text',
           'client_temp_id': ?clientTempId,
@@ -265,10 +470,13 @@ final class SupabaseChatRepository {
     required XFile file,
     required Uint8List bytes,
     required String mimeType,
+    bool isSeeded = false,
   }) async {
     final uid = await ensureAuthenticatedUserId();
     final ext = _imageExtension(mimeType, file.name);
-    final storagePath = '$conversationId/$uid/$messageId/${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final storagePath = isSeeded
+        ? 'seeded/$uid/$conversationId/$messageId/${DateTime.now().millisecondsSinceEpoch}.$ext'
+        : '$conversationId/$uid/$messageId/${DateTime.now().millisecondsSinceEpoch}.$ext';
 
     await _client.storage.from(bucket).uploadBinary(
           storagePath,
@@ -277,6 +485,15 @@ final class SupabaseChatRepository {
         );
 
     return storagePath;
+  }
+
+  Future<bool> _isSeededConversation(String conversationId) async {
+    final row = await _client
+        .from('conversations')
+        .select('is_seeded')
+        .eq('id', conversationId)
+        .maybeSingle();
+    return row?['is_seeded'] == true;
   }
 
   Future<ChatMessage> sendImageMessage({
@@ -293,6 +510,7 @@ final class SupabaseChatRepository {
     final trimmedCaption = caption.trim();
     final mimeType = _imageMimeType(file.name);
     final messageType = trimmedCaption.isEmpty ? 'image' : 'mixed';
+    final isSeeded = await _isSeededConversation(conversationId);
 
     final storagePath = await uploadChatImage(
       conversationId: conversationId,
@@ -300,6 +518,7 @@ final class SupabaseChatRepository {
       file: file,
       bytes: bytes,
       mimeType: mimeType,
+      isSeeded: isSeeded,
     );
 
     Map<String, dynamic> messageRow;
@@ -310,6 +529,7 @@ final class SupabaseChatRepository {
             'id': messageId,
             'conversation_id': conversationId,
             'sender_id': uid,
+            'sender_type': 'user',
             'body': trimmedCaption,
             'message_type': messageType,
             'client_temp_id': ?clientTempId,
@@ -367,7 +587,10 @@ final class SupabaseChatRepository {
     final uid = await ensureAuthenticatedUserId();
     final messageId = _uuid.v4();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final storagePath = '$conversationId/$uid/$messageId/audio-$timestamp.m4a';
+    final isSeeded = await _isSeededConversation(conversationId);
+    final storagePath = isSeeded
+        ? 'seeded/$uid/$conversationId/$messageId/audio-$timestamp.m4a'
+        : '$conversationId/$uid/$messageId/audio-$timestamp.m4a';
     final file = File(localFilePath);
     final bytes = await file.readAsBytes();
     const mimeType = 'audio/m4a';
@@ -386,6 +609,7 @@ final class SupabaseChatRepository {
             'id': messageId,
             'conversation_id': conversationId,
             'sender_id': uid,
+            'sender_type': 'user',
             'body': '',
             'message_type': 'voice',
             'client_temp_id': clientTempId,

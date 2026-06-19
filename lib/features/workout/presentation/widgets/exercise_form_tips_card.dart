@@ -7,10 +7,14 @@ class ExerciseFormTipsCard extends StatefulWidget {
     super.key,
     required this.title,
     required this.tips,
+    this.mistakesTitle,
+    this.mistakes = const [],
   });
 
   final String title;
   final List<String> tips;
+  final String? mistakesTitle;
+  final List<String> mistakes;
 
   @override
   State<ExerciseFormTipsCard> createState() => _ExerciseFormTipsCardState();
@@ -70,33 +74,36 @@ class _ExerciseFormTipsCardState extends State<ExerciseFormTipsCard> {
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   for (var i = 0; i < widget.tips.length; i++) ...[
                     if (i > 0) const SizedBox(height: 10),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 2),
-                          child: Icon(
-                            Icons.check_circle_outline_rounded,
-                            color: PremiumColors.accentBlue,
-                            size: 16,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            widget.tips[i],
-                            style: const TextStyle(
-                              color: PremiumColors.textSecondary,
-                              fontSize: 13,
-                              height: 1.35,
-                            ),
-                          ),
-                        ),
-                      ],
+                    _BulletRow(
+                      icon: Icons.check_circle_outline_rounded,
+                      iconColor: PremiumColors.accentBlue,
+                      text: widget.tips[i],
                     ),
+                  ],
+                  if (widget.mistakes.isNotEmpty && widget.mistakesTitle != null) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      widget.mistakesTitle!,
+                      style: const TextStyle(
+                        color: PremiumColors.textSecondary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    for (var i = 0; i < widget.mistakes.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 10),
+                      _BulletRow(
+                        icon: Icons.close_rounded,
+                        iconColor: const Color(0xFFE57373),
+                        text: widget.mistakes[i],
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -104,6 +111,42 @@ class _ExerciseFormTipsCardState extends State<ExerciseFormTipsCard> {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _BulletRow extends StatelessWidget {
+  const _BulletRow({
+    required this.icon,
+    required this.iconColor,
+    required this.text,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(icon, color: iconColor, size: 16),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: PremiumColors.textSecondary,
+              fontSize: 13,
+              height: 1.35,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

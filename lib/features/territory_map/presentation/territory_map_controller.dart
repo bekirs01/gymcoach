@@ -59,6 +59,9 @@ class TerritoryMapController extends ChangeNotifier {
 
   Future<void> initialize() async {
     permissionState = await _permissionService.checkPermission();
+    if (permissionState == LocationPermissionState.denied) {
+      permissionState = await _permissionService.requestPermission();
+    }
     await refreshTerritories();
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(const Duration(seconds: 45), (_) {

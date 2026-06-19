@@ -15,6 +15,11 @@ enum ChatMessageSendState {
   failed,
 }
 
+enum ChatSenderType {
+  user,
+  seededContact,
+}
+
 class ChatMessage {
   const ChatMessage({
     required this.id,
@@ -27,6 +32,7 @@ class ChatMessage {
     this.isPending = false,
     this.hasFailed = false,
     this.sendState,
+    this.senderType = ChatSenderType.user,
     this.localPreviewBytes,
     this.localVoicePath,
   });
@@ -35,6 +41,7 @@ class ChatMessage {
   final String senderId;
   final String body;
   final DateTime sentAt;
+  final ChatSenderType senderType;
   final ChatMessageType messageType;
   final List<ChatAttachment> attachments;
   final String? clientTempId;
@@ -76,7 +83,10 @@ class ChatMessage {
     return null;
   }
 
-  bool isFromCurrentUser(String currentUserId) => senderId == currentUserId;
+  bool isFromCurrentUser(String currentUserId) {
+    if (senderType == ChatSenderType.seededContact) return false;
+    return senderId == currentUserId;
+  }
 
   ChatMessage copyWith({
     String? id,
@@ -84,6 +94,7 @@ class ChatMessage {
     String? body,
     DateTime? sentAt,
     ChatMessageType? messageType,
+    ChatSenderType? senderType,
     List<ChatAttachment>? attachments,
     String? clientTempId,
     bool? isPending,
@@ -101,6 +112,7 @@ class ChatMessage {
       body: body ?? this.body,
       sentAt: sentAt ?? this.sentAt,
       messageType: messageType ?? this.messageType,
+      senderType: senderType ?? this.senderType,
       attachments: attachments ?? this.attachments,
       clientTempId: clientTempId ?? this.clientTempId,
       isPending: isPending ?? this.isPending,
@@ -138,6 +150,11 @@ class ChatMessage {
     }
   }
 
+  static ChatSenderType parseSenderType(String? value) {
+    if (value == 'seeded_contact') return ChatSenderType.seededContact;
+    return ChatSenderType.user;
+  }
+
   factory ChatMessage.fromRow(
     Map<String, dynamic> row, {
     List<ChatAttachment> attachments = const [],
@@ -147,6 +164,7 @@ class ChatMessage {
       senderId: row['sender_id'] as String,
       body: row['body'] as String? ?? '',
       sentAt: DateTime.parse(row['created_at'] as String),
+      senderType: parseSenderType(row['sender_type'] as String?),
       messageType: parseMessageType(row['message_type'] as String?),
       attachments: attachments,
       clientTempId: row['client_temp_id'] as String?,

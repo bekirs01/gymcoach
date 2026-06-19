@@ -3,7 +3,7 @@ import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
-import '../../../app/widgets/premium_ios_alert.dart';
+import 'delete_workout_sheet.dart';
 import '../../../core/workout_exercise_catalog.dart';
 import '../../../core/workout_exercise_l10n.dart';
 import '../domain/workout_plan.dart';
@@ -14,7 +14,7 @@ class PlanDetailPage extends StatelessWidget {
     required this.plan,
     required this.onBeginSession,
     required this.onEdit,
-    required this.onDeleted,
+    required this.onDelete,
     this.onRepeatWorkout,
     this.onCustomizeRepeat,
   });
@@ -22,24 +22,17 @@ class PlanDetailPage extends StatelessWidget {
   final WorkoutPlan plan;
   final VoidCallback onBeginSession;
   final VoidCallback onEdit;
-  final VoidCallback onDeleted;
+  final Future<void> Function() onDelete;
   final VoidCallback? onRepeatWorkout;
   final VoidCallback? onCustomizeRepeat;
 
   Future<void> _confirmDelete(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
-    final ok = await showPremiumIosConfirmDialog(
+    await confirmDeleteWorkout(
       context: context,
-      title: l10n.deletePlanTitle,
-      message: l10n.deletePlanConfirm(plan.name),
-      cancelLabel: l10n.cancel,
-      confirmLabel: l10n.delete,
-      isDestructive: true,
+      plan: plan,
+      onDelete: onDelete,
+      popOnSuccess: true,
     );
-    if (ok == true && context.mounted) {
-      onDeleted();
-      Navigator.of(context).pop();
-    }
   }
 
   @override
@@ -62,11 +55,7 @@ class PlanDetailPage extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.3),
           ),
           actions: [
-            IconButton(
-              onPressed: () => _confirmDelete(context),
-              icon: const Icon(Icons.delete_outline_rounded),
-              color: PremiumColors.textSecondary,
-            ),
+            WorkoutDeleteIconButton(onPressed: () => _confirmDelete(context)),
           ],
         ),
         body: SafeArea(

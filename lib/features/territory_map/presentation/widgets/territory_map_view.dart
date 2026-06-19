@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:gym/l10n/app_localizations.dart';
@@ -10,6 +11,7 @@ import '../../../../app/theme/premium_tokens.dart';
 import '../../config/territory_config.dart';
 import '../../domain/capture_point.dart';
 import '../../domain/territory.dart';
+import '../../services/location_permission_service.dart';
 import '../../services/polygon_utils.dart';
 import '../../services/user_location_service.dart';
 import '../territory_map_controller.dart';
@@ -31,23 +33,48 @@ class TerritoryMapView extends StatefulWidget {
 }
 
 class TerritoryMapViewState extends State<TerritoryMapView> {
+  static const _neutralFallbackTarget = LatLng(20, 0);
+  static const _neutralFallbackZoom = 2.5;
+  static const _gpsZoom = 16.0;
+  static const _gpsResolveTimeout = Duration(seconds: 10);
+  static const _styleLoadTimeout = Duration(seconds: 12);
+
   final _locationService = UserLocationService();
 
   MapLibreMapController? _mapController;
   var _styleReady = false;
   var _isLocating = false;
+  var _hasRealLocation = false;
+  var _mapStyleGeneration = 0;
+  var _usingFallbackStyle = false;
   String? _loadedStyleUrl;
-  LatLng? _resolvedInitialTarget;
+  LatLng _mapTarget = _neutralFallbackTarget;
   geo.Position? _pendingCenterPosition;
   double? _pendingCenterZoom;
   var _pendingCenterAnimate = false;
   _MapSyncSnapshot? _lastSyncedSnapshot;
+  UserLocationFailure? _locationWarning;
+  LocationPermissionState? _trackedPermissionState;
+  Timer? _styleLoadTimer;
+  var _mapTilesFailed = false;
+
+  bool get _isIosSimulator =>
+      !kIsWeb && Platform.isIOS && Platform.environment.containsKey('SIMULATOR_DEVICE_NAME');
+
+  String get _activeStyleString {
+    if (_usingFallbackStyle) {
+      return MapStyleConfig.fallbackStyleFor(widget.controller.mapMode);
+    }
+    return MapStyleConfig.styleUrlFor(widget.controller.mapMode);
+  }
 
   @override
   void initState() {
     super.initState();
+    _trackedPermissionState = widget.controller.permissionState;
     widget.controller.addListener(_onControllerChanged);
-    unawaited(_resolveInitialTarget());
+    _startStyleLoadWatch();
+    unawaited(_bootstrapInitialLocation());
   }
 
   @override
@@ -62,6 +89,13 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
   }
 
   void _onControllerChanged() {
+    final permission = widget.controller.permissionState;
+    if (permission == LocationPermissionState.granted &&
+        _trackedPermissionState != LocationPermissionState.granted) {
+      unawaited(_bootstrapInitialLocation());
+    }
+    _trackedPermissionState = permission;
+
     final snapshot = _MapSyncSnapshot.from(widget.controller);
     if (_lastSyncedSnapshot == snapshot) return;
     unawaited(_syncMap());
@@ -69,8 +103,41 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
 
   @override
   void dispose() {
+    _styleLoadTimer?.cancel();
     widget.controller.removeListener(_onControllerChanged);
     super.dispose();
+  }
+
+  void _startStyleLoadWatch() {
+    _styleLoadTimer?.cancel();
+    _styleLoadTimer = Timer(_styleLoadTimeout, () {
+      if (!mounted || _styleReady) return;
+      if (!_usingFallbackStyle) {
+        setState(() {
+          _usingFallbackStyle = true;
+          _styleReady = false;
+          _loadedStyleUrl = null;
+          _lastSyncedSnapshot = null;
+          _mapStyleGeneration++;
+          _mapTilesFailed = false;
+        });
+        _startStyleLoadWatch();
+        return;
+      }
+      setState(() => _mapTilesFailed = true);
+    });
+  }
+
+  void _retryMapTiles() {
+    setState(() {
+      _mapTilesFailed = false;
+      _usingFallbackStyle = false;
+      _styleReady = false;
+      _loadedStyleUrl = null;
+      _lastSyncedSnapshot = null;
+      _mapStyleGeneration++;
+    });
+    _startStyleLoadWatch();
   }
 
   bool _isValidLatLng(LatLng target) {
@@ -100,13 +167,69 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     }
   }
 
-  Future<void> _resolveInitialTarget() async {
-    final result = await _locationService.resolveCurrentPosition();
-    if (!mounted || !result.isSuccess) return;
-    final position = result.position!;
+  Future<void> _bootstrapInitialLocation() async {
+    if (widget.controller.permissionState != LocationPermissionState.granted) return;
+    if (_isLocating) return;
+    _setLocating(true);
+    if (mounted) {
+      setState(() => _locationWarning = null);
+    }
+
+    try {
+      var result = await _locationService.resolveCurrentPosition(forceFresh: false);
+      if (!mounted) return;
+      if (result.isSuccess) {
+        await _applyGpsPosition(result.position!, animate: false);
+        return;
+      }
+
+      result = await _locationService
+          .resolveCurrentPosition(forceFresh: true)
+          .timeout(
+            _gpsResolveTimeout,
+            onTimeout: () => const UserLocationResult.failure(UserLocationFailure.timeout),
+          );
+      if (!mounted) return;
+      if (result.isSuccess) {
+        await _applyGpsPosition(result.position!, animate: true);
+      } else {
+        setState(() => _locationWarning = result.failure);
+      }
+    } finally {
+      _setLocating(false);
+    }
+  }
+
+  Future<void> _applyGpsPosition(
+    geo.Position position, {
+    required bool animate,
+    double zoom = _gpsZoom,
+  }) async {
     final target = LatLng(position.latitude, position.longitude);
     if (!_isValidLatLng(target)) return;
-    setState(() => _resolvedInitialTarget = target);
+
+    setState(() {
+      _mapTarget = target;
+      _hasRealLocation = true;
+      _locationWarning = null;
+    });
+    await _centerOnPosition(position, zoom: zoom, animate: animate);
+  }
+
+  String _failureMessage(BuildContext context, UserLocationFailure? failure) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (failure) {
+      UserLocationFailure.serviceDisabled => l10n.mapLocationServiceDisabled,
+      UserLocationFailure.permissionDenied => l10n.mapLocationPermissionDenied,
+      UserLocationFailure.timeout => l10n.mapLocationTimeout,
+      UserLocationFailure.unavailable when _isIosSimulator => l10n.mapSimulatorLocationUnset,
+      UserLocationFailure.unavailable => l10n.mapLocationUnavailable,
+      null => l10n.mapLocationUnavailable,
+    };
+  }
+
+  bool _shouldShowOpenSettings(UserLocationFailure? failure) {
+    return failure == UserLocationFailure.serviceDisabled;
   }
 
   Future<void> _onMapCreated(MapLibreMapController controller) async {
@@ -129,6 +252,10 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
   }
 
   Future<void> _onStyleLoaded() async {
+    _styleLoadTimer?.cancel();
+    if (mounted && _mapTilesFailed) {
+      setState(() => _mapTilesFailed = false);
+    }
     _styleReady = true;
     await _syncMap();
     await _applyPendingCenter();
@@ -138,7 +265,7 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     final controller = _mapController;
     if (controller == null || !_styleReady) return;
 
-    final styleUrl = MapStyleConfig.styleUrlFor(widget.controller.mapMode);
+    final styleUrl = _activeStyleString;
     if (_loadedStyleUrl != styleUrl) {
       _styleReady = false;
       _lastSyncedSnapshot = null;
@@ -157,6 +284,7 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     await controller.clearSymbols();
 
     for (final territory in widget.controller.territories) {
+      if (_isDemoTerritory(territory)) continue;
       final ring = _ringFromTerritory(territory);
       if (ring == null) continue;
       final fillColor = territory.isOwnedByCurrentUser
@@ -296,6 +424,14 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     return result.length >= 3 ? result : null;
   }
 
+  bool _isDemoTerritory(Territory territory) {
+    if (territory.id.startsWith('demo-')) return true;
+    if (territory.ownerId.startsWith('demo-')) return true;
+    final name = territory.name.trim().toLowerCase();
+    if (name.startsWith('demo ')) return true;
+    return false;
+  }
+
   List<LatLng>? _ringFromTerritory(Territory territory) {
     final geoJson = territory.polygonGeoJson;
     if (geoJson.isEmpty) return null;
@@ -387,18 +523,42 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     );
   }
 
-  Future<UserLocationResult?> locateUser({double zoom = 16}) async {
+  Future<UserLocationResult?> locateUser({double zoom = _gpsZoom}) async {
     if (_isLocating) return null;
+    if (widget.controller.permissionState != LocationPermissionState.granted) {
+      return const UserLocationResult.failure(UserLocationFailure.permissionDenied);
+    }
     _setLocating(true);
 
     try {
-      final result = await _locationService.resolveCurrentPosition(forceFresh: true);
+      if (mounted) {
+        setState(() => _locationWarning = null);
+      }
+
+      final result = await _locationService
+          .resolveCurrentPosition(forceFresh: true)
+          .timeout(
+            _gpsResolveTimeout,
+            onTimeout: () => const UserLocationResult.failure(UserLocationFailure.timeout),
+          );
       if (!result.isSuccess) {
+        if (mounted) {
+          setState(() => _locationWarning = result.failure);
+        }
         return result;
       }
 
       final position = result.position!;
-      await _centerOnPosition(position, zoom: zoom, animate: true);
+      final target = LatLng(position.latitude, position.longitude);
+      if (!_isValidLatLng(target)) {
+        const failure = UserLocationResult.failure(UserLocationFailure.unavailable);
+        if (mounted) {
+          setState(() => _locationWarning = UserLocationFailure.unavailable);
+        }
+        return failure;
+      }
+
+      await _applyGpsPosition(position, zoom: zoom, animate: true);
       return result;
     } finally {
       _setLocating(false);
@@ -449,7 +609,7 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
 
   @override
   Widget build(BuildContext context) {
-    final initialTarget = _resolvedInitialTarget ?? const LatLng(41.015, 28.979);
+    final cameraZoom = _hasRealLocation ? _gpsZoom : _neutralFallbackZoom;
 
     return ColoredBox(
       color: const Color(0xFFE8EDF2),
@@ -460,11 +620,11 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
           fit: StackFit.expand,
           children: [
             MapLibreMap(
-              key: ValueKey(MapStyleConfig.styleUrlFor(widget.controller.mapMode)),
-              styleString: MapStyleConfig.styleUrlFor(widget.controller.mapMode),
+              key: ValueKey('${_activeStyleString}_$_mapStyleGeneration'),
+              styleString: _activeStyleString,
               initialCameraPosition: CameraPosition(
-                target: initialTarget,
-                zoom: _resolvedInitialTarget == null ? 4 : 16,
+                target: _mapTarget,
+                zoom: cameraZoom,
               ),
               myLocationEnabled: true,
               myLocationRenderMode:
@@ -473,15 +633,42 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
                   ? MyLocationTrackingMode.tracking
                   : MyLocationTrackingMode.none,
               compassEnabled: false,
+              logoEnabled: false,
+              attributionButtonPosition: AttributionButtonPosition.bottomLeft,
               onMapCreated: _onMapCreated,
               onStyleLoadedCallback: _onStyleLoaded,
             ),
+            if (_mapTilesFailed)
+              Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 56),
+                  child: _LocationWarningBanner(
+                    message: AppLocalizations.of(context)!.mapTilesUnavailable,
+                    onRetry: _retryMapTiles,
+                  ),
+                ),
+              ),
             if (_isLocating)
               Align(
                 alignment: Alignment.topCenter,
                 child: Padding(
                   padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 56),
                   child: _LocatingBanner(isLocating: _isLocating),
+                ),
+              ),
+            if (_locationWarning != null && !_isLocating)
+              Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 56),
+                  child: _LocationWarningBanner(
+                    message: _failureMessage(context, _locationWarning),
+                    onRetry: () => unawaited(_bootstrapInitialLocation()),
+                    onOpenSettings: _shouldShowOpenSettings(_locationWarning)
+                        ? _locationService.openLocationSettings
+                        : null,
+                  ),
                 ),
               ),
             Positioned(
@@ -505,6 +692,65 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LocationWarningBanner extends StatelessWidget {
+  const _LocationWarningBanner({
+    required this.message,
+    required this.onRetry,
+    this.onOpenSettings,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+  final Future<bool> Function()? onOpenSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: PremiumColors.surfaceRaised.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(PremiumRadii.md),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+          child: Row(
+            children: [
+              const Icon(Icons.gps_not_fixed_rounded, size: 18, color: PremiumColors.accentBlue),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: PremiumColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                      ),
+                ),
+              ),
+              TextButton(
+                onPressed: onRetry,
+                child: Text(l10n.mapRetryLocation),
+              ),
+              if (onOpenSettings != null)
+                TextButton(
+                  onPressed: () => unawaited(onOpenSettings!()),
+                  child: Text(l10n.mapOpenLocationSettings),
+                ),
+            ],
+          ),
         ),
       ),
     );

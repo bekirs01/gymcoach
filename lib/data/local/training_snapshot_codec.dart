@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../features/plans/domain/plan_exercise.dart';
 import '../../features/plans/domain/workout_plan.dart';
 import '../../features/plans/domain/workout_template.dart';
+import '../../features/profile/domain/profile_defaults.dart';
 import '../../features/profile/domain/user_profile.dart';
 import '../../features/workout/domain/completed_exercise_log.dart';
 import '../../features/workout/domain/workout_completion.dart';
@@ -199,26 +200,42 @@ Map<String, dynamic> _encodeProfile(UserProfile p) {
     'fitnessGoal': p.fitnessGoal,
     'membershipLevel': p.membershipLevel,
     'notificationsEnabled': p.notificationsEnabled,
-    'bio': p.bio,
+    'bio': p.publicBio,
+    'publicBio': p.publicBio,
     'privateNotes': p.privateNotes,
     'avatarUrl': p.avatarUrl,
     'coverUrl': p.coverUrl,
-    'isPublic': p.isPublic,
+    'isPublic': p.isPublicProfile,
+    'username': p.username,
+    'targetWeightKg': p.targetWeightKg,
+    'trainingFocus': p.trainingFocus,
+    'experienceLevel': p.experienceLevel,
+    'activityLevel': p.activityLevel,
+    'weeklyWorkoutTarget': p.weeklyWorkoutTarget,
+    'locationText': p.locationText,
   };
 }
 
 UserProfile _decodeProfile(Map<String, dynamic> m) {
+  final displayName = ProfileDefaults.normalizeDisplayName(m['displayName'] as String? ?? '');
   return UserProfile(
-    displayName: m['displayName'] as String,
-    weightKg: (m['weightKg'] as num).toDouble(),
-    heightCm: (m['heightCm'] as num).toDouble(),
-    fitnessGoal: m['fitnessGoal'] as String,
-    membershipLevel: m['membershipLevel'] as String,
-    notificationsEnabled: m['notificationsEnabled'] as bool,
-    bio: m['bio'] as String? ?? '',
+    displayName: displayName,
+    weightKg: (m['weightKg'] as num?)?.toDouble() ?? ProfileDefaults.weightKg,
+    heightCm: (m['heightCm'] as num?)?.toDouble() ?? ProfileDefaults.heightCm,
+    fitnessGoal: m['fitnessGoal'] as String? ?? ProfileDefaults.fitnessGoal,
+    membershipLevel: m['membershipLevel'] as String? ?? '',
+    notificationsEnabled: m['notificationsEnabled'] as bool? ?? true,
+    publicBio: m['publicBio'] as String? ?? m['bio'] as String? ?? '',
     privateNotes: m['privateNotes'] as String? ?? '',
     avatarUrl: m['avatarUrl'] as String? ?? '',
     coverUrl: m['coverUrl'] as String? ?? '',
-    isPublic: m['isPublic'] as bool? ?? true,
+    isPublicProfile: m['isPublic'] as bool? ?? true,
+    username: m['username'] as String? ?? '',
+    targetWeightKg: (m['targetWeightKg'] as num?)?.toDouble(),
+    trainingFocus: m['trainingFocus'] as String? ?? '',
+    experienceLevel: m['experienceLevel'] as String? ?? '',
+    activityLevel: m['activityLevel'] as String? ?? '',
+    weeklyWorkoutTarget: m['weeklyWorkoutTarget'] as int? ?? 0,
+    locationText: m['locationText'] as String? ?? '',
   );
 }

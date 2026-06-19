@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../domain/feed_media.dart';
 import '../domain/feed_post.dart';
 import '../domain/social_profile.dart';
+import '../../workout_share/domain/feed_post_type.dart';
+import '../../workout_share/domain/shared_workout_snapshot.dart';
 
 /// Local persistence for bookmarked feed posts.
 final class SavedPostsStore {
@@ -60,6 +62,8 @@ final class SavedPostsStore {
       'like_count': post.likeCount,
       'comment_count': post.commentCount,
       'liked_by_me': post.likedByMe,
+      'post_type': post.postType.wireValue,
+      'shared_workout_snapshot': post.sharedWorkoutSnapshot?.toJson(),
       'author': {
         'id': post.author.userId,
         'display_name': post.author.displayName,
@@ -83,6 +87,11 @@ final class SavedPostsStore {
   static FeedPost _postFromJson(Map<String, dynamic> json) {
     final authorJson = json['author'] as Map<String, dynamic>? ?? const {};
     final mediaRows = json['media'] as List<dynamic>? ?? const [];
+    SharedWorkoutSnapshot? sharedWorkoutSnapshot;
+    final snapshotRaw = json['shared_workout_snapshot'];
+    if (snapshotRaw is Map) {
+      sharedWorkoutSnapshot = SharedWorkoutSnapshot.fromJson(Map<String, dynamic>.from(snapshotRaw));
+    }
     return FeedPost(
       id: json['id'] as String? ?? '',
       userId: json['user_id'] as String? ?? '',
@@ -104,6 +113,8 @@ final class SavedPostsStore {
       likeCount: (json['like_count'] as num?)?.toInt() ?? 0,
       commentCount: (json['comment_count'] as num?)?.toInt() ?? 0,
       likedByMe: json['liked_by_me'] as bool? ?? false,
+      postType: FeedPostType.fromWire(json['post_type'] as String?),
+      sharedWorkoutSnapshot: sharedWorkoutSnapshot,
     );
   }
 }

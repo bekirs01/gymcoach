@@ -22,7 +22,7 @@ class UserLocationResult {
 }
 
 class UserLocationService {
-  static const _resolveTimeout = Duration(seconds: 15);
+  static const _resolveTimeout = Duration(seconds: 10);
   static const _recentPositionMaxAge = Duration(minutes: 2);
   static const _maxCachedAccuracyMeters = 150.0;
 

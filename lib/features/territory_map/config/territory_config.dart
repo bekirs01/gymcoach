@@ -1,15 +1,18 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 abstract final class MapStyleConfig {
-  /// Colorful OSM-style map (similar to standard Google/Apple maps).
-  static const standardStyleUrl = 'https://tiles.openfreemap.org/styles/liberty';
-  static const libertyStyleUrl = 'https://tiles.openfreemap.org/styles/liberty';
+  static const bundledStyleAsset = 'assets/map/territory_map_style.json';
+  static const remoteFallbackStyleUrl = 'https://tiles.openfreemap.org/styles/liberty';
 
   static String styleUrlFor(TerritoryMapVisualMode mode) {
     return switch (mode) {
-      TerritoryMapVisualMode.standard => standardStyleUrl,
-      TerritoryMapVisualMode.liberty => libertyStyleUrl,
+      TerritoryMapVisualMode.standard => bundledStyleAsset,
+      TerritoryMapVisualMode.liberty => bundledStyleAsset,
     };
+  }
+
+  static String fallbackStyleFor(TerritoryMapVisualMode mode) {
+    return remoteFallbackStyleUrl;
   }
 }
 

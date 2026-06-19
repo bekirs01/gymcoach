@@ -4,7 +4,7 @@ abstract final class FitnessArticlesData {
   static const articles = [
     FitnessArticle(
       id: 'article_weight_loss',
-      imageUrl: 'https://images.unsplash.com/photo-1490645935967-10de6ba34261?w=900&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1556911220-bff31c812dba?w=900&q=80',
       english: ArticleContent(
         title: 'Healthy weight loss',
         subtitle: 'Lose fat without sacrificing muscle or energy.',
@@ -111,7 +111,7 @@ abstract final class FitnessArticlesData {
     ),
     FitnessArticle(
       id: 'article_weekly_routine',
-      imageUrl: 'https://images.unsplash.com/photo-1483721310020-03333e577078?w=900&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=900&q=80',
       english: ArticleContent(
         title: 'Build your weekly routine',
         subtitle: 'A simple structure for balanced training.',
@@ -214,7 +214,7 @@ abstract final class FitnessArticlesData {
     ),
     FitnessArticle(
       id: 'article_protein',
-      imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a1e63c?w=900&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=900&q=80',
       english: ArticleContent(
         title: 'Protein basics',
         subtitle: 'How much protein you need and when to eat it.',
@@ -317,7 +317,7 @@ abstract final class FitnessArticlesData {
     ),
     FitnessArticle(
       id: 'article_pre_workout_food',
-      imageUrl: 'https://images.unsplash.com/photo-1494390248081-4e521b594110?w=900&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1490818387583-1baba5e638af?w=900&q=80',
       english: ArticleContent(
         title: 'Pre-workout food',
         subtitle: 'What to eat before training for better energy.',
@@ -622,7 +622,7 @@ abstract final class FitnessArticlesData {
     ),
     FitnessArticle(
       id: 'article_recovery',
-      imageUrl: 'https://images.unsplash.com/photo-154178324583-b3efe43eae27?w=900&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=900&q=80',
       english: ArticleContent(
         title: 'Sleep and recovery',
         subtitle: 'Why progress depends on rest too.',
@@ -723,7 +723,7 @@ abstract final class FitnessArticlesData {
     ),
     FitnessArticle(
       id: 'article_beginner_mistakes',
-      imageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c149a?w=900&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1483721310020-03333e577078?w=900&q=80',
       english: ArticleContent(
         title: 'Beginner gym mistakes',
         subtitle: 'Avoid the most common early training errors.',

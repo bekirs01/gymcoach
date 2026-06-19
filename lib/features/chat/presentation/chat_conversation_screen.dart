@@ -8,15 +8,22 @@ import 'package:uuid/uuid.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
+import '../../../core/supabase_operation_error.dart';
 import '../../feed/presentation/social_avatar.dart';
-import '../../social/data/social_seed_data.dart';
 import '../data/chat_local_store.dart';
 import '../data/chat_repository.dart';
+import '../../social/data/social_seed_data.dart';
 import '../data/supabase_chat_repository.dart';
+import '../data/voice_playback_service.dart';
+import '../data/voice_recorder_service.dart';
+import '../data/waveform_utils.dart';
+import '../domain/chat_attachment.dart';
 import '../domain/chat_conversation.dart';
 import '../domain/chat_message.dart';
 import 'chat_attachment_picker_sheet.dart';
 import 'chat_image_viewer_screen.dart';
+import 'chat_voice_recorder.dart';
+import 'voice_message_bubble.dart';
 
 class ChatConversationScreen extends StatefulWidget {
   const ChatConversationScreen({
@@ -38,21 +45,22 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   final _scrollController = ScrollController();
   final _textController = TextEditingController();
   final _picker = ImagePicker();
+  final _voiceRecorder = VoiceRecorderService();
+  final _voicePlayback = VoicePlaybackService();
+  final _voiceComposerKey = GlobalKey<ChatVoiceComposerState>();
   SupabaseChatRepository? _repository;
   ChatConversation? _conversation;
   String? _currentUserId;
   var _hasText = false;
   var _loading = true;
   var _loadFailed = false;
+  String? _loadErrorMessage;
   var _sendingImage = false;
+  var _voiceComposerActive = false;
   final _pendingTempIds = <String>{};
   final _messageIds = <String>{};
   XFile? _pendingImage;
   Uint8List? _pendingImageBytes;
-
-  bool get _isRemote =>
-      !ChatRepository.isDemoParticipant(widget.participantUserId) &&
-      ChatRepository.isRealParticipant(widget.participantUserId);
 
   @override
   void initState() {
@@ -62,25 +70,14 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   }
 
   Future<void> _bootstrap() async {
-    if (_isRemote) {
-      await _loadRemoteConversation();
-      return;
-    }
-
-    ChatLocalStore.ensureInitialized();
-    _conversation = ChatLocalStore.conversationForUser(widget.participantUserId);
-    ChatLocalStore.markAsRead(widget.participantUserId);
-    _seedMessageIds(_conversation?.messages ?? const []);
-    if (mounted) {
-      setState(() => _loading = false);
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: false));
-    }
+    await _loadRemoteConversation();
   }
 
   Future<void> _loadRemoteConversation() async {
     setState(() {
       _loading = true;
       _loadFailed = false;
+      _loadErrorMessage = null;
     });
 
     try {
@@ -91,6 +88,8 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
 
       if (widget.conversationId != null) {
         conversation = await repository.loadConversation(widget.conversationId!);
+      } else if (ChatRepository.isDemoParticipant(widget.participantUserId)) {
+        conversation = await repository.getOrCreateSeededConversation(widget.participantUserId);
       } else {
         conversation = await repository.getOrCreateConversationWithUser(widget.participantUserId);
       }
@@ -98,9 +97,20 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       if (!mounted) return;
 
       if (conversation == null) {
+        final local = _loadLocalConversation();
+        if (local != null) {
+          _repository = repository;
+          _currentUserId = await repository.resolveCurrentUserId();
+          _conversation = local;
+          _seedMessageIds(local.messages);
+          setState(() => _loading = false);
+          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: false));
+          return;
+        }
         setState(() {
           _loading = false;
           _loadFailed = true;
+          _loadErrorMessage = 'Could not load conversation';
         });
         return;
       }
@@ -119,13 +129,44 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
 
       setState(() => _loading = false);
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: false));
-    } catch (_) {
+    } catch (error, stackTrace) {
+      final local = _loadLocalConversation();
+      if (local != null) {
+        final prefs = await SharedPreferences.getInstance();
+        final repository = SupabaseChatRepository(prefs: prefs);
+        if (!mounted) return;
+        _repository = repository;
+        _currentUserId = SocialSeedRepository.currentUserId;
+        _conversation = local;
+        _seedMessageIds(local.messages);
+        setState(() {
+          _loading = false;
+          _loadFailed = false;
+          _loadErrorMessage = null;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: false));
+        return;
+      }
+
+      final mapped = SupabaseOperationError.classify(
+        operation: 'chat_load_conversation',
+        error: error,
+        stackTrace: stackTrace,
+        fallbackMessage: 'Could not load conversation',
+      );
       if (!mounted) return;
       setState(() {
         _loading = false;
         _loadFailed = true;
+        _loadErrorMessage = mapped.userMessage;
       });
     }
+  }
+
+  ChatConversation? _loadLocalConversation() {
+    if (!ChatRepository.isDemoParticipant(widget.participantUserId)) return null;
+    ChatLocalStore.ensureInitialized();
+    return ChatLocalStore.conversationForUser(widget.participantUserId);
   }
 
   void _seedMessageIds(List<ChatMessage> messages) {
@@ -182,6 +223,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   @override
   void dispose() {
     _repository?.unsubscribeFromMessages();
+    _voicePlayback.stop();
+    _voiceRecorder.dispose();
+    _voicePlayback.dispose();
     _textController.removeListener(_onTextChanged);
     _textController.dispose();
     _scrollController.dispose();
@@ -213,18 +257,6 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
-    if (ChatRepository.isDemoParticipant(widget.participantUserId)) {
-      final updated = ChatLocalStore.sendMessage(
-        participantUserId: widget.participantUserId,
-        body: text,
-      );
-      if (updated == null) return;
-      _textController.clear();
-      setState(() => _conversation = updated);
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-      return;
-    }
-
     final repository = _repository;
     final conversation = _conversation;
     final currentUserId = _currentUserId;
@@ -248,6 +280,34 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
     try {
+      if (conversation.isDemo && !conversation.isRemote) {
+        final updated = ChatLocalStore.sendMessage(
+          participantUserId: conversation.participantUserId,
+          body: text,
+        );
+        if (!mounted) return;
+        setState(() {
+          _pendingTempIds.remove(clientTempId);
+          if (updated != null) {
+            _conversation = updated;
+            _messageIds.add(updated.messages.last.id);
+          } else {
+            final current = _conversation;
+            if (current == null) return;
+            _conversation = current.copyWith(
+              messages: current.messages
+                  .map(
+                    (message) => message.clientTempId == clientTempId
+                        ? message.copyWith(isPending: false, hasFailed: true)
+                        : message,
+                  )
+                  .toList(),
+            );
+          }
+        });
+        return;
+      }
+
       final sent = await repository.sendTextMessage(
         conversationId: conversation.id,
         body: text,
@@ -295,11 +355,13 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     }
   }
 
+  Future<void> _startVoiceRecording() async {
+    if (_pendingImageBytes != null || _voiceComposerActive) return;
+    await _voiceComposerKey.currentState?.startRecording();
+  }
+
   Future<void> _pickAttachment() async {
-    if (!_isRemote) {
-      _showError('Photo sending is available for real conversations');
-      return;
-    }
+    if (_voiceComposerActive) return;
 
     final source = await showChatAttachmentPickerSheet(context);
     if (source == null || !mounted) return;
@@ -428,6 +490,133 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     }
   }
 
+  Future<void> _sendVoiceMessage(VoiceRecordingResult result) async {
+    final repository = _repository;
+    final conversation = _conversation;
+    final currentUserId = _currentUserId;
+    if (repository == null || conversation == null || currentUserId == null) return;
+
+    final waveform = WaveformUtils.generateSamples(
+      barCount: 28,
+      durationMs: result.durationMs,
+      seed: result.filePath,
+    );
+    final clientTempId = _uuid.v4();
+    final placeholderAttachment = ChatAttachment(
+      id: 'pending',
+      messageId: 'pending_$clientTempId',
+      conversationId: conversation.id,
+      uploaderId: currentUserId,
+      storageBucket: SupabaseChatRepository.bucket,
+      storagePath: '',
+      mimeType: result.mimeType,
+      sizeBytes: 0,
+      attachmentType: ChatAttachmentType.voice,
+      durationMs: result.durationMs,
+      waveform: waveform,
+    );
+    final optimistic = ChatMessage(
+      id: 'pending_$clientTempId',
+      senderId: currentUserId,
+      body: '',
+      sentAt: DateTime.now(),
+      messageType: ChatMessageType.voice,
+      attachments: [placeholderAttachment],
+      clientTempId: clientTempId,
+      localVoicePath: result.filePath,
+      isPending: true,
+    );
+
+    _pendingTempIds.add(clientTempId);
+    setState(() {
+      _conversation = conversation.copyWith(messages: [...conversation.messages, optimistic]);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    try {
+      final sent = await repository.sendVoiceMessage(
+        conversationId: conversation.id,
+        localFilePath: result.filePath,
+        durationMs: result.durationMs,
+        waveform: waveform,
+        clientTempId: clientTempId,
+      );
+      await _voiceRecorder.deleteFile(result.filePath);
+      if (!mounted) return;
+
+      setState(() {
+        _pendingTempIds.remove(clientTempId);
+        _messageIds.add(sent.id);
+        final current = _conversation;
+        if (current == null) return;
+
+        final messages = current.messages.map((message) {
+          if (message.clientTempId == clientTempId) return sent;
+          return message;
+        }).toList();
+
+        if (!messages.any((message) => message.id == sent.id)) {
+          messages.add(sent);
+        }
+
+        _conversation = current.copyWith(
+          messages: messages,
+          cachedLastMessageText: _previewForMessage(sent),
+          cachedLastMessageTime: sent.sentAt,
+        );
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _pendingTempIds.remove(clientTempId);
+        final current = _conversation;
+        if (current == null) return;
+        _conversation = current.copyWith(
+          messages: current.messages
+              .map(
+                (message) => message.clientTempId == clientTempId
+                    ? message.copyWith(
+                        isPending: false,
+                        hasFailed: true,
+                        clearLocalVoicePath: true,
+                      )
+                    : message,
+              )
+              .toList(),
+        );
+      });
+      _showError('Failed to send voice message');
+      rethrow;
+    }
+  }
+
+  Future<void> _toggleVoicePlayback(ChatMessage message) async {
+    if (message.isPending) return;
+
+    final localPath = message.localVoicePath;
+    if (localPath != null && localPath.isNotEmpty) {
+      await _voicePlayback.toggle(
+        messageId: message.id,
+        source: localPath,
+        isLocalFile: true,
+      );
+      return;
+    }
+
+    final attachment = message.voiceAttachment;
+    if (attachment == null) return;
+
+    var url = attachment.signedUrl;
+    if (url == null || url.isEmpty) {
+      final repository = _repository;
+      if (repository == null) return;
+      url = await repository.refreshSignedUrl(attachment);
+    }
+    if (url == null || url.isEmpty) return;
+
+    await _voicePlayback.toggle(messageId: message.id, source: url);
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -461,49 +650,68 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   Widget build(BuildContext context) {
     final conversation = _conversation;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final isDemo = ChatRepository.isDemoParticipant(widget.participantUserId);
-    final currentUserId = isDemo
-        ? SocialSeedRepository.currentUserId
-        : (_currentUserId ?? '');
+    final currentUserId = _currentUserId ?? '';
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      resizeToAvoidBottomInset: true,
-      body: PremiumBackground(
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              _ChatHeader(
-                name: conversation?.participantName ?? '',
-                avatarUrl: conversation?.avatarUrl ?? '',
-                statusText: conversation?.statusText ?? 'Online',
-                onBack: () => Navigator.pop(context),
-              ),
-              Expanded(
-                child: _buildMessageArea(conversation, currentUserId),
-              ),
-              if (_pendingImageBytes != null)
-                _ImagePreviewComposer(
-                  imageBytes: _pendingImageBytes!,
-                  captionController: _textController,
-                  sending: _sendingImage,
-                  onRemove: _clearPendingImage,
-                  onSend: _sendPendingImage,
+    return VoicePlaybackScope(
+      playback: _voicePlayback,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        resizeToAvoidBottomInset: true,
+        body: PremiumBackground(
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                _ChatHeader(
+                  name: conversation?.participantName ?? '',
+                  avatarUrl: conversation?.avatarUrl ?? '',
+                  statusText: conversation?.statusText ?? 'Online',
+                  onBack: () => Navigator.pop(context),
                 ),
-              Padding(
-                padding: EdgeInsets.only(bottom: bottomInset),
-                child: _ChatInputBar(
-                  controller: _textController,
-                  hasText: _hasText,
-                  enabled: !_loading && !_loadFailed && conversation != null,
-                  showAttachment: _isRemote,
-                  onAttachment: _pickAttachment,
-                  onSend: _pendingImageBytes != null ? _sendPendingImage : _sendMessage,
-                  sendEnabled: _hasText || _pendingImageBytes != null,
+                Expanded(
+                  child: _buildMessageArea(conversation, currentUserId),
                 ),
-              ),
-            ],
+                if (_pendingImageBytes != null && !_voiceComposerActive)
+                  _ImagePreviewComposer(
+                    imageBytes: _pendingImageBytes!,
+                    captionController: _textController,
+                    sending: _sendingImage,
+                    onRemove: _clearPendingImage,
+                    onSend: _sendPendingImage,
+                  ),
+                Padding(
+                  padding: EdgeInsets.only(bottom: bottomInset),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ChatVoiceComposer(
+                        key: _voiceComposerKey,
+                        recorder: _voiceRecorder,
+                        playback: _voicePlayback,
+                        onSend: _sendVoiceMessage,
+                        onCancel: () {},
+                        onPermissionDenied: () =>
+                            _showError('Microphone permission is required'),
+                        onModeChanged: (active) {
+                          if (!mounted) return;
+                          setState(() => _voiceComposerActive = active);
+                        },
+                      ),
+                      if (!_voiceComposerActive)
+                        _ChatInputBar(
+                          controller: _textController,
+                          hasText: _hasText,
+                          hasPendingImage: _pendingImageBytes != null,
+                          enabled: !_loading && !_loadFailed && conversation != null,
+                          onAttachment: _pickAttachment,
+                          onMicrophone: _startVoiceRecording,
+                          onSend: _pendingImageBytes != null ? _sendPendingImage : _sendMessage,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -522,17 +730,15 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Could not load conversation',
-              style: TextStyle(color: PremiumColors.textSecondary),
+            Text(
+              _loadErrorMessage ?? 'Could not load conversation',
+              style: const TextStyle(color: PremiumColors.textSecondary),
             ),
-            if (_isRemote) ...[
-              const SizedBox(height: AppSpacing.sm),
-              TextButton(
-                onPressed: _loadRemoteConversation,
-                child: const Text('Retry'),
-              ),
-            ],
+            const SizedBox(height: AppSpacing.sm),
+            TextButton(
+              onPressed: _loadRemoteConversation,
+              child: const Text('Retry'),
+            ),
           ],
         ),
       );
@@ -563,6 +769,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
           message: message,
           isMe: isMe,
           onImageTap: message.hasImage ? () => _openImageViewer(message) : null,
+          onVoiceToggle: message.isVoice ? () => _toggleVoicePlayback(message) : null,
         );
       },
     );
@@ -637,11 +844,13 @@ class _MessageBubble extends StatelessWidget {
     required this.message,
     required this.isMe,
     this.onImageTap,
+    this.onVoiceToggle,
   });
 
   final ChatMessage message;
   final bool isMe;
   final VoidCallback? onImageTap;
+  final VoidCallback? onVoiceToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -657,9 +866,15 @@ class _MessageBubble extends StatelessWidget {
             alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxWidth),
-              child: message.hasImage
-                  ? _ImageBubble(message: message, isMe: isMe, onTap: onImageTap)
-                  : _TextBubble(message: message, isMe: isMe),
+              child: message.isVoice
+                  ? _VoiceBubble(
+                      message: message,
+                      isMe: isMe,
+                      onToggle: onVoiceToggle,
+                    )
+                  : message.hasImage
+                      ? _ImageBubble(message: message, isMe: isMe, onTap: onImageTap)
+                      : _TextBubble(message: message, isMe: isMe),
             ),
           ),
           const SizedBox(height: 4),
@@ -679,6 +894,44 @@ class _MessageBubble extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _VoiceBubble extends StatelessWidget {
+  const _VoiceBubble({
+    required this.message,
+    required this.isMe,
+    this.onToggle,
+  });
+
+  final ChatMessage message;
+  final bool isMe;
+  final VoidCallback? onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final playback = VoicePlaybackScope.of(context);
+    final attachment = message.voiceAttachment;
+    final durationMs = attachment?.durationMs ?? 0;
+    final waveform = attachment?.waveform.isNotEmpty == true
+        ? attachment!.waveform
+        : WaveformUtils.generateSamples(barCount: 28, durationMs: durationMs);
+
+    return AnimatedBuilder(
+      animation: playback,
+      builder: (context, _) {
+        final state = playback.snapshot(message.id);
+        return VoiceMessageBubble(
+          durationMs: durationMs,
+          waveform: waveform,
+          isMe: isMe,
+          isPlaying: state.isPlaying,
+          progress: state.progress,
+          isLoading: message.isPending,
+          onToggle: onToggle ?? () {},
+        );
+      },
     );
   }
 }
@@ -968,25 +1221,26 @@ class _ChatInputBar extends StatelessWidget {
   const _ChatInputBar({
     required this.controller,
     required this.hasText,
+    required this.hasPendingImage,
     required this.enabled,
-    required this.showAttachment,
     required this.onAttachment,
+    required this.onMicrophone,
     required this.onSend,
-    required this.sendEnabled,
   });
 
   final TextEditingController controller;
   final bool hasText;
+  final bool hasPendingImage;
   final bool enabled;
-  final bool showAttachment;
   final VoidCallback onAttachment;
+  final VoidCallback onMicrophone;
   final VoidCallback onSend;
-  final bool sendEnabled;
 
   @override
   Widget build(BuildContext context) {
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
-    final canSend = enabled && sendEnabled;
+    final canSend = enabled && (hasText || hasPendingImage);
+    final canRecord = enabled && !hasText && !hasPendingImage;
 
     return Container(
       padding: EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, bottomSafe + AppSpacing.sm),
@@ -999,30 +1253,28 @@ class _ChatInputBar extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (showAttachment) ...[
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: enabled ? onAttachment : null,
-                customBorder: const CircleBorder(),
-                child: Ink(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: PremiumColors.surface.withValues(alpha: 0.95),
-                    border: Border.all(color: PremiumColors.accentBlue.withValues(alpha: 0.35)),
-                  ),
-                  child: const Icon(
-                    Icons.add_photo_alternate_outlined,
-                    color: PremiumColors.accentBlue,
-                    size: 20,
-                  ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: enabled ? onAttachment : null,
+              customBorder: const CircleBorder(),
+              child: Ink(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: PremiumColors.surface.withValues(alpha: 0.95),
+                  border: Border.all(color: PremiumColors.accentBlue.withValues(alpha: 0.35)),
+                ),
+                child: const Icon(
+                  Icons.add_photo_alternate_outlined,
+                  color: PremiumColors.accentBlue,
+                  size: 20,
                 ),
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
-          ],
+          ),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: TextField(
               controller: controller,
@@ -1051,6 +1303,36 @@ class _ChatInputBar extends StatelessWidget {
                 ),
               ),
               onSubmitted: canSend ? (_) => onSend() : null,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          AnimatedOpacity(
+            opacity: canRecord ? 1 : 0.35,
+            duration: const Duration(milliseconds: 150),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: canRecord ? onMicrophone : null,
+                customBorder: const CircleBorder(),
+                child: Ink(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: PremiumColors.surface.withValues(alpha: 0.95),
+                    border: Border.all(
+                      color: canRecord
+                          ? PremiumColors.accentBlue.withValues(alpha: 0.35)
+                          : Colors.white.withValues(alpha: 0.08),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.mic_rounded,
+                    color: canRecord ? PremiumColors.accentBlue : PremiumColors.textMuted,
+                    size: 20,
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),

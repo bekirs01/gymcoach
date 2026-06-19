@@ -2,26 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:gym/l10n/app_localizations.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
-import '../../feed/presentation/social_avatar.dart';
-import 'widgets/profile_view_widgets.dart';
 import '../../social/data/social_api_client.dart';
 import '../../social/data/social_seed_data.dart';
 import '../../social/domain/feed_post.dart';
+import '../data/profile_repository.dart';
+import '../domain/profile_defaults.dart';
+import '../domain/profile_media_filter.dart';
 import '../domain/user_profile.dart';
-
-double? _parsePositiveMetric(String raw) {
-  final normalized = raw.trim().replaceAll(' ', '').replaceAll(',', '.');
-  if (normalized.isEmpty) return null;
-  final value = double.tryParse(normalized);
-  if (value == null || value <= 0 || !value.isFinite) return null;
-  return value;
-}
+import 'edit_profile_sheet.dart';
+import 'widgets/profile_view_widgets.dart';
 
 Future<void> showProfileSheet({
   required BuildContext context,
@@ -69,6 +62,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   late UserProfile _profile;
   SocialApiClient? _client;
+  ProfileRepository? _profileRepository;
   List<FeedPost> _posts = const [];
   List<FeedPost> _savedPosts = const [];
   var _loadingSocial = true;
@@ -93,9 +87,13 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final client = SocialApiClient(prefs: prefs);
-      await client.ensureProfile(_profile);
+      final profileRepo = ProfileRepository(prefs: prefs);
+      await profileRepo.ensureProfile(_profile);
       if (!mounted) return;
-      setState(() => _client = client);
+      setState(() {
+        _client = client;
+        _profileRepository = profileRepo;
+      });
       await _loadSocial();
     } catch (_) {
       if (!mounted) return;
@@ -108,28 +106,21 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadSocial() async {
     final client = _client;
-    if (client == null) return;
+    final profileRepo = _profileRepository;
+    if (client == null || profileRepo == null) return;
     try {
       final uid = await client.currentUserId();
-      final social = await client.getCurrentProfile();
+      final remoteProfile = await profileRepo.loadCurrentProfile(_profile);
       final posts = await client.fetchUserPosts(uid);
       if (!mounted) return;
       setState(() {
-        _posts = posts;
-        _savedPosts = client.loadSavedPosts();
+        _posts = ProfileMediaFilter.visiblePosts(posts);
+        _savedPosts = ProfileMediaFilter.visiblePosts(client.loadSavedPosts());
         _loadingSocial = false;
-        if (social != null) {
-          _profile = _profile.copyWith(
-            displayName: social.displayName.isEmpty ? _profile.displayName : social.displayName,
-            bio: social.bio,
-            privateNotes: social.privateNotes,
-            avatarUrl: social.avatarUrl,
-            coverUrl: social.coverUrl,
-            isPublic: social.isPublic,
-          );
-        }
+        _profile = remoteProfile;
         _applySeedFallback();
       });
+      widget.onProfileChanged(_profile);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -146,41 +137,39 @@ class _ProfilePageState extends State<ProfilePage> {
       currentProfile: _profile,
     );
     if (_posts.isEmpty && seedPosts.isNotEmpty) {
-      _posts = seedPosts;
+      _posts = ProfileMediaFilter.visiblePosts(seedPosts);
     }
     _profile = _profile.copyWith(
-      bio: _profile.bio.trim().isEmpty ? seed.bio : _profile.bio,
-      avatarUrl: _profile.avatarUrl.trim().isEmpty ? seed.avatarUrl : _profile.avatarUrl,
+      displayName: _profile.displayName.trim().isEmpty ? seed.displayName : _profile.displayName,
+      username: _profile.username.trim().isEmpty ? seed.username : _profile.username,
+      publicBio: _profile.publicBio.trim().isEmpty ? seed.bio : _profile.publicBio,
+      avatarUrl: ProfileMediaFilter.resolveImageUrl(
+        primary: _profile.avatarUrl,
+        fallback: seed.avatarUrl,
+      ),
+      coverUrl: ProfileMediaFilter.resolveImageUrl(
+        primary: _profile.coverUrl,
+        fallback: seed.coverUrl,
+      ),
+      fitnessGoal: _profile.fitnessGoal.trim().isEmpty ? seed.goal : _profile.fitnessGoal,
+      trainingFocus: _profile.trainingFocus.trim().isEmpty ? seed.trainingFocus : _profile.trainingFocus,
+      locationText: _profile.locationText.trim().isEmpty ? seed.city : _profile.locationText,
+      experienceLevel: _profile.experienceLevel.trim().isEmpty ? seed.experience : _profile.experienceLevel,
+      weeklyWorkoutTarget: _profile.weeklyWorkoutTarget <= 0 ? ProfileDefaults.weeklyWorkoutTarget : _profile.weeklyWorkoutTarget,
     );
   }
 
   Future<void> _editProfile() async {
-    final result = await showModalBottomSheet<UserProfile>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _EditSocialProfileSheet(
-        initial: _profile,
-        client: _client,
-        l10n: AppLocalizations.of(context)!,
-      ),
+    final result = await EditProfileSheet.show(
+      context,
+      initial: _profile,
+      repository: _profileRepository,
+      socialClient: _client,
+      l10n: AppLocalizations.of(context)!,
     );
     if (!mounted || result == null) return;
     setState(() => _profile = result);
     widget.onProfileChanged(result);
-    final client = _client;
-    if (client == null) return;
-    await client.updateProfile(
-      displayName: result.displayName,
-      bio: result.bio,
-      privateNotes: result.privateNotes,
-      avatarUrl: result.avatarUrl,
-      coverUrl: result.coverUrl,
-      isPublic: result.isPublic,
-      weightKg: result.weightKg,
-      heightCm: result.heightCm,
-      fitnessGoal: result.fitnessGoal,
-    );
     await _loadSocial();
   }
 
@@ -277,6 +266,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               child: ProfileAvatarButton(
                                 name: _profile.displayName,
                                 imageUrl: _profile.avatarUrl,
+                                fallbackImageUrl: SocialSeedRepository.currentUserAvatarFallback,
                                 size: 96,
                               ),
                             ),
@@ -316,7 +306,11 @@ class _ProfilePageState extends State<ProfilePage> {
                                   onSelected: (v) {
                                     setState(() => _tab = v);
                                     if (v == 3) {
-                                      setState(() => _savedPosts = _client?.loadSavedPosts() ?? const []);
+                                      setState(
+                                        () => _savedPosts = ProfileMediaFilter.visiblePosts(
+                                          _client?.loadSavedPosts() ?? const [],
+                                        ),
+                                      );
                                     }
                                   },
                                 ),
@@ -383,28 +377,60 @@ class _ProfilePageState extends State<ProfilePage> {
     final seed = SocialSeedRepository.currentUserSeed(_profile);
     return SliverToBoxAdapter(
       child: ProfileAboutSection(
-        bio: _profile.bio,
+        bio: _profile.bio.trim().isEmpty ? seed.bio : _profile.bio,
         extraSections: [
           ProfileAboutBlock(
-            title: 'Focus',
-            body: seed.trainingFocus,
-            icon: Icons.fitness_center_rounded,
-          ),
-          ProfileAboutBlock(
             title: 'Location',
-            body: seed.city,
+            body: _profile.locationText.trim().isEmpty ? seed.city : _profile.locationText,
             icon: Icons.location_on_outlined,
           ),
           ProfileAboutBlock(
-            title: l10n.profilePrivateNotes,
-            body: _profile.privateNotes.isEmpty
-                ? l10n.profilePrivateNotesEmpty
-                : _profile.privateNotes,
-            icon: Icons.lock_outline_rounded,
+            title: 'Training focus',
+            body: _profile.trainingFocus.trim().isEmpty ? seed.trainingFocus : _profile.trainingFocus,
+            icon: Icons.fitness_center_rounded,
           ),
           ProfileAboutBlock(
+            title: 'Goal',
+            body: _profile.fitnessGoal.trim().isEmpty ? seed.goal : _profile.fitnessGoal,
+            icon: Icons.flag_outlined,
+          ),
+          ProfileAboutBlock(
+            title: 'Experience',
+            body: _profile.experienceLevel.trim().isEmpty ? seed.experience : _profile.experienceLevel,
+            icon: Icons.trending_up_rounded,
+          ),
+          ProfileAboutBlock(
+            title: 'Joined',
+            body: seed.joinedLabel,
+            icon: Icons.calendar_month_outlined,
+          ),
+          ProfileAboutBlock(
+            title: 'Weekly target',
+            body: _profile.weeklyWorkoutTarget > 0
+                ? ProfileDefaults.weeklyTargetLabel(_profile.weeklyWorkoutTarget)
+                : seed.weeklyTarget,
+            icon: Icons.event_repeat_rounded,
+          ),
+          ProfileAboutBlock(
+            title: 'Favorite training',
+            body: seed.favoriteTrainingType,
+            icon: Icons.star_outline_rounded,
+          ),
+          if (seed.age > 0)
+            ProfileAboutBlock(
+              title: 'Age',
+              body: '${seed.age}',
+              icon: Icons.person_outline_rounded,
+            ),
+          if (_profile.privateNotes.trim().isNotEmpty)
+            ProfileAboutBlock(
+              title: l10n.profilePrivateNotes,
+              body: _profile.privateNotes,
+              icon: Icons.lock_outline_rounded,
+            ),
+          ProfileAboutBlock(
             title: l10n.profileFitnessSummary,
-            body: '${_profile.fitnessGoal}\n${_profile.weightKg} кг · ${_profile.heightCm} см',
+            body: '${_profile.fitnessGoal}\n${_profile.weightKg} kg · ${_profile.heightCm} cm',
             icon: Icons.monitor_heart_outlined,
           ),
         ],
@@ -415,7 +441,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _postsSliver(AppLocalizations l10n) {
     return SliverToBoxAdapter(
       child: ProfileFeedSection(
-        posts: _posts,
+        posts: ProfileMediaFilter.visiblePosts(_posts),
         heroTagPrefix: 'own-feed',
         emptyMessage: l10n.profilePostsEmpty,
       ),
@@ -425,7 +451,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _savedSliver(AppLocalizations l10n) {
     return SliverToBoxAdapter(
       child: ProfileFeedSection(
-        posts: _savedPosts,
+        posts: ProfileMediaFilter.visiblePosts(_savedPosts),
         heroTagPrefix: 'own-saved',
         emptyIcon: Icons.bookmark_border_rounded,
         emptyMessage: l10n.profileSavedEmpty,
@@ -434,12 +460,17 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _photosSliver(AppLocalizations l10n) {
-    final media = _posts.expand((p) => p.media).toList();
     final seedPhotos = SocialSeedRepository.photosForUser(
       SocialSeedRepository.currentUserId,
       currentProfile: _profile,
     );
-    final photos = media.isNotEmpty ? media : seedPhotos;
+    final postMedia = ProfileMediaFilter.visibleMedia(
+      _posts.expand((post) => post.media),
+    );
+    final photos = ProfileMediaFilter.profileGallery(
+      apiMedia: postMedia,
+      seedMedia: seedPhotos,
+    );
     return SliverToBoxAdapter(
       child: ProfilePhotoGrid(
         media: photos,
@@ -599,271 +630,3 @@ class _SettingsCard extends StatelessWidget {
   }
 }
 
-class _EditSocialProfileSheet extends StatefulWidget {
-  const _EditSocialProfileSheet({
-    required this.initial,
-    required this.client,
-    required this.l10n,
-  });
-
-  final UserProfile initial;
-  final SocialApiClient? client;
-  final AppLocalizations l10n;
-
-  @override
-  State<_EditSocialProfileSheet> createState() => _EditSocialProfileSheetState();
-}
-
-class _EditSocialProfileSheetState extends State<_EditSocialProfileSheet> {
-  final _picker = ImagePicker();
-  late final TextEditingController _name;
-  late final TextEditingController _bio;
-  late final TextEditingController _notes;
-  late final TextEditingController _weight;
-  late final TextEditingController _height;
-  late final TextEditingController _goal;
-  late String _avatarUrl;
-  late String _coverUrl;
-  late bool _isPublic;
-  var _saving = false;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    final p = widget.initial;
-    _name = TextEditingController(text: p.displayName);
-    _bio = TextEditingController(text: p.bio);
-    _notes = TextEditingController(text: p.privateNotes);
-    _weight = TextEditingController(text: _formatMetric(p.weightKg));
-    _height = TextEditingController(text: _formatMetric(p.heightCm));
-    _goal = TextEditingController(text: p.fitnessGoal);
-    _avatarUrl = widget.initial.avatarUrl;
-    _coverUrl = widget.initial.coverUrl;
-    _isPublic = widget.initial.isPublic;
-  }
-
-  static String _formatMetric(double value) {
-    if (value == value.roundToDouble()) return value.round().toString();
-    return value.toString();
-  }
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _bio.dispose();
-    _notes.dispose();
-    _weight.dispose();
-    _height.dispose();
-    _goal.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickAvatar() async {
-    final client = widget.client;
-    if (client == null) return;
-    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 86, maxWidth: 1200);
-    if (image == null) return;
-    setState(() => _saving = true);
-    final url = await client.uploadImage(image, 'avatars');
-    if (!mounted) return;
-    setState(() {
-      _avatarUrl = url;
-      _saving = false;
-    });
-  }
-
-  Future<void> _pickCover() async {
-    final client = widget.client;
-    if (client == null) return;
-    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 86, maxWidth: 1600);
-    if (image == null) return;
-    setState(() => _saving = true);
-    final url = await client.uploadImage(image, 'covers');
-    if (!mounted) return;
-    setState(() {
-      _coverUrl = url;
-      _saving = false;
-    });
-  }
-
-  void _save() {
-    final l10n = widget.l10n;
-    final name = _name.text.trim();
-    final w = _parsePositiveMetric(_weight.text);
-    final h = _parsePositiveMetric(_height.text);
-    if (name.isEmpty) {
-      setState(() => _error = l10n.validationProfileName);
-      return;
-    }
-    if (w == null) {
-      setState(() => _error = l10n.validationProfileWeight);
-      return;
-    }
-    if (h == null) {
-      setState(() => _error = l10n.validationProfileHeight);
-      return;
-    }
-    Navigator.pop(
-      context,
-      widget.initial.copyWith(
-        displayName: name,
-        bio: _bio.text.trim(),
-        privateNotes: _notes.text.trim(),
-        avatarUrl: _avatarUrl,
-        coverUrl: _coverUrl,
-        isPublic: _isPublic,
-        weightKg: w,
-        heightCm: h,
-        fitnessGoal: _goal.text.trim(),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = widget.l10n;
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: Material(
-        color: PremiumColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(PremiumRadii.xl)),
-        child: SafeArea(
-          top: false,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  l10n.profileEditSheetTitle,
-                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
-                ),
-                if (widget.client != null) ...[
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      SocialAvatar(name: _name.text, imageUrl: _avatarUrl, size: 64),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _saving ? null : _pickAvatar,
-                          icon: const Icon(Icons.person_rounded),
-                          label: Text(l10n.profileAvatarButton),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _saving ? null : _pickCover,
-                          icon: const Icon(Icons.image_rounded),
-                          label: Text(l10n.profileCoverButton),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                _DarkField(
-                  controller: _name,
-                  label: l10n.labelName,
-                  onChanged: (_) => setState(() => _error = null),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _DarkField(
-                        controller: _weight,
-                        label: l10n.labelWeightKg,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        onChanged: (_) => setState(() => _error = null),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _DarkField(
-                        controller: _height,
-                        label: l10n.labelHeightCm,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        onChanged: (_) => setState(() => _error = null),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                _DarkField(
-                  controller: _goal,
-                  label: l10n.labelFitnessGoal,
-                  maxLines: 2,
-                  onChanged: (_) => setState(() => _error = null),
-                ),
-                const SizedBox(height: 10),
-                _DarkField(controller: _bio, label: l10n.profilePublicBioLabel, maxLines: 3),
-                const SizedBox(height: 10),
-                _DarkField(controller: _notes, label: l10n.profilePrivateNotes, maxLines: 4),
-                SwitchListTile(
-                  value: _isPublic,
-                  title: Text(l10n.profilePublicToggleTitle, style: const TextStyle(color: Colors.white)),
-                  subtitle: Text(
-                    l10n.profilePublicToggleSubtitle,
-                    style: const TextStyle(color: PremiumColors.textMuted),
-                  ),
-                  onChanged: (v) => setState(() => _isPublic = v),
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 8),
-                  Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
-                ],
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: _saving ? null : _save,
-                  child: _saving
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                      : Text(l10n.save),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DarkField extends StatelessWidget {
-  const _DarkField({
-    required this.controller,
-    required this.label,
-    this.maxLines = 1,
-    this.keyboardType,
-    this.onChanged,
-  });
-
-  final TextEditingController controller;
-  final String label;
-  final int maxLines;
-  final TextInputType? keyboardType;
-  final ValueChanged<String>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      onChanged: onChanged,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: PremiumColors.textSecondary),
-        filled: true,
-        fillColor: PremiumColors.midnightBottom,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(PremiumRadii.lg),
-          borderSide: const BorderSide(color: PremiumColors.glassBorder),
-        ),
-      ),
-    );
-  }
-}

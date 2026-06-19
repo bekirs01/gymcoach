@@ -23,6 +23,7 @@ import '../progress/presentation/progress_page.dart';
 import '../progress/presentation/streak_detail_page.dart';
 import '../territory_map/presentation/territory_map_page.dart';
 import '../workout/domain/workout_completion.dart';
+import '../workout_share/presentation/share_workout_sheet.dart';
 import '../workout/presentation/quick_log_sheet.dart';
 import '../workout/presentation/workout_session_page.dart';
 
@@ -150,15 +151,7 @@ class _MainShellState extends State<MainShell> {
               },
             );
           },
-          onDeleted: () {
-            unawaited(_removePlan(plan));
-            messenger.showSnackBar(
-              SnackBar(
-                behavior: SnackBarBehavior.floating,
-                content: Text(l10n.snackbarPlanDeleted),
-              ),
-            );
-          },
+          onDelete: () => _removePlan(plan),
         ),
       ),
     );
@@ -207,6 +200,21 @@ class _MainShellState extends State<MainShell> {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _shareWorkout(WorkoutPlan plan) async {
+    final shared = await showShareWorkoutSheet(
+      context: context,
+      plan: plan,
+      profile: _t.profile,
+    );
+    if (!mounted || shared != true) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text('Workout shared'),
+      ),
     );
   }
 
@@ -319,6 +327,8 @@ class _MainShellState extends State<MainShell> {
           onOpenProfile: () => _openProfile(context),
           onOpenPlanDetail: (p) => _openPlanDetail(context, p),
           onStartSession: (p) => _pushSession(context, p),
+          onDeletePlan: (p) => _removePlan(p),
+          onSharePlan: (p) => unawaited(_shareWorkout(p)),
           onOpenCompletion: (c) => _openCompletion(context, c),
           onOpenStreak: () => _openStreak(context),
           onLogWorkout: () => _logWorkout(context),
@@ -326,7 +336,9 @@ class _MainShellState extends State<MainShell> {
       case 1:
         return FeedPage(
           profile: profile,
+          plans: plans,
           onOpenOwnProfile: () => _openProfile(context),
+          onAddCopiedWorkout: (p) => _addPlan(p),
         );
       case 2:
         return TerritoryMapPage(profile: profile);

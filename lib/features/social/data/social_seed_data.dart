@@ -1,4 +1,6 @@
 import '../../feed/domain/feed_story.dart';
+import '../../profile/domain/profile_defaults.dart';
+import '../../profile/domain/profile_media_filter.dart';
 import '../../profile/domain/user_profile.dart';
 import '../domain/feed_comment.dart';
 import '../domain/feed_media.dart';
@@ -17,6 +19,12 @@ class SeededSocialUser {
     required this.city,
     required this.photoUrls,
     required this.storySlideUrls,
+    this.experience = '',
+    this.goal = '',
+    this.age = 0,
+    this.joinedLabel = '',
+    this.weeklyTarget = '',
+    this.favoriteTrainingType = '',
   });
 
   final String id;
@@ -29,6 +37,12 @@ class SeededSocialUser {
   final String city;
   final List<String> photoUrls;
   final List<String> storySlideUrls;
+  final String experience;
+  final String goal;
+  final int age;
+  final String joinedLabel;
+  final String weeklyTarget;
+  final String favoriteTrainingType;
 
   int get postCount => SocialSeedRepository.postsForUser(id).length;
   int get storyCount => storySlideUrls.length;
@@ -48,6 +62,22 @@ class SeededSocialUser {
 
 abstract final class SocialSeedRepository {
   static const currentUserId = 'seed_current';
+
+  static const currentUserAvatarFallback =
+      'https://randomuser.me/api/portraits/women/68.jpg';
+
+  static const _currentUserCoverFallback =
+      'https://images.unsplash.com/photo-1581009146145-b5ef050c2a1e?w=1200&q=80';
+
+  static const _currentUserGallery = [
+    'https://images.unsplash.com/photo-1581009146145-b5ef050c2a1e?w=900&q=80',
+    'https://images.unsplash.com/photo-1518609878373-06d740f60fe8?w=900&q=80',
+    'https://images.unsplash.com/photo-1583454158554-84aa2aa0b2d8?w=900&q=80',
+    'https://images.unsplash.com/photo-1574680096145-d05b474717fc?w=900&q=80',
+    'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=900&q=80',
+    'https://images.unsplash.com/photo-1471194146554-9167788c4fcd?w=900&q=80',
+    'https://images.unsplash.com/photo-1490645935967-10de6ba17261?w=900&q=80',
+  ];
 
   static const _gymImages = [
     'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=900&q=80',
@@ -198,22 +228,54 @@ abstract final class SocialSeedRepository {
   }
 
   static SeededSocialUser currentUserSeed(UserProfile profile) {
-    final cover = profile.coverUrl.trim().isNotEmpty ? profile.coverUrl : _covers[7];
-    final bio = profile.bio.trim().isNotEmpty
-        ? profile.bio
-        : 'Building consistency one session at a time.';
+    final displayName = ProfileDefaults.normalizeDisplayName(profile.displayName);
+    final bio = profile.publicBio.trim().isNotEmpty
+        ? profile.publicBio.trim()
+        : ProfileDefaults.publicBio;
+    final avatar = ProfileMediaFilter.resolveImageUrl(
+      primary: profile.avatarUrl,
+      fallback: currentUserAvatarFallback,
+    );
+    final cover = ProfileMediaFilter.resolveImageUrl(
+      primary: profile.coverUrl,
+      fallback: _currentUserCoverFallback,
+    );
+    final trainingFocus = profile.trainingFocus.trim().isNotEmpty
+        ? profile.trainingFocus.trim()
+        : ProfileDefaults.trainingFocus;
+    final city = profile.locationText.trim().isNotEmpty
+        ? profile.locationText.trim()
+        : ProfileDefaults.locationText;
+    final experience = profile.experienceLevel.trim().isNotEmpty
+        ? _titleCase(profile.experienceLevel.trim())
+        : _titleCase(ProfileDefaults.experienceLevel);
     return SeededSocialUser(
       id: currentUserId,
-      displayName: profile.displayName.trim().isEmpty ? 'You' : profile.displayName,
-      username: 'you',
-      avatarUrl: profile.avatarUrl.trim(),
+      displayName: displayName,
+      username: profile.username.trim().isNotEmpty ? profile.username.trim() : ProfileDefaults.username,
+      avatarUrl: avatar,
       coverUrl: cover,
       bio: bio,
-      trainingFocus: profile.fitnessGoal.trim().isEmpty ? 'Strength & conditioning' : profile.fitnessGoal,
-      city: 'Moscow',
-      photoUrls: [_gymImages[8], _gymImages[9], _gymImages[10]],
-      storySlideUrls: const [],
+      trainingFocus: trainingFocus,
+      city: city,
+      photoUrls: _currentUserGallery,
+      storySlideUrls: [
+        _currentUserGallery[0],
+        _currentUserGallery[1],
+        _currentUserGallery[4],
+      ],
+      experience: experience,
+      goal: profile.fitnessGoal.trim().isNotEmpty ? profile.fitnessGoal.trim() : ProfileDefaults.fitnessGoal,
+      age: 24,
+      joinedLabel: 'June 2026',
+      weeklyTarget: ProfileDefaults.weeklyTargetLabel(profile.weeklyWorkoutTarget),
+      favoriteTrainingType: 'Strength + mobility',
     );
+  }
+
+  static String _titleCase(String value) {
+    if (value.isEmpty) return value;
+    return value[0].toUpperCase() + value.substring(1);
   }
 
   static SocialProfile socialProfileFor(String userId, {UserProfile? currentProfile}) {
@@ -257,8 +319,13 @@ abstract final class SocialSeedRepository {
   }
 
   static StoryUser ownStoryUser(UserProfile profile, {String? userId, String? avatarUrlOverride}) {
-    final displayName = profile.displayName.trim().isEmpty ? 'You' : profile.displayName;
-    final avatar = (avatarUrlOverride ?? profile.avatarUrl).trim();
+    final seed = currentUserSeed(profile);
+    final displayName = profile.displayName.trim().isEmpty ? seed.displayName : profile.displayName.trim();
+    final override = avatarUrlOverride?.trim() ?? '';
+    final avatar = ProfileMediaFilter.resolveImageUrl(
+      primary: override.isNotEmpty ? override : profile.avatarUrl,
+      fallback: seed.avatarUrl,
+    );
     return StoryUser(
       id: userId ?? currentUserId,
       displayName: 'Your story',
@@ -307,7 +374,11 @@ abstract final class SocialSeedRepository {
             sortOrder: e.key,
           ),
         );
-    return [...gallery, ...postMedia];
+    return ProfileMediaFilter.profileGallery(
+      apiMedia: postMedia.toList(),
+      seedMedia: gallery.toList(),
+      minPhotos: userId == currentUserId ? 3 : 1,
+    );
   }
 
   static FeedPost _toFeedPost(_SeedPostDef def, {UserProfile? currentProfile}) {
@@ -414,8 +485,48 @@ abstract final class SocialSeedRepository {
   static List<_SeedPostDef> _seedPostDefinitions({UserProfile? currentProfile}) {
     final now = _seedAnchor;
     SeededSocialUser user(String id) => socialUsers.firstWhere((u) => u.id == id);
+    final currentSeed = currentProfile != null ? currentUserSeed(currentProfile) : null;
 
     return [
+      if (currentSeed != null)
+        _SeedPostDef(
+          id: 'seed_post_current_1',
+          userId: currentUserId,
+          userName: currentSeed.displayName,
+          avatarUrl: currentSeed.avatarUrl,
+          imageUrl: _currentUserGallery[1],
+          caption: 'Battle ropes before the commute — short and sharp.',
+          timeLabel: '18m ago',
+          createdAt: now.subtract(const Duration(minutes: 18)),
+          likeCount: 19,
+          commentCount: 2,
+        ),
+      if (currentSeed != null)
+        _SeedPostDef(
+          id: 'seed_post_current_2',
+          userId: currentUserId,
+          userName: currentSeed.displayName,
+          avatarUrl: currentSeed.avatarUrl,
+          imageUrl: _currentUserGallery[3],
+          caption: 'Mirror check after upper body. Small wins stack up.',
+          timeLabel: '1d ago',
+          createdAt: now.subtract(const Duration(days: 1)),
+          likeCount: 27,
+          commentCount: 3,
+        ),
+      if (currentSeed != null)
+        _SeedPostDef(
+          id: 'seed_post_current_3',
+          userId: currentUserId,
+          userName: currentSeed.displayName,
+          avatarUrl: currentSeed.avatarUrl,
+          imageUrl: _currentUserGallery[4],
+          caption: 'Recovery stretch night. Mobility keeps the streak alive.',
+          timeLabel: '2d ago',
+          createdAt: now.subtract(const Duration(days: 2)),
+          likeCount: 15,
+          commentCount: 1,
+        ),
       _SeedPostDef(
         id: 'seed_post_sofia_1',
         userId: user('seed_sofia').id,

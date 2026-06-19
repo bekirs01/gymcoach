@@ -79,6 +79,95 @@ class MapPermissionCard extends StatelessWidget {
   }
 }
 
+class MapLocationErrorCard extends StatelessWidget {
+  const MapLocationErrorCard({
+    super.key,
+    required this.message,
+    required this.onRetry,
+    this.onOpenSettings,
+    this.showOpenSettings = false,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+  final VoidCallback? onOpenSettings;
+  final bool showOpenSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context).textTheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.borderSubtle),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.gps_off_rounded,
+                size: 40,
+                color: AppColors.primary,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.mapLocateMe,
+                textAlign: TextAlign.center,
+                style: theme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.bodyMedium?.copyWith(color: AppColors.textMuted, height: 1.4),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: onRetry,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Text(l10n.mapRetryLocation),
+                ),
+              ),
+              if (showOpenSettings && onOpenSettings != null) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: onOpenSettings,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text(l10n.mapOpenLocationSettings),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class MapEmptyTerritoriesCard extends StatelessWidget {
   const MapEmptyTerritoriesCard({super.key});
 

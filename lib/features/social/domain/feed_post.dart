@@ -1,3 +1,5 @@
+import '../../workout_share/domain/feed_post_type.dart';
+import '../../workout_share/domain/shared_workout_snapshot.dart';
 import 'feed_comment.dart';
 import 'feed_media.dart';
 import 'social_profile.dart';
@@ -14,6 +16,8 @@ class FeedPost {
     required this.likeCount,
     required this.commentCount,
     required this.likedByMe,
+    this.postType = FeedPostType.normal,
+    this.sharedWorkoutSnapshot,
   });
 
   final String id;
@@ -26,6 +30,10 @@ class FeedPost {
   final int likeCount;
   final int commentCount;
   final bool likedByMe;
+  final FeedPostType postType;
+  final SharedWorkoutSnapshot? sharedWorkoutSnapshot;
+
+  bool get isWorkoutShare => postType == FeedPostType.workoutShare;
 
   FeedPost copyWith({
     String? id,
@@ -38,6 +46,8 @@ class FeedPost {
     int? likeCount,
     int? commentCount,
     bool? likedByMe,
+    FeedPostType? postType,
+    SharedWorkoutSnapshot? sharedWorkoutSnapshot,
   }) {
     return FeedPost(
       id: id ?? this.id,
@@ -50,6 +60,8 @@ class FeedPost {
       likeCount: likeCount ?? this.likeCount,
       commentCount: commentCount ?? this.commentCount,
       likedByMe: likedByMe ?? this.likedByMe,
+      postType: postType ?? this.postType,
+      sharedWorkoutSnapshot: sharedWorkoutSnapshot ?? this.sharedWorkoutSnapshot,
     );
   }
 
@@ -67,6 +79,13 @@ class FeedPost {
         .toList()
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
+    final postType = FeedPostType.fromWire(row['post_type'] as String?);
+    SharedWorkoutSnapshot? sharedWorkoutSnapshot;
+    final snapshotRaw = row['shared_workout_snapshot'];
+    if (snapshotRaw is Map) {
+      sharedWorkoutSnapshot = SharedWorkoutSnapshot.fromJson(Map<String, dynamic>.from(snapshotRaw));
+    }
+
     return FeedPost(
       id: row['id'] as String? ?? '',
       userId: row['user_id'] as String? ?? '',
@@ -78,6 +97,8 @@ class FeedPost {
       likeCount: likeRows.length,
       commentCount: comments.length,
       likedByMe: likeRows.any((e) => (e as Map)['user_id'] == currentUserId),
+      postType: postType,
+      sharedWorkoutSnapshot: sharedWorkoutSnapshot,
     );
   }
 }

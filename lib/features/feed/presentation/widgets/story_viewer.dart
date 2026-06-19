@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:typed_data';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
@@ -452,8 +454,10 @@ class StorySwipeTransition extends StatelessWidget {
     final showNext = hasNext && dragOffset < 0;
 
     return ClipRect(
-      child: ColoredBox(
-        color: Colors.black,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: PremiumColors.backgroundGradient,
+        ),
         child: Stack(
           fit: StackFit.expand,
           clipBehavior: Clip.hardEdge,
@@ -708,20 +712,81 @@ class _StorySlideImage extends StatelessWidget {
     }
 
     if (slide.imageBytes != null) {
+      return _StoryContainedImage(bytes: slide.imageBytes!);
+    }
+
+    return _StoryContainedImage(imageUrl: slide.imageUrl ?? '');
+  }
+}
+
+class _StoryContainedImage extends StatelessWidget {
+  const _StoryContainedImage({
+    this.bytes,
+    this.imageUrl,
+  });
+
+  final Uint8List? bytes;
+  final String? imageUrl;
+
+  Widget _backgroundImage() {
+    if (bytes != null) {
       return Image.memory(
-        slide.imageBytes!,
+        bytes!,
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
         errorBuilder: (context, error, stackTrace) => const _StoryImageFallback(),
       );
     }
-
-    return NetworkImageWithFallback(
-      url: slide.imageUrl ?? '',
+    return Image.network(
+      imageUrl!,
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
+      errorBuilder: (context, error, stackTrace) => const _StoryImageFallback(),
+    );
+  }
+
+  Widget _foregroundImage() {
+    if (bytes != null) {
+      return Image.memory(
+        bytes!,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => const _StoryImageFallback(),
+      );
+    }
+    return NetworkImageWithFallback(
+      url: imageUrl!,
+      fit: BoxFit.contain,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ImageFiltered(
+          imageFilter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+          child: Transform.scale(
+            scale: 1.12,
+            child: _backgroundImage(),
+          ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                PremiumColors.midnightTop.withValues(alpha: 0.72),
+                Colors.black.withValues(alpha: 0.58),
+              ],
+            ),
+          ),
+        ),
+        Center(child: _foregroundImage()),
+      ],
     );
   }
 }

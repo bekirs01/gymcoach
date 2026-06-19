@@ -421,6 +421,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get deleteWorkoutTitle => 'Delete workout?';
+
+  @override
+  String deleteWorkoutSubtitle(String name) {
+    return 'This will permanently delete \"$name\" and its exercises.';
+  }
+
+  @override
+  String get deleteWorkoutWarning => 'This action cannot be undone.';
+
+  @override
+  String get deleteWorkoutConfirm => 'Delete workout';
+
+  @override
   String get createPlanTitle => 'Create Plan';
 
   @override
@@ -556,6 +570,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get streakDetailsTitle => 'Streak details';
 
   @override
+  String get streakDetailsSubtitle => 'Track your training consistency';
+
+  @override
   String streakDayStreak(int count) {
     return '$count day streak';
   }
@@ -564,13 +581,84 @@ class AppLocalizationsEn extends AppLocalizations {
   String get streakMomentum => 'Train today to keep momentum.';
 
   @override
+  String get streakTrainTodayStart => 'Train today to start your streak';
+
+  @override
+  String get streakBuildingMomentum => 'You are building momentum';
+
+  @override
+  String get streakBestStreak => 'Best streak';
+
+  @override
+  String get streakThisWeekSessions => 'This week';
+
+  @override
+  String get streakLastWorkout => 'Last workout';
+
+  @override
+  String get streakActiveDays => 'Active days';
+
+  @override
+  String get streakWeeklyCompletion => 'Weekly completion';
+
+  @override
+  String get streakNextMilestone => 'Next milestone';
+
+  @override
+  String streakDaysShort(int count) {
+    return '$count days';
+  }
+
+  @override
+  String streakMilestoneDays(int count) {
+    return '$count-day streak';
+  }
+
+  @override
+  String get streakThisWeekSection => 'This week';
+
+  @override
+  String streakWorkoutsThisWeek(int count) {
+    return '$count workout';
+  }
+
+  @override
+  String streakWorkoutsThisWeekPlural(int count) {
+    return '$count workouts';
+  }
+
+  @override
+  String streakCompletionPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String get streakNoLastWorkout => 'No workouts yet';
+
+  @override
   String get streakRecentDays => 'Recent training days';
 
   @override
   String get streakEmpty => 'Complete a workout to start your streak.';
 
   @override
+  String get streakEmptyHint =>
+      'Finish your first session to build momentum here.';
+
+  @override
+  String get streakTipShortSession => 'Even a short session counts.';
+
+  @override
+  String get streakTipSchedule => 'Schedule tomorrow\'s workout in advance.';
+
+  @override
+  String get streakTipConsistency => 'Consistency matters more than intensity.';
+
+  @override
   String get streakOpenProgress => 'Open Progress';
+
+  @override
+  String get streakViewProgress => 'View progress';
 
   @override
   String get profileTitle => 'Profile';
@@ -607,11 +695,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profilePhotosEmpty => 'This user has not added any photos yet.';
 
   @override
-  String get profilePostsEmpty => 'This user has not shared any posts yet.';
+  String get profilePostsEmpty => 'No posts yet';
 
   @override
-  String get profileSavedEmpty =>
-      'No saved posts yet. Tap bookmark on a feed post to save it here.';
+  String get profileSavedEmpty => 'No saved posts yet';
 
   @override
   String get profilePrivateNotes => 'Private notes';
@@ -807,6 +894,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sessionChipEquipment => 'Equipment';
+
+  @override
+  String get sessionCommonMistakes => 'COMMON MISTAKES';
+
+  @override
+  String get sessionInfoSets => 'How many rounds of this exercise you do.';
+
+  @override
+  String get sessionInfoReps => 'How many repetitions you perform in each set.';
+
+  @override
+  String get sessionInfoRest => 'How long you rest between sets.';
+
+  @override
+  String get sessionInfoTarget => 'Main muscle group trained by this exercise.';
+
+  @override
+  String get sessionInfoTempo =>
+      'Speed of the movement. Example 2-0-2 means 2 seconds down, no pause, 2 seconds up.';
+
+  @override
+  String get sessionInfoEquipment => 'What you need to perform this exercise.';
 
   @override
   String get sessionSummaryTitle => 'Session summary';
@@ -1044,6 +1153,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get snackbarPlanDeleted => 'Plan deleted';
+
+  @override
+  String get snackbarWorkoutDeleted => 'Workout deleted';
+
+  @override
+  String get snackbarWorkoutDeleteFailed => 'Could not delete workout';
 
   @override
   String get snackbarWorkoutLogged => 'Workout logged';
@@ -1352,15 +1467,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapLocationServiceDisabled =>
-      'Location services are off. Turn on GPS to see where you are.';
+      'Turn on Location Services to use the map.';
 
   @override
   String get mapLocationPermissionDenied =>
-      'Location permission is required to show your position on the map.';
+      'Location permission is required to show your current position.';
+
+  @override
+  String get mapSimulatorLocationUnset =>
+      'Set a simulated location in the iOS Simulator (Features > Location) to use the map.';
+
+  @override
+  String get mapRetryLocation => 'Try again';
 
   @override
   String get mapLocationTimeout =>
       'GPS is taking too long. Move outdoors and tap My location again.';
+
+  @override
+  String get mapTilesUnavailable =>
+      'Map tiles could not load. Check your internet connection and try again.';
 
   @override
   String get mapOpenLocationSettings => 'Open settings';
@@ -1400,14 +1526,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapPermissionBody =>
-      'GymCoach uses your location while the app is open to show your position and record territory capture routes.';
+      'Location permission is required to show your current position.';
 
   @override
   String get mapPermissionServiceDisabled =>
-      'Turn on location services in system settings to use the territory map.';
+      'Turn on Location Services to use the map.';
 
   @override
-  String get mapAllowLocation => 'Allow location';
+  String get mapAllowLocation => 'Enable location';
 
   @override
   String get mapOpenSettings => 'Open settings';

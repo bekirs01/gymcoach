@@ -10,6 +10,7 @@ class ChatConversation {
     required this.unreadCount,
     this.statusText = 'Active now',
     this.isRemote = false,
+    this.isSeeded = false,
     this.cachedLastMessageText,
     this.cachedLastMessageTime,
   });
@@ -22,6 +23,7 @@ class ChatConversation {
   final int unreadCount;
   final String statusText;
   final bool isRemote;
+  final bool isSeeded;
   final String? cachedLastMessageText;
   final DateTime? cachedLastMessageTime;
 
@@ -41,7 +43,7 @@ class ChatConversation {
     return message.body;
   }
 
-  bool get isDemo => !isRemote && participantUserId.startsWith('seed_');
+  bool get isDemo => isSeeded || (!isRemote && participantUserId.startsWith('seed_'));
 
   DateTime? get lastMessageTime => cachedLastMessageTime ?? lastMessage?.sentAt;
 
@@ -54,6 +56,7 @@ class ChatConversation {
     int? unreadCount,
     String? statusText,
     bool? isRemote,
+    bool? isSeeded,
     String? cachedLastMessageText,
     DateTime? cachedLastMessageTime,
   }) {
@@ -66,6 +69,7 @@ class ChatConversation {
       unreadCount: unreadCount ?? this.unreadCount,
       statusText: statusText ?? this.statusText,
       isRemote: isRemote ?? this.isRemote,
+      isSeeded: isSeeded ?? this.isSeeded,
       cachedLastMessageText: cachedLastMessageText ?? this.cachedLastMessageText,
       cachedLastMessageTime: cachedLastMessageTime ?? this.cachedLastMessageTime,
     );

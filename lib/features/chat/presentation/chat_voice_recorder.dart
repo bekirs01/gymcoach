@@ -150,8 +150,10 @@ class ChatVoiceComposerState extends State<ChatVoiceComposer> {
       return const SizedBox.shrink();
     }
 
+    final bottomSafe = MediaQuery.paddingOf(context).bottom;
+
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.xs),
+      margin: EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, bottomSafe + AppSpacing.xs),
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
       decoration: BoxDecoration(
         color: PremiumColors.surface.withValues(alpha: 0.96),

@@ -423,6 +423,20 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get deleteWorkoutTitle => 'Удалить тренировку?';
+
+  @override
+  String deleteWorkoutSubtitle(String name) {
+    return 'Это навсегда удалит \"$name\" и её упражнения.';
+  }
+
+  @override
+  String get deleteWorkoutWarning => 'Это действие нельзя отменить.';
+
+  @override
+  String get deleteWorkoutConfirm => 'Удалить тренировку';
+
+  @override
   String get createPlanTitle => 'Создать план';
 
   @override
@@ -558,6 +572,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get streakDetailsTitle => 'Детали серии';
 
   @override
+  String get streakDetailsSubtitle => 'Отслеживайте регулярность тренировок';
+
+  @override
   String streakDayStreak(int count) {
     return '$count day streak';
   }
@@ -566,13 +583,85 @@ class AppLocalizationsRu extends AppLocalizations {
   String get streakMomentum => 'Тренируйтесь сегодня, чтобы сохранить темп.';
 
   @override
+  String get streakTrainTodayStart =>
+      'Тренируйтесь сегодня, чтобы начать серию';
+
+  @override
+  String get streakBuildingMomentum => 'Вы набираете темп';
+
+  @override
+  String get streakBestStreak => 'Лучшая серия';
+
+  @override
+  String get streakThisWeekSessions => 'На этой неделе';
+
+  @override
+  String get streakLastWorkout => 'Последняя тренировка';
+
+  @override
+  String get streakActiveDays => 'Активные дни';
+
+  @override
+  String get streakWeeklyCompletion => 'Выполнение за неделю';
+
+  @override
+  String get streakNextMilestone => 'Следующая цель';
+
+  @override
+  String streakDaysShort(int count) {
+    return '$count дн.';
+  }
+
+  @override
+  String streakMilestoneDays(int count) {
+    return 'Серия $count дн.';
+  }
+
+  @override
+  String get streakThisWeekSection => 'Эта неделя';
+
+  @override
+  String streakWorkoutsThisWeek(int count) {
+    return '$count тренировка';
+  }
+
+  @override
+  String streakWorkoutsThisWeekPlural(int count) {
+    return '$count тренировок';
+  }
+
+  @override
+  String streakCompletionPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String get streakNoLastWorkout => 'Пока нет тренировок';
+
+  @override
   String get streakRecentDays => 'Последние тренировочные дни';
 
   @override
   String get streakEmpty => 'Завершите тренировку, чтобы начать серию.';
 
   @override
+  String get streakEmptyHint =>
+      'Завершите первую тренировку, чтобы увидеть прогресс здесь.';
+
+  @override
+  String get streakTipShortSession => 'Даже короткая тренировка засчитывается.';
+
+  @override
+  String get streakTipSchedule => 'Запланируйте завтрашнюю тренировку заранее.';
+
+  @override
+  String get streakTipConsistency => 'Регулярность важнее интенсивности.';
+
+  @override
   String get streakOpenProgress => 'Открыть прогресс';
+
+  @override
+  String get streakViewProgress => 'Смотреть прогресс';
 
   @override
   String get profileTitle => 'Профиль';
@@ -609,11 +698,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get profilePhotosEmpty => 'Пользователь ещё не добавил фото.';
 
   @override
-  String get profilePostsEmpty => 'Пользователь ещё не опубликовал посты.';
+  String get profilePostsEmpty => 'Пока нет постов';
 
   @override
-  String get profileSavedEmpty =>
-      'Нет сохранённых постов. Нажмите закладку в ленте, чтобы сохранить.';
+  String get profileSavedEmpty => 'Нет сохранённых постов';
 
   @override
   String get profilePrivateNotes => 'Личные заметки';
@@ -810,6 +898,30 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get sessionChipEquipment => 'Инвентарь';
+
+  @override
+  String get sessionCommonMistakes => 'ЧАСТЫЕ ОШИБКИ';
+
+  @override
+  String get sessionInfoSets =>
+      'Сколько подходов вы выполняете в этом упражнении.';
+
+  @override
+  String get sessionInfoReps => 'Сколько повторений в каждом подходе.';
+
+  @override
+  String get sessionInfoRest => 'Сколько отдыхаете между подходами.';
+
+  @override
+  String get sessionInfoTarget =>
+      'Основная мышечная группа, которую нагружает упражнение.';
+
+  @override
+  String get sessionInfoTempo =>
+      'Скорость движения. Например, 2-0-2 — 2 секунды вниз, без паузы, 2 секунды вверх.';
+
+  @override
+  String get sessionInfoEquipment => 'Что нужно для выполнения упражнения.';
 
   @override
   String get sessionSummaryTitle => 'Итоги сессии';
@@ -1050,6 +1162,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get snackbarPlanDeleted => 'План удален';
+
+  @override
+  String get snackbarWorkoutDeleted => 'Тренировка удалена';
+
+  @override
+  String get snackbarWorkoutDeleteFailed => 'Не удалось удалить тренировку';
 
   @override
   String get snackbarWorkoutLogged => 'Тренировка записана';
@@ -1357,15 +1475,26 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mapLocationServiceDisabled =>
-      'Геолокация выключена. Включите GPS, чтобы видеть себя на карте.';
+      'Включите службы геолокации, чтобы использовать карту.';
 
   @override
   String get mapLocationPermissionDenied =>
-      'Нужен доступ к геолокации для отображения на карте.';
+      'Для отображения вашего местоположения нужен доступ к геолокации.';
+
+  @override
+  String get mapSimulatorLocationUnset =>
+      'Задайте симулированное местоположение в iOS Simulator (Features > Location), чтобы использовать карту.';
+
+  @override
+  String get mapRetryLocation => 'Повторить';
 
   @override
   String get mapLocationTimeout =>
       'GPS отвечает слишком долго. Выйдите на открытое место и нажмите снова.';
+
+  @override
+  String get mapTilesUnavailable =>
+      'Не удалось загрузить карту. Проверьте интернет и попробуйте снова.';
 
   @override
   String get mapOpenLocationSettings => 'Открыть настройки';
@@ -1405,14 +1534,14 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mapPermissionBody =>
-      'GymCoach использует геолокацию, пока приложение открыто, чтобы показывать вас на карте и записывать маршруты захвата.';
+      'Для отображения вашего местоположения нужен доступ к геолокации.';
 
   @override
   String get mapPermissionServiceDisabled =>
-      'Включите геолокацию в настройках системы для карты территорий.';
+      'Включите службы геолокации, чтобы использовать карту.';
 
   @override
-  String get mapAllowLocation => 'Разрешить геолокацию';
+  String get mapAllowLocation => 'Включить геолокацию';
 
   @override
   String get mapOpenSettings => 'Открыть настройки';

@@ -43,6 +43,8 @@ class HomePage extends StatefulWidget {
     required this.onOpenProfile,
     required this.onOpenPlanDetail,
     required this.onStartSession,
+    required this.onDeletePlan,
+    required this.onSharePlan,
     required this.onOpenCompletion,
     required this.onOpenStreak,
     required this.onLogWorkout,
@@ -57,6 +59,8 @@ class HomePage extends StatefulWidget {
   final VoidCallback onOpenProfile;
   final ValueChanged<WorkoutPlan> onOpenPlanDetail;
   final ValueChanged<WorkoutPlan> onStartSession;
+  final Future<void> Function(WorkoutPlan plan) onDeletePlan;
+  final ValueChanged<WorkoutPlan> onSharePlan;
   final ValueChanged<WorkoutCompletion> onOpenCompletion;
   final VoidCallback onOpenStreak;
   final VoidCallback onLogWorkout;
@@ -152,6 +156,8 @@ class _HomePageState extends State<HomePage> {
                   onAddPlan: widget.onAddPlan,
                   onOpenPlan: widget.onOpenPlanDetail,
                   onStartPlan: widget.onStartSession,
+                  onDeletePlan: widget.onDeletePlan,
+                  onSharePlan: widget.onSharePlan,
                 ),
               ] else ...[
 
@@ -192,6 +198,7 @@ class _HomePageState extends State<HomePage> {
               HomeMonthlyCalendar(
                 month: _month,
                 selectedDay: _selectedDay,
+                plans: widget.plans,
                 plannedDays: _plannedDays,
                 completedDays: _completedDays,
                 l10n: l10n,

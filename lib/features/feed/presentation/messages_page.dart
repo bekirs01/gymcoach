@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
+import '../../../core/supabase_operation_error.dart';
 import '../../chat/data/chat_local_store.dart';
 import '../../chat/data/chat_repository.dart';
 import '../../chat/data/supabase_chat_repository.dart';
@@ -21,7 +22,8 @@ class _MessagesPageState extends State<MessagesPage> {
   var _query = '';
   var _loading = true;
   var _loadFailed = false;
-  List<ChatConversation> _remoteConversations = [];
+  String? _statusMessage;
+  List<ChatConversation> _conversations = [];
 
   @override
   void initState() {
@@ -33,7 +35,11 @@ class _MessagesPageState extends State<MessagesPage> {
     setState(() {
       _loading = true;
       _loadFailed = false;
+      _statusMessage = null;
     });
+
+    ChatLocalStore.ensureInitialized();
+    final localFallback = ChatLocalStore.orderedConversations();
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -41,25 +47,32 @@ class _MessagesPageState extends State<MessagesPage> {
       final conversations = await repository.loadConversations();
       if (!mounted) return;
       setState(() {
-        _remoteConversations = conversations;
+        _conversations = conversations.isNotEmpty ? conversations : localFallback;
         _loading = false;
+        _loadFailed = _conversations.isEmpty;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      final mapped = SupabaseOperationError.classify(
+        operation: 'messages_load_conversations',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (!mounted) return;
       setState(() {
+        _conversations = localFallback;
         _loading = false;
-        _loadFailed = true;
+        _loadFailed = _conversations.isEmpty;
+        _statusMessage = _conversations.isEmpty ? mapped.userMessage : null;
       });
     }
   }
 
-  List<ChatConversation> get _conversations {
-    final source = _remoteConversations.isNotEmpty
-        ? _remoteConversations
-        : ChatLocalStore.orderedConversations();
+  List<ChatConversation> get _filteredConversations {
     final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return source;
-    return source.where((conversation) => conversation.participantName.toLowerCase().contains(q)).toList();
+    if (q.isEmpty) return _conversations;
+    return _conversations
+        .where((conversation) => conversation.participantName.toLowerCase().contains(q))
+        .toList();
   }
 
   Future<void> _onConversationTap(ChatConversation conversation) async {
@@ -77,7 +90,7 @@ class _MessagesPageState extends State<MessagesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final conversations = _conversations;
+    final conversations = _filteredConversations;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -149,8 +162,8 @@ class _MessagesPageState extends State<MessagesPage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  _loadFailed && _remoteConversations.isEmpty
-                                      ? 'Could not load conversations'
+                                  _loadFailed && _conversations.isEmpty
+                                      ? (_statusMessage ?? 'Could not load conversations')
                                       : 'No conversations found',
                                   style: const TextStyle(color: PremiumColors.textSecondary),
                                 ),

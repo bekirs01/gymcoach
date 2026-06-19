@@ -11,8 +11,7 @@ class ExerciseMetricStepperCard extends StatelessWidget {
     required this.onIncrement,
     this.valueColor = PremiumColors.accentBlue,
     this.suffix,
-    this.subtitle,
-    this.showSteppers = true,
+    this.onInfoTap,
   });
 
   final String label;
@@ -21,14 +20,15 @@ class ExerciseMetricStepperCard extends StatelessWidget {
   final VoidCallback onIncrement;
   final Color valueColor;
   final String? suffix;
-  final String? subtitle;
-  final bool showSteppers;
+  final VoidCallback? onInfoTap;
 
   @override
   Widget build(BuildContext context) {
+    final displayValue = suffix != null ? '$value $suffix' : value;
+
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
         decoration: BoxDecoration(
           color: PremiumColors.surface,
           borderRadius: BorderRadius.circular(PremiumRadii.md),
@@ -40,73 +40,61 @@ class ExerciseMetricStepperCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  label.toUpperCase(),
-                  style: const TextStyle(
-                    color: PremiumColors.textMuted,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6,
+                Flexible(
+                  child: Text(
+                    label.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: PremiumColors.textMuted,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
-                if (showSteppers) ...[
-                  const SizedBox(width: 3),
-                  Icon(
-                    Icons.info_outline_rounded,
-                    size: 11,
-                    color: PremiumColors.textMuted.withValues(alpha: 0.7),
+                if (onInfoTap != null) ...[
+                  const SizedBox(width: 2),
+                  GestureDetector(
+                    onTap: onInfoTap,
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: Icon(
+                        Icons.info_outline_rounded,
+                        size: 12,
+                        color: PremiumColors.textMuted.withValues(alpha: 0.85),
+                      ),
+                    ),
                   ),
                 ],
               ],
             ),
-            const SizedBox(height: 8),
-            if (showSteppers)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _StepButton(icon: Icons.remove_rounded, onTap: onDecrement),
-                  const SizedBox(width: 6),
-                  Flexible(
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _StepButton(icon: Icons.remove_rounded, onTap: onDecrement),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
                     child: Text(
-                      suffix != null ? '$value $suffix' : value,
+                      displayValue,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: valueColor,
-                        fontSize: suffix != null ? 16 : 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.w800,
+                        letterSpacing: suffix != null ? -0.2 : 0,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  _StepButton(icon: Icons.add_rounded, onTap: onIncrement),
-                ],
-              )
-            else
-              Column(
-                children: [
-                  Text(
-                    suffix != null ? '$value $suffix' : value,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: valueColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: PremiumColors.textMuted,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+                ),
+                const SizedBox(width: 4),
+                _StepButton(icon: Icons.add_rounded, onTap: onIncrement),
+              ],
+            ),
           ],
         ),
       ),
@@ -129,9 +117,9 @@ class _StepButton extends StatelessWidget {
         onTap: onTap,
         customBorder: const CircleBorder(),
         child: SizedBox(
-          width: 28,
-          height: 28,
-          child: Icon(icon, color: PremiumColors.textSecondary, size: 16),
+          width: 26,
+          height: 26,
+          child: Icon(icon, color: PremiumColors.textSecondary, size: 15),
         ),
       ),
     );

@@ -5,6 +5,7 @@ import '../data/local/training_snapshot_codec.dart';
 import '../core/plan_factory.dart';
 import '../features/plans/domain/workout_plan.dart';
 import '../features/plans/domain/workout_template.dart';
+import '../features/profile/domain/profile_defaults.dart';
 import '../features/profile/domain/user_profile.dart';
 import '../features/workout/domain/workout_completion.dart';
 import '../shared/repositories/training_persistence_repository.dart';
@@ -51,7 +52,7 @@ final class TrainingAppState extends ChangeNotifier {
           _profile = _defaultProfile(l10n);
           await _persist();
         } else {
-          _profile = existing.profile;
+          _profile = UserProfile.withDefaults(membershipLevel: existing.profile.membershipLevel, seed: existing.profile);
         }
       } else {
         _plans = [];
@@ -73,14 +74,9 @@ final class TrainingAppState extends ChangeNotifier {
   }
 
   UserProfile _defaultProfile(AppLocalizations l10n) {
-    return UserProfile(
-      displayName: 'Alex Morgan',
-      weightKg: 78.5,
-      heightCm: 178,
-      fitnessGoal: l10n.profileDefaultGoal,
+    return UserProfile.withDefaults(
       membershipLevel: l10n.membershipPremium,
-      notificationsEnabled: true,
-    );
+    ).copyWith(fitnessGoal: l10n.profileDefaultGoal);
   }
 
   UserProfile _localizedProfile(UserProfile profile, AppLocalizations l10n) {

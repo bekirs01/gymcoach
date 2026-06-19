@@ -14,7 +14,6 @@ import '../../social/domain/social_profile.dart';
 import '../data/territory_api_factory.dart';
 import '../domain/territory.dart';
 import '../services/location_permission_service.dart';
-import '../services/user_location_service.dart';
 import 'territory_formatters.dart';
 import 'territory_map_controller.dart';
 import 'widgets/capture_overlay.dart';
@@ -40,7 +39,6 @@ class TerritoryMapPage extends StatefulWidget {
 
 class _TerritoryMapPageState extends State<TerritoryMapPage> {
   final _mapViewKey = GlobalKey<TerritoryMapViewState>();
-  final _locationService = UserLocationService();
   TerritoryMapController? _controller;
   SocialApiClient? _socialClient;
   var _leaderboardLoading = false;
@@ -202,30 +200,22 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
   }
 
   Future<void> _locateUserWithFeedback() async {
-    final result = await _mapViewKey.currentState?.locateUser();
-    if (!mounted || result == null || result.isSuccess) return;
+    final controller = _controller;
+    if (controller == null) return;
 
-    final l10n = AppLocalizations.of(context)!;
-    final message = switch (result.failure) {
-      UserLocationFailure.serviceDisabled => l10n.mapLocationServiceDisabled,
-      UserLocationFailure.permissionDenied => l10n.mapLocationPermissionDenied,
-      UserLocationFailure.timeout => l10n.mapLocationTimeout,
-      UserLocationFailure.unavailable => l10n.mapLocationUnavailable,
-      null => l10n.mapLocationUnavailable,
-    };
+    if (controller.permissionState != LocationPermissionState.granted) {
+      final proceed = await _showPermissionExplanation();
+      if (!proceed || !mounted) return;
+      final state = await controller.requestLocationPermission();
+      if (!mounted) return;
+      if (state != LocationPermissionState.granted) {
+        setState(() {});
+        return;
+      }
+      setState(() {});
+    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(message),
-        action: result.failure == UserLocationFailure.serviceDisabled
-            ? SnackBarAction(
-                label: l10n.mapOpenLocationSettings,
-                onPressed: () => _locationService.openLocationSettings(),
-              )
-            : null,
-      ),
-    );
+    await _mapViewKey.currentState?.locateUser();
   }
 
   void _openOwnerProfile(Territory territory) {
@@ -300,19 +290,16 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
           child: Stack(
           fit: StackFit.expand,
           children: [
-            if (permissionGranted)
-              TerritoryMapView(
-                key: _mapViewKey,
-                controller: controller,
-                onTerritoryTap: controller.selectTerritory,
-                onLocatingChanged: (isLocating) {
-                  if (_isLocatingUser != isLocating) {
-                    setState(() => _isLocatingUser = isLocating);
-                  }
-                },
-              )
-            else
-              const ColoredBox(color: PremiumColors.midnightMid),
+            TerritoryMapView(
+              key: _mapViewKey,
+              controller: controller,
+              onTerritoryTap: controller.selectTerritory,
+              onLocatingChanged: (isLocating) {
+                if (_isLocatingUser != isLocating) {
+                  setState(() => _isLocatingUser = isLocating);
+                }
+              },
+            ),
             if (!permissionGranted)
               MapPermissionCard(
                 state: controller.permissionState ?? LocationPermissionState.denied,
@@ -330,14 +317,19 @@ class _TerritoryMapPageState extends State<TerritoryMapPage> {
                 onOpenSettings: controller.openSystemSettings,
               ),
             if (permissionGranted &&
-                controller.territories.isEmpty &&
+                controller.territories.where((t) {
+                  if (t.id.startsWith('demo-')) return false;
+                  if (t.ownerId.startsWith('demo-')) return false;
+                  if (t.name.trim().toLowerCase().startsWith('demo ')) return false;
+                  return true;
+                }).isEmpty &&
                 !controller.isLoadingTerritories &&
                 controller.capturePhase == CapturePhase.idle)
               Padding(
                 padding: EdgeInsets.only(top: topPadding + 8),
                 child: const MapEmptyTerritoriesCard(),
               ),
-            if (permissionGranted)
+            if (controller.permissionState == LocationPermissionState.granted)
               MapFloatingControls(
                 controller: controller,
                 isLocating: _isLocatingUser,

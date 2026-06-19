@@ -10,12 +10,11 @@ import '../../../core/session_calorie_estimator.dart';
 import '../../../core/workout_exercise_catalog.dart';
 import '../../plans/domain/workout_plan.dart';
 import '../../profile/domain/user_profile.dart';
-import '../../camera_validation/data/exercise_name_resolver.dart';
-import '../../camera_validation/data/exercise_tracking_catalog.dart';
-import '../../camera_validation/exercise_tracker_registry.dart';
 import '../../camera_validation/domain/exercise_tracking_mode.dart';
 import '../../camera_validation/presentation/camera_tracking_page.dart';
 import '../domain/completed_exercise_log.dart';
+import '../domain/exercise_camera_tracking_support.dart';
+import '../domain/exercise_instruction_data.dart';
 import '../domain/workout_completion.dart';
 import '../domain/workout_session_analytics.dart';
 import 'widgets/exercise_form_tips_card.dart';
@@ -23,6 +22,7 @@ import 'widgets/exercise_hero_card.dart';
 import 'widgets/exercise_info_chip.dart';
 import 'widgets/exercise_metric_stepper_card.dart';
 import 'widgets/exercise_session_metadata.dart';
+import 'widgets/exercise_term_info_sheet.dart';
 import 'widgets/workout_exercise_list_item.dart';
 import 'widgets/workout_session_action_bar.dart';
 
@@ -112,9 +112,10 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
       return;
     }
     final exercise = widget.plan.exercises[i];
+    final instruction = ExerciseInstructionData.forExercise(exercise.name);
     _sets = exercise.defaultSets.clamp(1, 10);
     _reps = exercise.defaultReps.clamp(1, 100);
-    _restSec = 60;
+    _restSec = instruction.recommendedRestSec.clamp(15, 300);
   }
 
   void _goToExercise(int i) {
@@ -134,14 +135,6 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
       _loadMetricsForIndex(_index);
     });
     widget.analytics.onExerciseBecameActive(_index, widget.plan.exerciseNames[_index]);
-  }
-
-  bool _isCameraSupportedFor(String exerciseName) {
-    final l10n = AppLocalizations.of(context)!;
-    final canonical = ExerciseTrackingCatalog.canonicalIdForDisplayName(exerciseName) ??
-        ExerciseNameResolver.canonicalIdForName(exerciseName, l10n);
-    if (canonical == null) return false;
-    return ExerciseTrackerRegistry.isCameraSupported(canonical);
   }
 
   Future<void> _openCameraTracking(String exerciseName) async {
@@ -171,17 +164,12 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
   }
 
   void _onCameraTap(String exerciseName) {
-    final l10n = AppLocalizations.of(context)!;
-    if (_isCameraSupportedFor(exerciseName)) {
-      unawaited(_openCameraTracking(exerciseName));
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(l10n.sessionCameraTrackingComingSoon),
-      ),
-    );
+    if (!isCameraTrackingSupported(exerciseName)) return;
+    unawaited(_openCameraTracking(exerciseName));
+  }
+
+  void _showTermInfo(BuildContext context, String title, String body) {
+    showExerciseTermInfoSheet(context, title: title, body: body);
   }
 
   void _completeCurrent() {
@@ -386,17 +374,19 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
 
     final current = names[_index];
     final entry = WorkoutExerciseCatalog.entryForName(current);
+    final instruction = ExerciseInstructionData.forExercise(current);
     final displayName = WorkoutExerciseL10n.name(l10n, current);
     final imageAsset = entry?.imageAsset;
-    final description = entry != null
-        ? WorkoutExerciseL10n.description(l10n, current, entry.description)
-        : '';
-    final muscleGroup = ExerciseSessionMetadata.muscleGroupFor(current) ?? widget.plan.name;
+    final description = WorkoutExerciseL10n.description(l10n, current, instruction.description);
+    final muscleGroup = instruction.targetMuscle;
     final typeBadge = ExerciseSessionMetadata.typeBadgeFor(current);
-    final equipment = ExerciseSessionMetadata.equipmentFor(current);
-    final tips = ExerciseSessionMetadata.formTipsFor(current, entry?.description);
+    final equipment = instruction.equipment;
+    final tips = instruction.formTips;
+    final mistakes = instruction.commonMistakes;
+    final tempo = instruction.tempo;
+    final showCameraTracking = isCameraTrackingSupported(current);
     final isFavorite = _favorites.contains(current);
-    final restSuffix = l10n.localeName.startsWith('ru') ? 'с' : 's';
+    final restSuffix = 's';
 
     return PremiumBackground(
       child: Scaffold(
@@ -492,8 +482,10 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                     ExerciseFormTipsCard(
                       title: l10n.sessionFormTips,
                       tips: tips,
+                      mistakesTitle: mistakes.isNotEmpty ? l10n.sessionCommonMistakes : null,
+                      mistakes: mistakes,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
                     Row(
                       children: [
                         ExerciseMetricStepperCard(
@@ -506,8 +498,9 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                             if (_sets < 10) setState(() => _sets++);
                           },
                           valueColor: PremiumColors.successGreen,
+                          onInfoTap: () => _showTermInfo(context, l10n.labelSets, l10n.sessionInfoSets),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         ExerciseMetricStepperCard(
                           label: l10n.labelReps,
                           value: '$_reps',
@@ -517,8 +510,9 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                           onIncrement: () {
                             if (_reps < 100) setState(() => _reps++);
                           },
+                          onInfoTap: () => _showTermInfo(context, l10n.labelReps, l10n.sessionInfoReps),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         ExerciseMetricStepperCard(
                           label: l10n.labelRest,
                           value: '$_restSec',
@@ -529,7 +523,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                           onIncrement: () {
                             if (_restSec < 300) setState(() => _restSec += 15);
                           },
-                          subtitle: l10n.sessionBetweenSets,
+                          onInfoTap: () => _showTermInfo(context, l10n.labelRest, l10n.sessionInfoRest),
                         ),
                       ],
                     ),
@@ -540,38 +534,43 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                           icon: Icons.adjust_rounded,
                           label: l10n.sessionChipTarget,
                           value: muscleGroup,
+                          onInfoTap: () => _showTermInfo(context, l10n.sessionChipTarget, l10n.sessionInfoTarget),
                         ),
                         const SizedBox(width: 8),
                         ExerciseInfoChip(
                           icon: Icons.speed_rounded,
                           label: l10n.sessionChipTempo,
-                          value: '2-0-2',
+                          value: tempo,
+                          onInfoTap: () => _showTermInfo(context, l10n.sessionChipTempo, l10n.sessionInfoTempo),
                         ),
                         const SizedBox(width: 8),
                         ExerciseInfoChip(
                           icon: Icons.fitness_center_outlined,
                           label: l10n.sessionChipEquipment,
                           value: equipment,
+                          onInfoTap: () => _showTermInfo(context, l10n.sessionChipEquipment, l10n.sessionInfoEquipment),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => _onCameraTap(current),
-                        icon: const Icon(Icons.videocam_outlined, size: 18),
-                        label: Text(l10n.sessionCameraTracking),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: PremiumColors.accentBlue,
-                          side: BorderSide(color: PremiumColors.accentBlue.withValues(alpha: 0.45)),
-                          minimumSize: const Size.fromHeight(48),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(PremiumRadii.md),
+                    if (showCameraTracking) ...[
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _onCameraTap(current),
+                          icon: const Icon(Icons.videocam_outlined, size: 18),
+                          label: Text(l10n.sessionCameraTracking),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: PremiumColors.accentBlue,
+                            side: BorderSide(color: PremiumColors.accentBlue.withValues(alpha: 0.45)),
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(PremiumRadii.md),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                     const SizedBox(height: 20),
                     Text(
                       l10n.sessionAllExercises.toUpperCase(),
@@ -594,7 +593,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
                       ),
                       if (i < names.length - 1) const SizedBox(height: 8),
                     ],
-                    const SizedBox(height: 80),
+                    const SizedBox(height: 100),
                   ],
                 ),
               ),

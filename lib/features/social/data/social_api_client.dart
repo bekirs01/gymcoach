@@ -36,11 +36,25 @@ final class SocialApiClient {
       'id': uid,
       'display_name': profile.displayName,
       'weight_kg': profile.weightKg,
-      'height_cm': profile.heightCm,
+      'height_cm': profile.heightCm.round(),
       'fitness_goal': profile.fitnessGoal,
       'membership_level': profile.membershipLevel,
       'notifications_enabled': profile.notificationsEnabled,
-    });
+      'public_bio': profile.publicBio,
+      'bio': profile.publicBio,
+      'private_notes': profile.privateNotes,
+      'avatar_url': profile.avatarUrl,
+      'cover_url': profile.coverUrl,
+      'is_public_profile': profile.isPublicProfile,
+      'is_public': profile.isPublicProfile,
+      'target_weight_kg': profile.targetWeightKg,
+      'training_focus': profile.trainingFocus,
+      'experience_level': profile.experienceLevel,
+      'activity_level': profile.activityLevel,
+      'weekly_workout_target': profile.weeklyWorkoutTarget,
+      'location_text': profile.locationText,
+      'username': profile.username,
+    }, onConflict: 'id');
   }
 
   Future<SocialProfile?> getProfile(String userId) async {
@@ -81,18 +95,32 @@ final class SocialApiClient {
     required double weightKg,
     required double heightCm,
     required String fitnessGoal,
+    String trainingFocus = '',
+    String experienceLevel = '',
+    String activityLevel = '',
+    int weeklyWorkoutTarget = 0,
+    String locationText = '',
+    double? targetWeightKg,
   }) async {
     final uid = await currentUserId();
     await _client.from('profiles').update({
       'display_name': displayName,
+      'public_bio': bio,
       'bio': bio,
       'private_notes': privateNotes,
       'avatar_url': avatarUrl,
       'cover_url': coverUrl,
+      'is_public_profile': isPublic,
       'is_public': isPublic,
       'weight_kg': weightKg,
-      'height_cm': heightCm,
+      'height_cm': heightCm.round(),
       'fitness_goal': fitnessGoal,
+      'training_focus': trainingFocus,
+      'experience_level': experienceLevel,
+      'activity_level': activityLevel,
+      'weekly_workout_target': weeklyWorkoutTarget > 0 ? weeklyWorkoutTarget : null,
+      'location_text': locationText,
+      'target_weight_kg': targetWeightKg,
     }).eq('id', uid);
   }
 

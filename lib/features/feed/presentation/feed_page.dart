@@ -9,9 +9,11 @@ import '../../../app/widgets/premium_background.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../profile/presentation/public_profile_page.dart';
 import '../../profile/presentation/seeded_profile_page.dart';
+import '../../plans/domain/workout_plan.dart';
 import '../../social/data/social_api_client.dart';
 import '../../social/data/social_seed_data.dart';
 import '../../social/domain/feed_post.dart';
+import '../../workout_share/data/workout_share_repository.dart';
 import '../data/feed_demo_data.dart';
 import '../domain/feed_story.dart';
 import 'create_choice_sheet.dart';
@@ -26,11 +28,15 @@ class FeedPage extends StatefulWidget {
   const FeedPage({
     super.key,
     required this.profile,
+    required this.plans,
     this.onOpenOwnProfile,
+    this.onAddCopiedWorkout,
   });
 
   final UserProfile profile;
+  final List<WorkoutPlan> plans;
   final VoidCallback? onOpenOwnProfile;
+  final Future<void> Function(WorkoutPlan plan)? onAddCopiedWorkout;
 
   @override
   State<FeedPage> createState() => _FeedPageState();
@@ -38,6 +44,7 @@ class FeedPage extends StatefulWidget {
 
 class _FeedPageState extends State<FeedPage> {
   SocialApiClient? _client;
+  WorkoutShareRepository? _shareRepository;
   var _refreshing = false;
   List<FeedPost> _feedPosts = const [];
   final List<FeedStory> _demoStories = FeedDemoData.demoStories();
@@ -87,6 +94,7 @@ class _FeedPageState extends State<FeedPage> {
       if (!mounted) return;
       setState(() {
         _client = client;
+        _shareRepository = WorkoutShareRepository(prefs: prefs);
         _deviceUserId = deviceUserId;
         if (apiProfile != null && apiProfile.avatarUrl.trim().isNotEmpty) {
           _avatarUrlOverride = apiProfile.avatarUrl.trim();
@@ -209,6 +217,59 @@ class _FeedPageState extends State<FeedPage> {
     if (!mounted || story == null) return;
     setState(() => _userStory = story);
     await _syncStories();
+  }
+
+  Future<bool> _checkWorkoutCopied(String postId) async {
+    final repo = _shareRepository;
+    if (repo == null) return false;
+    return repo.hasCopiedWorkout(postId);
+  }
+
+  Future<bool> _copyWorkout(FeedPost post) async {
+    final repo = _shareRepository;
+    final addPlan = widget.onAddCopiedWorkout;
+    if (repo == null || addPlan == null) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Workout copy is unavailable right now.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return false;
+    }
+
+    final result = await repo.copyWorkout(post: post, existingPlans: widget.plans);
+    if (!mounted) return false;
+
+    switch (result) {
+      case CopyWorkoutSuccess(plan: final plan):
+        await addPlan(plan);
+        if (!mounted) return true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Workout added to your workouts'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return true;
+      case CopyWorkoutAlreadyExists():
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This workout is already in your workouts'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return true;
+      case CopyWorkoutFailure(message: final message):
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return false;
+    }
   }
 
   void _openSeededProfile(String userId) {
@@ -437,6 +498,8 @@ class _FeedPageState extends State<FeedPage> {
                       onOpenProfile: _openProfile,
                       onPostChanged: (updated) => _onApiPostChanged(index, updated),
                       onPostRemoved: _onApiPostRemoved,
+                      onCopyWorkout: post.isWorkoutShare ? _copyWorkout : null,
+                      checkWorkoutCopied: post.isWorkoutShare ? _checkWorkoutCopied : null,
                     );
                   },
                 ),

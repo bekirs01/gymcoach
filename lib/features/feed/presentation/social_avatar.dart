@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 
-class SocialAvatar extends StatelessWidget {
+class SocialAvatar extends StatefulWidget {
   const SocialAvatar({
     super.key,
     required this.name,
     required this.imageUrl,
+    this.fallbackImageUrl,
     this.size = 44,
   });
 
   final String name;
   final String imageUrl;
+  final String? fallbackImageUrl;
   final double size;
 
   static String initials(String raw) {
@@ -25,19 +27,58 @@ class SocialAvatar extends StatelessWidget {
   }
 
   @override
+  State<SocialAvatar> createState() => _SocialAvatarState();
+}
+
+class _SocialAvatarState extends State<SocialAvatar> {
+  var _primaryFailed = false;
+  var _fallbackFailed = false;
+
+  @override
+  void didUpdateWidget(covariant SocialAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imageUrl != widget.imageUrl) _primaryFailed = false;
+    if (oldWidget.fallbackImageUrl != widget.fallbackImageUrl) _fallbackFailed = false;
+  }
+
+  String? get _activeUrl {
+    final primary = widget.imageUrl.trim();
+    final fallback = widget.fallbackImageUrl?.trim() ?? '';
+    if (!_primaryFailed && primary.isNotEmpty) return primary;
+    if (!_fallbackFailed && fallback.isNotEmpty) return fallback;
+    return null;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (imageUrl.trim().isNotEmpty) {
-      return ClipOval(
-        child: Image.network(
-          imageUrl,
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _Fallback(name: name, size: size),
-        ),
-      );
+    final url = _activeUrl;
+    if (url == null) {
+      return _Fallback(name: widget.name, size: widget.size);
     }
-    return _Fallback(name: name, size: size);
+
+    final isFallback = widget.imageUrl.trim().isEmpty || _primaryFailed;
+    return ClipOval(
+      child: Image.network(
+        url,
+        width: widget.size,
+        height: widget.size,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          if (!isFallback && !_primaryFailed) {
+            _primaryFailed = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() {});
+            });
+          } else if (isFallback && !_fallbackFailed) {
+            _fallbackFailed = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() {});
+            });
+          }
+          return _Fallback(name: widget.name, size: widget.size);
+        },
+      ),
+    );
   }
 }
 

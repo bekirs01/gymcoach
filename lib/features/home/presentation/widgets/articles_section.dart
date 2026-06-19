@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
-import '../../../feed/presentation/widgets/network_image_with_fallback.dart';
 import '../../data/fitness_articles_data.dart';
 import '../../domain/fitness_article.dart';
 import 'home_widgets.dart';
@@ -10,14 +9,24 @@ import 'home_widgets.dart';
 class ArticlesSection extends StatelessWidget {
   const ArticlesSection({super.key});
 
-  static const _cardWidth = 180.0;
-  static const _carouselHeight = 176.0;
+  static const _imageHeight = 100.0;
+  static const _cardPadding = 10.0;
+
+  static double _cardWidthFor(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    return (screenWidth / 2.75).clamp(190.0, 220.0);
+  }
+
+  static double _carouselHeightFor(BuildContext context) {
+    return _imageHeight + 96;
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).languageCode;
     final articles = FitnessArticlesData.articles;
+    final cardWidth = _cardWidthFor(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -30,7 +39,7 @@ class ArticlesSection extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         SizedBox(
-          height: _carouselHeight,
+          height: _carouselHeightFor(context),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
@@ -39,7 +48,9 @@ class ArticlesSection extends StatelessWidget {
             itemBuilder: (context, index) {
               final article = articles[index];
               return ArticleCard(
-                width: _cardWidth,
+                width: cardWidth,
+                imageHeight: _imageHeight,
+                contentPadding: _cardPadding,
                 article: article,
                 content: article.contentFor(locale),
                 onTap: () => showArticleDetailSheet(
@@ -60,12 +71,16 @@ class ArticleCard extends StatelessWidget {
   const ArticleCard({
     super.key,
     required this.width,
+    required this.imageHeight,
+    required this.contentPadding,
     required this.article,
     required this.content,
     required this.onTap,
   });
 
   final double width;
+  final double imageHeight;
+  final double contentPadding;
   final FitnessArticle article;
   final ArticleContent content;
   final VoidCallback onTap;
@@ -98,7 +113,7 @@ class ArticleCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(PremiumRadii.lg)),
                   child: SizedBox(
-                    height: 80,
+                    height: imageHeight,
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -129,7 +144,12 @@ class ArticleCard extends StatelessWidget {
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 7),
+                    padding: EdgeInsets.fromLTRB(
+                      contentPadding,
+                      6,
+                      contentPadding,
+                      contentPadding,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -144,18 +164,20 @@ class ArticleCard extends StatelessWidget {
                             height: 1.2,
                           ),
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          content.subtitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: PremiumColors.textSecondary,
-                            fontSize: 11,
-                            height: 1.25,
+                        const SizedBox(height: 4),
+                        Expanded(
+                          child: Text(
+                            content.subtitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: PremiumColors.textSecondary,
+                              fontSize: 11,
+                              height: 1.25,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 4),
                         Text(
                           content.readTime,
                           style: const TextStyle(
@@ -242,6 +264,7 @@ class _ArticleDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    final heroHeight = (MediaQuery.sizeOf(context).width * 0.48).clamp(190.0, 220.0);
 
     return Padding(
       padding: EdgeInsets.only(bottom: bottom),
@@ -258,45 +281,48 @@ class _ArticleDetailSheet extends StatelessWidget {
               controller: scrollController,
               padding: EdgeInsets.zero,
               children: [
-                SizedBox(
-                  height: 190,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _ArticleCoverImage(
-                        url: article.imageUrl,
-                        category: content.category,
-                      ),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.15),
-                              Colors.black.withValues(alpha: 0.55),
-                            ],
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(PremiumRadii.xl)),
+                  child: SizedBox(
+                    height: heroHeight,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _ArticleCoverImage(
+                          url: article.imageUrl,
+                          category: content.category,
+                        ),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black.withValues(alpha: 0.15),
+                                Colors.black.withValues(alpha: 0.55),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close_rounded, color: Colors.white),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close_rounded, color: Colors.white),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _CategoryChip(label: content.category),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       Text(
                         content.title,
                         style: const TextStyle(
@@ -307,7 +333,7 @@ class _ArticleDetailSheet extends StatelessWidget {
                           letterSpacing: -0.4,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
                         content.readTime,
                         style: const TextStyle(
@@ -315,7 +341,7 @@ class _ArticleDetailSheet extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       Text(
                         content.intro,
                         style: const TextStyle(
@@ -604,16 +630,80 @@ class _ArticleCoverImage extends StatelessWidget {
     if (normalized.contains('guide') || normalized.contains('гид')) {
       return Icons.menu_book_rounded;
     }
-    return Icons.article_outlined;
+    return Icons.image_outlined;
   }
+
+  String get _resolvedUrl => url.trim();
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.expand(
-      child: NetworkImageWithFallback(
-        url: url,
-        fit: BoxFit.cover,
-        placeholderIcon: _placeholderIcon,
+    if (_resolvedUrl.isEmpty) {
+      return _ArticleImageFallback(icon: _placeholderIcon);
+    }
+
+    return Image.network(
+      _resolvedUrl,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return _ArticleImageFallback(
+          icon: _placeholderIcon,
+          showSpinner: true,
+          progress: loadingProgress.expectedTotalBytes == null
+              ? null
+              : loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!,
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        return _ArticleImageFallback(icon: _placeholderIcon);
+      },
+    );
+  }
+}
+
+class _ArticleImageFallback extends StatelessWidget {
+  const _ArticleImageFallback({
+    required this.icon,
+    this.showSpinner = false,
+    this.progress,
+  });
+
+  final IconData icon;
+  final bool showSpinner;
+  final double? progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            PremiumColors.surfaceRaised,
+            PremiumColors.midnightBottom,
+          ],
+        ),
+        border: Border.all(color: PremiumColors.glassBorder),
+      ),
+      child: Center(
+        child: showSpinner
+            ? SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: PremiumColors.accentBlue.withValues(alpha: 0.7),
+                  value: progress,
+                ),
+              )
+            : Icon(
+                icon,
+                color: PremiumColors.textMuted.withValues(alpha: 0.85),
+                size: 26,
+              ),
       ),
     );
   }

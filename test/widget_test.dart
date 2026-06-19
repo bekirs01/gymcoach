@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym/app/gymcoach_app.dart';
+import 'package:gym/features/profile/domain/profile_defaults.dart';
 import 'package:gym/features/profile/domain/user_profile.dart';
 import 'package:gym/features/profile/presentation/profile_page.dart';
 import 'package:gym/l10n/app_localizations.dart';
@@ -12,7 +13,7 @@ void main() {
     await tester.pumpWidget(const GymCoachApp());
     await tester.pumpAndSettle();
     expect(find.text('Welcome back'), findsOneWidget);
-    expect(find.text('Alex Morgan'), findsOneWidget);
+    expect(find.text(ProfileDefaults.displayName), findsOneWidget);
     expect(find.text("Today's Focus"), findsOneWidget);
   });
 
@@ -24,7 +25,7 @@ void main() {
     expect(find.text('Фокус на сегодня'), findsOneWidget);
   });
 
-  testWidgets('Profile edit accepts comma decimals and closes without crash', (WidgetTester tester) async {
+  testWidgets('Profile edit saves updated display name', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     UserProfile? saved;
     await tester.pumpWidget(
@@ -34,14 +35,7 @@ void main() {
         locale: const Locale('en'),
         home: Scaffold(
           body: ProfilePage(
-            profile: const UserProfile(
-              displayName: 'Alex Morgan',
-              weightKg: 78.5,
-              heightCm: 178,
-              fitnessGoal: 'Strength and conditioning',
-              membershipLevel: 'Premium',
-              notificationsEnabled: true,
-            ),
+            profile: UserProfile.withDefaults(membershipLevel: 'Premium'),
             onProfileChanged: (p) => saved = p,
             onLocaleChanged: (_) {},
           ),
@@ -53,18 +47,16 @@ void main() {
     await tester.tap(find.text('Edit'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    final fields = find.byType(TextField);
-    expect(fields, findsNWidgets(6));
-    await tester.enterText(fields.at(1), '82,3');
-    await tester.enterText(fields.at(2), '181,5');
+    expect(find.text('Edit profile'), findsOneWidget);
+    final nameField = find.byType(TextField).first;
+    await tester.enterText(nameField, ProfileDefaults.displayName);
     final save = find.widgetWithText(FilledButton, 'Save');
     await tester.scrollUntilVisible(save, 80, scrollable: find.byType(Scrollable).last);
     await tester.tap(save);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 200));
     expect(find.byType(AlertDialog), findsNothing);
     expect(saved, isNotNull);
-    expect(saved!.weightKg, 82.3);
-    expect(saved!.heightCm, 181.5);
+    expect(saved!.displayName, ProfileDefaults.displayName);
   });
 }

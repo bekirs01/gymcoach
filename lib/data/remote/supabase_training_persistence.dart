@@ -143,11 +143,11 @@ final class SupabaseTrainingPersistence implements TrainingPersistenceRepository
       fitnessGoal: row['fitness_goal'] as String? ?? '',
       membershipLevel: row['membership_level'] as String? ?? '',
       notificationsEnabled: row['notifications_enabled'] as bool? ?? true,
-      bio: row['bio'] as String? ?? '',
+      publicBio: row['public_bio'] as String? ?? row['bio'] as String? ?? '',
       privateNotes: row['private_notes'] as String? ?? '',
       avatarUrl: row['avatar_url'] as String? ?? '',
       coverUrl: row['cover_url'] as String? ?? '',
-      isPublic: row['is_public'] as bool? ?? true,
+      isPublicProfile: row['is_public_profile'] as bool? ?? row['is_public'] as bool? ?? true,
     );
   }
 

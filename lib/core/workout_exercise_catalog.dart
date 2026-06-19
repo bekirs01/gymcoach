@@ -296,4 +296,14 @@ abstract final class WorkoutExerciseCatalog {
     }
     return null;
   }
+
+  static String? categoryTitleForName(String? name) {
+    if (name == null) return null;
+    for (final category in categories) {
+      for (final exercise in category.exercises) {
+        if (exercise.name == name) return category.title;
+      }
+    }
+    return null;
+  }
 }

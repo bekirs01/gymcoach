@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
 import '../../../../app/widgets/premium_image_viewer.dart';
+import '../../../workout_share/presentation/widgets/workout_share_post_card.dart';
 import '../../../social/data/social_api_client.dart';
 import '../../../social/domain/feed_comment.dart';
 import '../../../social/domain/feed_post.dart';
@@ -142,6 +145,8 @@ class ApiFeedPostCard extends StatefulWidget {
     required this.onOpenProfile,
     required this.onPostChanged,
     required this.onPostRemoved,
+    this.onCopyWorkout,
+    this.checkWorkoutCopied,
   });
 
   final FeedPost post;
@@ -150,6 +155,8 @@ class ApiFeedPostCard extends StatefulWidget {
   final ValueChanged<FeedPost> onOpenProfile;
   final ValueChanged<FeedPost> onPostChanged;
   final ValueChanged<String> onPostRemoved;
+  final Future<bool> Function(FeedPost post)? onCopyWorkout;
+  final Future<bool> Function(String postId)? checkWorkoutCopied;
 
   @override
   State<ApiFeedPostCard> createState() => _ApiFeedPostCardState();
@@ -163,6 +170,8 @@ class _ApiFeedPostCardState extends State<ApiFeedPostCard> {
   late bool _savedByMe;
   var _liking = false;
   var _saving = false;
+  var _copying = false;
+  var _alreadyCopied = false;
 
   @override
   void initState() {
@@ -171,6 +180,30 @@ class _ApiFeedPostCardState extends State<ApiFeedPostCard> {
     _likeCount = widget.post.likeCount;
     _commentCount = widget.post.comments.length;
     _savedByMe = widget.client.isPostSaved(widget.post.id);
+    unawaited(_loadCopyState());
+  }
+
+  Future<void> _loadCopyState() async {
+    final checker = widget.checkWorkoutCopied;
+    if (checker == null || !widget.post.isWorkoutShare) return;
+    final copied = await checker(widget.post.id);
+    if (mounted) setState(() => _alreadyCopied = copied);
+  }
+
+  Future<void> _copyWorkout() async {
+    final handler = widget.onCopyWorkout;
+    if (handler == null || _copying || _alreadyCopied) return;
+    setState(() => _copying = true);
+    try {
+      final copied = await handler(widget.post);
+      if (!mounted) return;
+      setState(() {
+        _copying = false;
+        _alreadyCopied = copied;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _copying = false);
+    }
   }
 
   void _setLiked(bool value) {
@@ -317,12 +350,14 @@ class _ApiFeedPostCardState extends State<ApiFeedPostCard> {
     );
     final displayName = post.author.displayName.isEmpty ? 'Athlete' : post.author.displayName;
     final imageUrl = post.media.isNotEmpty ? post.media[_photoIndex].url : '';
+    final snapshot = post.sharedWorkoutSnapshot;
+    final isWorkoutShare = post.isWorkoutShare && snapshot != null;
 
     return _FeedPostShell(
       userName: displayName,
       avatarUrl: post.author.avatarUrl,
       timeLabel: _relative(post.createdAt),
-      imageUrl: imageUrl,
+      imageUrl: isWorkoutShare ? '' : imageUrl,
       caption: post.caption,
       liked: _likedByMe,
       saved: _savedByMe,
@@ -335,9 +370,17 @@ class _ApiFeedPostCardState extends State<ApiFeedPostCard> {
       onCommentFieldTap: _openComments,
       onAvatarTap: () => widget.onOpenProfile(post),
       onHeaderTap: () => widget.onOpenProfile(post),
-      mediaChild: post.media.isEmpty
-          ? null
-          : AspectRatio(
+      captionBeforeMedia: isWorkoutShare,
+      mediaChild: isWorkoutShare
+          ? WorkoutSharePostCard(
+              snapshot: snapshot,
+              onCopy: widget.onCopyWorkout == null ? null : _copyWorkout,
+              copying: _copying,
+              alreadyCopied: _alreadyCopied,
+            )
+          : post.media.isEmpty
+              ? null
+              : AspectRatio(
               aspectRatio: 1,
               child: Stack(
                 fit: StackFit.expand,
@@ -402,6 +445,7 @@ class _FeedPostShell extends StatelessWidget {
     this.onAvatarTap,
     this.onHeaderTap,
     this.mediaChild,
+    this.captionBeforeMedia = false,
   });
 
   final String userName;
@@ -421,6 +465,7 @@ class _FeedPostShell extends StatelessWidget {
   final VoidCallback? onAvatarTap;
   final VoidCallback? onHeaderTap;
   final Widget? mediaChild;
+  final bool captionBeforeMedia;
 
   @override
   Widget build(BuildContext context) {
@@ -482,6 +527,18 @@ class _FeedPostShell extends StatelessWidget {
               ],
             ),
           ),
+          if (captionBeforeMedia && caption.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+              child: Text(
+                caption,
+                style: const TextStyle(
+                  color: Colors.white,
+                  height: 1.35,
+                  fontSize: 14,
+                ),
+              ),
+            ),
           if (mediaChild != null)
             ClipRRect(
               borderRadius: BorderRadius.circular(PremiumRadii.lg),
@@ -518,7 +575,7 @@ class _FeedPostShell extends StatelessWidget {
                   onComment: onComment,
                   onSave: onSave,
                 ),
-                if (caption.trim().isNotEmpty) ...[
+                if (!captionBeforeMedia && caption.trim().isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
                     caption,

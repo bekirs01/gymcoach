@@ -6,6 +6,7 @@ import '../../../../app/widgets/premium_image_viewer.dart';
 import '../../../feed/presentation/social_avatar.dart';
 import '../../../social/domain/feed_media.dart';
 import '../../../social/domain/feed_post.dart';
+import '../../domain/profile_media_filter.dart';
 
 class ProfileSegmentTabs extends StatelessWidget {
   const ProfileSegmentTabs({
@@ -98,7 +99,7 @@ class ProfileEmptyTabState extends StatelessWidget {
   }
 }
 
-class ProfilePhotoGrid extends StatelessWidget {
+class ProfilePhotoGrid extends StatefulWidget {
   const ProfilePhotoGrid({
     super.key,
     required this.media,
@@ -109,7 +110,27 @@ class ProfilePhotoGrid extends StatelessWidget {
   final String heroTagPrefix;
 
   @override
+  State<ProfilePhotoGrid> createState() => _ProfilePhotoGridState();
+}
+
+class _ProfilePhotoGridState extends State<ProfilePhotoGrid> {
+  final _failedUrls = <String>{};
+
+  List<FeedMedia> get _visibleMedia {
+    return ProfileMediaFilter.visibleMedia(
+      widget.media.where((item) => !_failedUrls.contains(item.url.trim())),
+    );
+  }
+
+  void _markFailed(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty || _failedUrls.contains(trimmed)) return;
+    setState(() => _failedUrls.add(trimmed));
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final media = _visibleMedia;
     if (media.isEmpty) {
       final l10n = AppLocalizations.of(context)!;
       return ProfileEmptyTabState(
@@ -127,30 +148,85 @@ class ProfilePhotoGrid extends StatelessWidget {
         crossAxisCount: 3,
         mainAxisSpacing: 4,
         crossAxisSpacing: 4,
+        childAspectRatio: 1,
       ),
       itemBuilder: (context, index) {
         final item = media[index];
-        final tag = '$heroTagPrefix-$index';
-        return GestureDetector(
-          onTap: () => showPremiumImageViewer(context, imageUrl: item.url, heroTag: tag),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(PremiumRadii.sm),
-            child: Hero(
-              tag: tag,
-              child: Image.network(
-                item.url,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return ColoredBox(
-                    color: PremiumColors.surface,
-                    child: Icon(Icons.broken_image_outlined, color: PremiumColors.textMuted.withValues(alpha: 0.6)),
-                  );
-                },
-              ),
-            ),
-          ),
+        final tag = '${widget.heroTagPrefix}-${item.id}-$index';
+        return _ProfilePhotoTile(
+          media: item,
+          heroTag: tag,
+          onFailed: () => _markFailed(item.url),
         );
       },
+    );
+  }
+}
+
+class _ProfilePhotoTile extends StatelessWidget {
+  const _ProfilePhotoTile({
+    required this.media,
+    required this.heroTag,
+    required this.onFailed,
+  });
+
+  final FeedMedia media;
+  final String heroTag;
+  final VoidCallback onFailed;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => showPremiumImageViewer(context, imageUrl: media.url, heroTag: heroTag),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(PremiumRadii.sm),
+        child: Hero(
+          tag: heroTag,
+          child: Image.network(
+            media.url,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return const _ProfilePhotoPlaceholder(showSpinner: true);
+            },
+            errorBuilder: (context, error, stackTrace) {
+              WidgetsBinding.instance.addPostFrameCallback((_) => onFailed());
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfilePhotoPlaceholder extends StatelessWidget {
+  const _ProfilePhotoPlaceholder({this.showSpinner = false});
+
+  final bool showSpinner;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: PremiumColors.surface,
+      child: Center(
+        child: showSpinner
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: PremiumColors.accentBlue.withValues(alpha: 0.65),
+                ),
+              )
+            : Icon(
+                Icons.image_outlined,
+                color: PremiumColors.textMuted.withValues(alpha: 0.55),
+                size: 22,
+              ),
+      ),
     );
   }
 }
@@ -284,7 +360,8 @@ class ProfileFeedSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (posts.isEmpty) {
+    final visiblePosts = ProfileMediaFilter.visiblePosts(posts);
+    if (visiblePosts.isEmpty) {
       return ProfileEmptyTabState(
         icon: emptyIcon,
         message: emptyMessage,
@@ -295,11 +372,11 @@ class ProfileFeedSection extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      itemCount: posts.length,
+      itemCount: visiblePosts.length,
       separatorBuilder: (context, index) => const SizedBox(height: 14),
       itemBuilder: (context, index) {
         return ProfileFeedPostCard(
-          post: posts[index],
+          post: visiblePosts[index],
           heroTagPrefix: '$heroTagPrefix-post-$index',
         );
       },
@@ -338,6 +415,7 @@ class _ProfileFeedPostCardState extends State<ProfileFeedPostCard> {
   Widget build(BuildContext context) {
     final post = widget.post;
     final name = post.author.displayName.isEmpty ? 'Athlete' : post.author.displayName;
+    final media = ProfileMediaFilter.visibleMedia(post.media);
 
     return Container(
       decoration: BoxDecoration(
@@ -385,17 +463,17 @@ class _ProfileFeedPostCardState extends State<ProfileFeedPostCard> {
                 style: const TextStyle(color: Colors.white, height: 1.4, fontSize: 14),
               ),
             ),
-          if (post.media.isNotEmpty) ...[
+          if (media.isNotEmpty) ...[
             AspectRatio(
               aspectRatio: 1.15,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   PageView.builder(
-                    itemCount: post.media.length,
+                    itemCount: media.length,
                     onPageChanged: (i) => setState(() => _photoIndex = i),
                     itemBuilder: (context, i) {
-                      final url = post.media[i].url;
+                      final url = media[i].url;
                       final tag = '${widget.heroTagPrefix}-media-$i';
                       return GestureDetector(
                         onTap: () => showPremiumImageViewer(context, imageUrl: url, heroTag: tag),
@@ -405,17 +483,14 @@ class _ProfileFeedPostCardState extends State<ProfileFeedPostCard> {
                             url,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
-                              return const ColoredBox(
-                                color: PremiumColors.midnightBottom,
-                                child: Icon(Icons.broken_image_outlined, color: PremiumColors.textMuted),
-                              );
+                              return const _ProfilePhotoPlaceholder();
                             },
                           ),
                         ),
                       );
                     },
                   ),
-                  if (post.media.length > 1)
+                  if (media.length > 1)
                     Positioned(
                       top: 10,
                       right: 10,
@@ -426,7 +501,7 @@ class _ProfileFeedPostCardState extends State<ProfileFeedPostCard> {
                           borderRadius: BorderRadius.circular(PremiumRadii.pill),
                         ),
                         child: Text(
-                          '${_photoIndex + 1}/${post.media.length}',
+                          '${_photoIndex + 1}/${media.length}',
                           style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -434,13 +509,13 @@ class _ProfileFeedPostCardState extends State<ProfileFeedPostCard> {
                 ],
               ),
             ),
-            if (post.media.length > 1)
+            if (media.length > 1)
               Padding(
                 padding: const EdgeInsets.only(top: 8, bottom: 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    for (var i = 0; i < post.media.length; i++)
+                    for (var i = 0; i < media.length; i++)
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
                         width: i == _photoIndex ? 7 : 6,
@@ -474,16 +549,27 @@ class ProfileAvatarButton extends StatelessWidget {
     required this.name,
     required this.imageUrl,
     required this.size,
+    this.fallbackImageUrl,
   });
 
   final String name;
   final String imageUrl;
+  final String? fallbackImageUrl;
   final double size;
 
   @override
   Widget build(BuildContext context) {
-    final avatar = SocialAvatar(name: name, imageUrl: imageUrl, size: size);
-    if (imageUrl.trim().isEmpty) return avatar;
+    final avatar = SocialAvatar(
+      name: name,
+      imageUrl: imageUrl,
+      fallbackImageUrl: fallbackImageUrl,
+      size: size,
+    );
+    final resolvedUrl = ProfileMediaFilter.resolveImageUrl(
+      primary: imageUrl,
+      fallback: fallbackImageUrl ?? '',
+    );
+    if (resolvedUrl.isEmpty) return avatar;
 
     return Material(
       color: Colors.transparent,
@@ -491,7 +577,7 @@ class ProfileAvatarButton extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         customBorder: const CircleBorder(),
-        onTap: () => showPremiumImageViewer(context, imageUrl: imageUrl),
+        onTap: () => showPremiumImageViewer(context, imageUrl: resolvedUrl),
         child: avatar,
       ),
     );
