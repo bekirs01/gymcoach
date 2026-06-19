@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/device_user_id.dart';
+import '../../../core/auth_session_service.dart';
 import '../../../core/supabase_operation_error.dart';
 import '../../social/data/social_seed_data.dart';
 import '../domain/chat_attachment.dart';
@@ -30,52 +30,22 @@ final class SupabaseChatRepository {
   RealtimeChannel? _messagesChannel;
 
   Future<String> ensureAuthenticatedUserId() async {
-    final session = _client.auth.currentSession;
-    if (session == null) {
-      try {
-        await _client.auth.signInAnonymously();
-      } catch (error, stackTrace) {
-        throw SupabaseOperationError.classify(
-          operation: 'chat_sign_in',
-          action: 'signInAnonymously',
-          error: error,
-          stackTrace: stackTrace,
-        );
-      }
-    }
-
-    final authId = _client.auth.currentUser?.id;
-    if (authId == null) {
-      throw SupabaseOperationError.classify(
-        operation: 'chat_auth',
-        action: 'currentUser',
-        error: StateError('Unable to authenticate chat user'),
-      );
-    }
-
     try {
-      await _client.from('profiles').upsert({
-        'id': authId,
-        'display_name': 'Athlete',
-      });
+      final session = await AuthSessionService.ensureSession();
+      return session.user.id;
     } catch (error, stackTrace) {
-      SupabaseOperationError.classify(
-        operation: 'chat_ensure_profile',
-        table: 'profiles',
-        action: 'upsert',
+      throw SupabaseOperationError.classify(
+        operation: 'chat_sign_in',
+        action: 'ensureSession',
         error: error,
         stackTrace: stackTrace,
+        fallbackMessage: 'Could not start guest session',
       );
     }
-    return authId;
   }
 
   Future<String> resolveCurrentUserId() async {
-    try {
-      return await ensureAuthenticatedUserId();
-    } catch (_) {
-      return DeviceUserId.resolve(_prefs);
-    }
+    return ensureAuthenticatedUserId();
   }
 
   bool get isAuthenticated => _client.auth.currentSession != null;
@@ -371,15 +341,19 @@ final class SupabaseChatRepository {
 
   Future<List<ChatMessage>> loadMessagesWithAttachments(String conversationId) async {
     try {
+      final hiddenIds = await loadHiddenMessageIds(conversationId);
       final rows = await _client
           .from('messages')
           .select('*, message_attachments(*)')
           .eq('conversation_id', conversationId)
           .order('created_at', ascending: true);
 
-      final messages = <ChatMessage>[];
+      final parsed = <ChatMessage>[];
       for (final raw in rows) {
         final row = Map<String, dynamic>.from(raw as Map);
+        final messageId = row['id'] as String;
+        if (hiddenIds.contains(messageId)) continue;
+
         final attachmentRows = row.remove('message_attachments');
         final attachments = <ChatAttachment>[];
 
@@ -391,13 +365,47 @@ final class SupabaseChatRepository {
           }
         }
 
-        messages.add(ChatMessage.fromRow(row, attachments: attachments));
+        parsed.add(ChatMessage.fromRow(row, attachments: attachments));
       }
-      return messages;
+      return _attachReplyMetadata(parsed);
     } catch (_) {
       return loadMessages(conversationId);
     }
   }
+
+  List<ChatMessage> _attachReplyMetadata(List<ChatMessage> messages) {
+    final byId = {for (final message in messages) message.id: message};
+    return messages
+        .map((message) {
+          final replyId = message.replyToMessageId;
+          if (replyId == null) return message;
+          return message.copyWith(replyToMessage: byId[replyId]);
+        })
+        .toList();
+  }
+
+  Future<Set<String>> loadHiddenMessageIds(String conversationId) async {
+    try {
+      final uid = await ensureAuthenticatedUserId();
+      final rows = await _client
+          .from('message_deletions')
+          .select('message_id')
+          .eq('user_id', uid);
+      return rows.map((row) => row['message_id'] as String).toSet();
+    } catch (_) {
+      final key = _hiddenMessagesKey(conversationId);
+      return _prefs.getStringList(key)?.toSet() ?? {};
+    }
+  }
+
+  Future<void> _persistHiddenMessageId(String conversationId, String messageId) async {
+    final key = _hiddenMessagesKey(conversationId);
+    final ids = _prefs.getStringList(key)?.toSet() ?? {};
+    ids.add(messageId);
+    await _prefs.setStringList(key, ids.toList());
+  }
+
+  String _hiddenMessagesKey(String conversationId) => 'chat_hidden_$conversationId';
 
   Future<ChatConversation?> getOrCreateSeededConversation(String seedUserId) async {
     final user = SocialSeedRepository.userById(seedUserId);
@@ -430,16 +438,27 @@ final class SupabaseChatRepository {
   }
 
   Future<void> markConversationRead(String conversationId) async {
-    final uid = await ensureAuthenticatedUserId();
-    await _client.from('conversation_participants').update({
-      'last_read_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('conversation_id', conversationId).eq('user_id', uid);
+    try {
+      final uid = await ensureAuthenticatedUserId();
+      await _client.from('conversation_participants').update({
+        'last_read_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('conversation_id', conversationId).eq('user_id', uid);
+    } catch (error, stackTrace) {
+      SupabaseOperationError.classify(
+        operation: 'chat_mark_read',
+        table: 'conversation_participants',
+        action: 'update',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<ChatMessage> sendTextMessage({
     required String conversationId,
     required String body,
     String? clientTempId,
+    String? replyToMessageId,
   }) async {
     final uid = await ensureAuthenticatedUserId();
     final trimmed = body.trim();
@@ -456,6 +475,7 @@ final class SupabaseChatRepository {
           'body': trimmed,
           'message_type': 'text',
           'client_temp_id': ?clientTempId,
+          'reply_to_message_id': ?replyToMessageId,
         })
         .select()
         .single();
@@ -474,9 +494,10 @@ final class SupabaseChatRepository {
   }) async {
     final uid = await ensureAuthenticatedUserId();
     final ext = _imageExtension(mimeType, file.name);
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
     final storagePath = isSeeded
-        ? 'seeded/$uid/$conversationId/$messageId/${DateTime.now().millisecondsSinceEpoch}.$ext'
-        : '$conversationId/$uid/$messageId/${DateTime.now().millisecondsSinceEpoch}.$ext';
+        ? 'guest/$uid/$conversationId/$messageId/image-$timestamp.$ext'
+        : 'conversations/$conversationId/$uid/$messageId/image-$timestamp.$ext';
 
     await _client.storage.from(bucket).uploadBinary(
           storagePath,
@@ -589,8 +610,8 @@ final class SupabaseChatRepository {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final isSeeded = await _isSeededConversation(conversationId);
     final storagePath = isSeeded
-        ? 'seeded/$uid/$conversationId/$messageId/audio-$timestamp.m4a'
-        : '$conversationId/$uid/$messageId/audio-$timestamp.m4a';
+        ? 'guest/$uid/$conversationId/$messageId/voice-$timestamp.m4a'
+        : 'conversations/$conversationId/$uid/$messageId/voice-$timestamp.m4a';
     final file = File(localFilePath);
     final bytes = await file.readAsBytes();
     const mimeType = 'audio/m4a';
@@ -700,6 +721,7 @@ final class SupabaseChatRepository {
   void subscribeToMessages({
     required String conversationId,
     required void Function(ChatMessage message) onInsert,
+    void Function(ChatMessage message)? onUpdate,
   }) {
     unsubscribeFromMessages();
     _messagesChannel = _client
@@ -720,6 +742,25 @@ final class SupabaseChatRepository {
             if (messageId == null) return;
             final message = await fetchMessageWithAttachments(messageId);
             if (message != null) onInsert(message);
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'conversation_id',
+            value: conversationId,
+          ),
+          callback: (payload) async {
+            if (onUpdate == null) return;
+            final record = payload.newRecord;
+            if (record.isEmpty) return;
+            final messageId = record['id'] as String?;
+            if (messageId == null) return;
+            final message = await fetchMessageWithAttachments(messageId);
+            if (message != null) onUpdate(message);
           },
         )
         .subscribe();
@@ -771,6 +812,95 @@ final class SupabaseChatRepository {
       durationMs: durationMs,
       seed: seed,
     );
+  }
+
+  Future<ChatMessage> editMessage({
+    required String messageId,
+    required String conversationId,
+    required String newBody,
+  }) async {
+    final trimmed = newBody.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError('Message body cannot be empty');
+    }
+
+    final updated = await _client
+        .from('messages')
+        .update({
+          'body': trimmed,
+          'edited_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', messageId)
+        .select()
+        .single();
+
+    await _updateConversationPreviewIfLatest(conversationId, messageId, trimmed);
+    return ChatMessage.fromRow(Map<String, dynamic>.from(updated));
+  }
+
+  Future<ChatMessage> softDeleteMessage({
+    required String messageId,
+    required String conversationId,
+  }) async {
+    final updated = await _client
+        .from('messages')
+        .update({
+          'deleted_at': DateTime.now().toUtc().toIso8601String(),
+          'body': '',
+        })
+        .eq('id', messageId)
+        .select()
+        .single();
+
+    await _updateConversationPreviewIfLatest(conversationId, messageId, 'This message was deleted');
+    return ChatMessage.fromRow(Map<String, dynamic>.from(updated));
+  }
+
+  Future<void> deleteMessageForMe({
+    required String messageId,
+    required String conversationId,
+  }) async {
+    final uid = await ensureAuthenticatedUserId();
+    try {
+      await _client.from('message_deletions').insert({
+        'message_id': messageId,
+        'user_id': uid,
+      });
+    } catch (_) {
+      await _persistHiddenMessageId(conversationId, messageId);
+    }
+  }
+
+  Future<void> removeFailedMessage(String messageId) async {
+    try {
+      await _client.from('messages').delete().eq('id', messageId);
+    } catch (_) {}
+  }
+
+  ChatMessage updateMessageLocally({
+    required List<ChatMessage> messages,
+    required ChatMessage updated,
+  }) {
+    return updated;
+  }
+
+  Future<void> _updateConversationPreviewIfLatest(
+    String conversationId,
+    String messageId,
+    String preview,
+  ) async {
+    try {
+      final latest = await _client
+          .from('messages')
+          .select('id')
+          .eq('conversation_id', conversationId)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      if (latest?['id'] == messageId) {
+        await _updateConversationPreview(conversationId, preview);
+      }
+    } catch (_) {}
   }
 
   Future<void> _updateConversationPreview(String conversationId, String preview) async {

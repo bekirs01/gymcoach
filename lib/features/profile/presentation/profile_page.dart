@@ -12,8 +12,10 @@ import '../../social/domain/feed_post.dart';
 import '../data/profile_repository.dart';
 import '../domain/profile_defaults.dart';
 import '../domain/profile_media_filter.dart';
+import '../domain/profile_settings_options.dart';
 import '../domain/user_profile.dart';
 import 'edit_profile_sheet.dart';
+import 'settings/profile_settings_tab.dart';
 import 'widgets/profile_view_widgets.dart';
 
 Future<void> showProfileSheet({
@@ -112,15 +114,36 @@ class _ProfilePageState extends State<ProfilePage> {
       final uid = await client.currentUserId();
       final remoteProfile = await profileRepo.loadCurrentProfile(_profile);
       final posts = await client.fetchUserPosts(uid);
+      final seedPosts = SocialSeedRepository.postsForUser(
+        SocialSeedRepository.currentUserId,
+        currentProfile: remoteProfile,
+      );
+      final enriched = ProfileMediaFilter.enrichProfilePosts(posts, seedPosts);
+      var resolvedPosts = ProfileMediaFilter.visiblePosts(enriched);
+      if (resolvedPosts.isEmpty && seedPosts.isNotEmpty) {
+        resolvedPosts = ProfileMediaFilter.visiblePosts(seedPosts);
+      }
+      final liveFeed = SocialSeedRepository.mergeWithApiPosts(
+        posts,
+        currentProfile: remoteProfile,
+      );
+      final saved = ProfileMediaFilter.visibleSavedPosts(
+        client.loadSavedPosts(),
+        liveFeed: liveFeed,
+      );
+      if (saved.length != client.loadSavedPosts().length) {
+        await client.savedPosts.replaceAll(saved);
+      }
       if (!mounted) return;
       setState(() {
-        _posts = ProfileMediaFilter.visiblePosts(posts);
-        _savedPosts = ProfileMediaFilter.visiblePosts(client.loadSavedPosts());
+        _posts = resolvedPosts;
+        _savedPosts = saved;
         _loadingSocial = false;
         _profile = remoteProfile;
         _applySeedFallback();
       });
       widget.onProfileChanged(_profile);
+      _syncLocaleFromProfile();
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -130,12 +153,32 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _refreshSavedPosts() async {
+    final client = _client;
+    if (client == null) return;
+    final liveFeed = SocialSeedRepository.mergeWithApiPosts(
+      _posts,
+      currentProfile: _profile,
+    );
+    final saved = ProfileMediaFilter.visibleSavedPosts(
+      client.loadSavedPosts(),
+      liveFeed: liveFeed,
+    );
+    if (saved.length != client.loadSavedPosts().length) {
+      await client.savedPosts.replaceAll(saved);
+    }
+    if (!mounted) return;
+    setState(() => _savedPosts = saved);
+  }
+
   void _applySeedFallback() {
     final seed = SocialSeedRepository.currentUserSeed(_profile);
     final seedPosts = SocialSeedRepository.postsForUser(
       SocialSeedRepository.currentUserId,
       currentProfile: _profile,
     );
+    final enriched = ProfileMediaFilter.enrichProfilePosts(_posts, seedPosts);
+    _posts = ProfileMediaFilter.visiblePosts(enriched);
     if (_posts.isEmpty && seedPosts.isNotEmpty) {
       _posts = ProfileMediaFilter.visiblePosts(seedPosts);
     }
@@ -173,46 +216,9 @@ class _ProfilePageState extends State<ProfilePage> {
     await _loadSocial();
   }
 
-  void _pickLanguage() {
-    final l10n = AppLocalizations.of(context)!;
-    final code = Localizations.localeOf(context).languageCode;
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      backgroundColor: PremiumColors.surface,
-      builder: (sheetContext) {
-        return Material(
-          color: PremiumColors.surface,
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                  child: Text(l10n.languagePickerTitle, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                ),
-                ListTile(
-                  title: Text(l10n.languageEnglish, style: const TextStyle(color: Colors.white)),
-                  trailing: code == 'en' ? const Icon(Icons.check_rounded, color: PremiumColors.accentBlue) : null,
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    widget.onLocaleChanged(const Locale('en'));
-                  },
-                ),
-                ListTile(
-                  title: Text(l10n.languageRussian, style: const TextStyle(color: Colors.white)),
-                  trailing: code == 'ru' ? const Icon(Icons.check_rounded, color: PremiumColors.accentBlue) : null,
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    widget.onLocaleChanged(const Locale('ru'));
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  void _syncLocaleFromProfile() {
+    final code = AppLanguageCode.fromCode(_profile.preferredLanguage);
+    widget.onLocaleChanged(code.locale);
   }
 
   void _logout() {
@@ -228,8 +234,6 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final langLabel =
-        Localizations.localeOf(context).languageCode == 'ru' ? l10n.languageRussian : l10n.languageEnglish;
 
     return Container(
       height: MediaQuery.sizeOf(context).height * 0.94,
@@ -306,11 +310,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   onSelected: (v) {
                                     setState(() => _tab = v);
                                     if (v == 3) {
-                                      setState(
-                                        () => _savedPosts = ProfileMediaFilter.visiblePosts(
-                                          _client?.loadSavedPosts() ?? const [],
-                                        ),
-                                      );
+                                      unawaited(_refreshSavedPosts());
                                     }
                                   },
                                 ),
@@ -328,7 +328,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       )
                     else
-                      ..._tabSlivers(l10n, langLabel),
+                      ..._tabSlivers(l10n),
                     SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 24)),
                   ],
                 ),
@@ -340,7 +340,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  List<Widget> _tabSlivers(AppLocalizations l10n, String langLabel) {
+  List<Widget> _tabSlivers(AppLocalizations l10n) {
     switch (_tab) {
       case 0:
         return [_photosSliver(l10n)];
@@ -355,16 +355,14 @@ class _ProfilePageState extends State<ProfilePage> {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
             sliver: SliverToBoxAdapter(
-              child: _SettingsCard(
-                l10n: l10n,
-                langLabel: langLabel,
-                notifications: _profile.notificationsEnabled,
-                onLanguage: _pickLanguage,
-                onNotifications: (v) {
-                  final next = _profile.copyWith(notificationsEnabled: v);
+              child: ProfileSettingsTab(
+                profile: _profile,
+                repository: _profileRepository,
+                onProfileChanged: (next) {
                   setState(() => _profile = next);
                   widget.onProfileChanged(next);
                 },
+                onLocaleChanged: widget.onLocaleChanged,
                 onLogout: _logout,
               ),
             ),
@@ -566,66 +564,6 @@ class _ProfileCover extends StatelessWidget {
                 ),
               ),
       ),
-    );
-  }
-}
-
-class _SettingsCard extends StatelessWidget {
-  const _SettingsCard({
-    required this.l10n,
-    required this.langLabel,
-    required this.notifications,
-    required this.onLanguage,
-    required this.onNotifications,
-    required this.onLogout,
-  });
-
-  final AppLocalizations l10n;
-  final String langLabel;
-  final bool notifications;
-  final VoidCallback onLanguage;
-  final ValueChanged<bool> onNotifications;
-  final VoidCallback onLogout;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: PremiumColors.surface,
-        borderRadius: BorderRadius.circular(PremiumRadii.lg),
-        border: Border.all(color: PremiumColors.glassBorder),
-      ),
-            child: Column(
-              children: [
-                Material(
-                  color: Colors.transparent,
-                  child: ListTile(
-                    leading: const Icon(Icons.language_rounded, color: PremiumColors.accentBlue),
-                    title: Text(l10n.languageTitle, style: const TextStyle(color: Colors.white)),
-                    subtitle: Text(langLabel, style: const TextStyle(color: PremiumColors.textMuted)),
-                    onTap: onLanguage,
-                  ),
-                ),
-                Material(
-                  color: Colors.transparent,
-                  child: SwitchListTile(
-                    value: notifications,
-                    activeThumbColor: PremiumColors.accentBlue,
-                    title: Text(l10n.profileRemindersTitle, style: const TextStyle(color: Colors.white)),
-                    subtitle: Text(l10n.profileRemindersSubtitle, style: const TextStyle(color: PremiumColors.textMuted)),
-                    onChanged: onNotifications,
-                  ),
-                ),
-                Material(
-                  color: Colors.transparent,
-                  child: ListTile(
-                    leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-                    title: Text(l10n.profileLogOut, style: const TextStyle(color: Colors.white)),
-                    onTap: onLogout,
-                  ),
-                ),
-              ],
-            ),
     );
   }
 }

@@ -694,6 +694,14 @@ class _CalendarDayCell extends StatelessWidget {
   final int extraWorkoutCount;
   final VoidCallback onTap;
 
+  static const double _dayNumberHeight = 14;
+  static const double _thumbnailGap = 2;
+  static const double _normalThumbnailSize = 18;
+  static const double _selectedThumbnailSize = 20;
+
+  double get _thumbnailSize =>
+      selected ? _selectedThumbnailSize : _normalThumbnailSize;
+
   @override
   Widget build(BuildContext context) {
     final showDot = !outsideMonth && !showWorkoutThumbnail && (hasPlan || completed);
@@ -716,22 +724,35 @@ class _CalendarDayCell extends StatelessWidget {
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              '$day',
-              style: TextStyle(
-                color: color,
-                fontSize: showWorkoutThumbnail ? 13 : 14,
-                fontWeight: selected ? FontWeight.w800 : (showWorkoutThumbnail ? FontWeight.w600 : FontWeight.w500),
-                height: showWorkoutThumbnail ? 1 : 1.1,
+            SizedBox(
+              height: _dayNumberHeight,
+              child: Center(
+                child: Text(
+                  '$day',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: showWorkoutThumbnail ? 12 : 14,
+                    fontWeight: selected
+                        ? FontWeight.w800
+                        : (showWorkoutThumbnail ? FontWeight.w600 : FontWeight.w500),
+                    height: 1,
+                  ),
+                ),
               ),
             ),
             if (showWorkoutThumbnail) ...[
-              const SizedBox(height: 4),
-              _CalendarWorkoutThumbnail(
-                imageAsset: thumbnailAsset,
-                extraCount: extraWorkoutCount,
-                selected: selected,
+              const SizedBox(height: _thumbnailGap),
+              SizedBox(
+                width: _thumbnailSize,
+                height: _thumbnailSize,
+                child: _CalendarWorkoutThumbnail(
+                  imageAsset: thumbnailAsset,
+                  extraCount: extraWorkoutCount,
+                  selected: selected,
+                  size: _thumbnailSize,
+                ),
               ),
             ] else if (showDot) ...[
               const SizedBox(height: 2),
@@ -758,75 +779,76 @@ class _CalendarWorkoutThumbnail extends StatelessWidget {
     required this.imageAsset,
     required this.extraCount,
     required this.selected,
+    required this.size,
   });
 
   final String? imageAsset;
   final int extraCount;
   final bool selected;
-
-  static const double _normalSize = 24;
-  static const double _selectedSize = 26;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    final size = selected ? _selectedSize : _normalSize;
-    final radius = selected ? 8.0 : 7.0;
-    final innerRadius = radius - 1.5;
+    const radius = 6.0;
+    const innerRadius = 4.5;
+    const framePadding = 1.5;
     final hasBadge = extraCount > 0;
-    final stackExtent = hasBadge ? size + 6 : size;
 
-    return SizedBox(
-      width: stackExtent,
-      height: stackExtent,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(radius),
-              color: const Color(0xFF0A1018),
-              border: Border.all(
-                color: selected
-                    ? PremiumColors.accentBlue.withValues(alpha: 0.88)
-                    : PremiumColors.accentBlue.withValues(alpha: 0.38),
-                width: selected ? 1.2 : 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: selected
-                      ? PremiumColors.accentBlue.withValues(alpha: 0.2)
-                      : Colors.black.withValues(alpha: 0.32),
-                  blurRadius: selected ? 6 : 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+    return Stack(
+      clipBehavior: Clip.hardEdge,
+      fit: StackFit.expand,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            color: const Color(0xFF0A1018),
+            border: Border.all(
+              color: selected
+                  ? PremiumColors.accentBlue.withValues(alpha: 0.88)
+                  : PremiumColors.accentBlue.withValues(alpha: 0.42),
+              width: selected ? 1.1 : 0.9,
             ),
-            padding: const EdgeInsets.all(1.5),
+            boxShadow: [
+              BoxShadow(
+                color: selected
+                    ? PremiumColors.accentBlue.withValues(alpha: 0.18)
+                    : Colors.black.withValues(alpha: 0.28),
+                blurRadius: selected ? 5 : 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(framePadding),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(innerRadius),
-              child: imageAsset == null
-                  ? _CalendarWorkoutThumbnailFallback(size: size)
-                  : ColoredBox(
-                      color: const Color(0xFFF3F5F8),
-                      child: Image.asset(
-                        imageAsset!,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, _, _) => _CalendarWorkoutThumbnailFallback(size: size),
+              child: ColoredBox(
+                color: const Color(0xFF121A26),
+                child: imageAsset == null
+                    ? _CalendarWorkoutThumbnailFallback(size: size)
+                    : Padding(
+                        padding: const EdgeInsets.all(1),
+                        child: ColoredBox(
+                          color: const Color(0xFFF3F5F8),
+                          child: Image.asset(
+                            imageAsset!,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, _, _) =>
+                                _CalendarWorkoutThumbnailFallback(size: size),
+                          ),
+                        ),
                       ),
-                    ),
+              ),
             ),
           ),
-          if (hasBadge)
-            Positioned(
-              top: (stackExtent - size) / 2 - 3,
-              right: (stackExtent - size) / 2 - 5,
-              child: _CalendarWorkoutBadge(count: extraCount),
-            ),
-        ],
-      ),
+        ),
+        if (hasBadge)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: _CalendarWorkoutBadge(count: extraCount),
+          ),
+      ],
     );
   }
 }
@@ -859,30 +881,35 @@ class _CalendarWorkoutBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      constraints: const BoxConstraints(minWidth: 12, minHeight: 12, maxHeight: 13),
+      padding: const EdgeInsets.symmetric(horizontal: 3),
       decoration: BoxDecoration(
         color: const Color(0xFF0B121C),
         borderRadius: BorderRadius.circular(99),
         border: Border.all(
           color: PremiumColors.accentBlue.withValues(alpha: 0.72),
-          width: 0.8,
+          width: 0.7,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.38),
-            blurRadius: 3,
+            color: Colors.black.withValues(alpha: 0.34),
+            blurRadius: 2,
             offset: const Offset(0, 1),
           ),
         ],
       ),
-      child: Text(
-        '+$count',
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.96),
-          fontSize: 7,
-          fontWeight: FontWeight.w800,
-          height: 1,
-          letterSpacing: -0.2,
+      alignment: Alignment.center,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          '+$count',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.96),
+            fontSize: 8,
+            fontWeight: FontWeight.w800,
+            height: 1,
+            letterSpacing: -0.2,
+          ),
         ),
       ),
     );

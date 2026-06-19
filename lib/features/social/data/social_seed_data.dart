@@ -71,12 +71,12 @@ abstract final class SocialSeedRepository {
 
   static const _currentUserGallery = [
     'https://images.unsplash.com/photo-1581009146145-b5ef050c2a1e?w=900&q=80',
-    'https://images.unsplash.com/photo-1518609878373-06d740f60fe8?w=900&q=80',
+    'https://images.unsplash.com/photo-1599058917765-a780eda07a3e?w=900&q=80',
     'https://images.unsplash.com/photo-1583454158554-84aa2aa0b2d8?w=900&q=80',
-    'https://images.unsplash.com/photo-1574680096145-d05b474717fc?w=900&q=80',
+    'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=900&q=80',
     'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=900&q=80',
-    'https://images.unsplash.com/photo-1471194146554-9167788c4fcd?w=900&q=80',
-    'https://images.unsplash.com/photo-1490645935967-10de6ba17261?w=900&q=80',
+    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=900&q=80',
+    'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=900&q=80',
   ];
 
   static const _gymImages = [

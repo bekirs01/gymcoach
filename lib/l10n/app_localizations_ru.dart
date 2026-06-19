@@ -806,6 +806,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get languageRussian => 'Русский';
 
   @override
+  String get languageTurkish => 'Türkçe';
+
+  @override
   String get languagePickerTitle => 'Выберите язык';
 
   @override

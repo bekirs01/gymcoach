@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
+import '../../../core/auth_session_service.dart';
 import '../../../core/supabase_operation_error.dart';
 import '../../chat/data/chat_local_store.dart';
 import '../../chat/data/chat_repository.dart';
@@ -42,6 +43,7 @@ class _MessagesPageState extends State<MessagesPage> {
     final localFallback = ChatLocalStore.orderedConversations();
 
     try {
+      await AuthSessionService.ensureSession();
       final prefs = await SharedPreferences.getInstance();
       final repository = SupabaseChatRepository(prefs: prefs);
       final conversations = await repository.loadConversations();
@@ -56,6 +58,7 @@ class _MessagesPageState extends State<MessagesPage> {
         operation: 'messages_load_conversations',
         error: error,
         stackTrace: stackTrace,
+        fallbackMessage: 'Could not start guest session',
       );
       if (!mounted) return;
       setState(() {

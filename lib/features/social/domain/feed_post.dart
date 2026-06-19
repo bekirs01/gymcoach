@@ -18,6 +18,7 @@ class FeedPost {
     required this.likedByMe,
     this.postType = FeedPostType.normal,
     this.sharedWorkoutSnapshot,
+    this.deletedAt,
   });
 
   final String id;
@@ -32,6 +33,7 @@ class FeedPost {
   final bool likedByMe;
   final FeedPostType postType;
   final SharedWorkoutSnapshot? sharedWorkoutSnapshot;
+  final DateTime? deletedAt;
 
   bool get isWorkoutShare => postType == FeedPostType.workoutShare;
 
@@ -48,6 +50,7 @@ class FeedPost {
     bool? likedByMe,
     FeedPostType? postType,
     SharedWorkoutSnapshot? sharedWorkoutSnapshot,
+    DateTime? deletedAt,
   }) {
     return FeedPost(
       id: id ?? this.id,
@@ -62,6 +65,7 @@ class FeedPost {
       likedByMe: likedByMe ?? this.likedByMe,
       postType: postType ?? this.postType,
       sharedWorkoutSnapshot: sharedWorkoutSnapshot ?? this.sharedWorkoutSnapshot,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 
@@ -86,6 +90,11 @@ class FeedPost {
       sharedWorkoutSnapshot = SharedWorkoutSnapshot.fromJson(Map<String, dynamic>.from(snapshotRaw));
     }
 
+    final deletedRaw = row['deleted_at'];
+    final deletedAt = deletedRaw == null
+        ? null
+        : DateTime.tryParse(deletedRaw.toString());
+
     return FeedPost(
       id: row['id'] as String? ?? '',
       userId: row['user_id'] as String? ?? '',
@@ -99,6 +108,7 @@ class FeedPost {
       likedByMe: likeRows.any((e) => (e as Map)['user_id'] == currentUserId),
       postType: postType,
       sharedWorkoutSnapshot: sharedWorkoutSnapshot,
+      deletedAt: deletedAt,
     );
   }
 }

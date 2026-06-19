@@ -34,6 +34,7 @@ class ChatConversation {
     if (cached != null && cached.isNotEmpty) return cached;
     final message = lastMessage;
     if (message == null) return '';
+    if (message.isDeleted) return 'This message was deleted';
     if (message.isVoice) return 'Voice message';
     if (message.hasImage) {
       final caption = message.body.trim();

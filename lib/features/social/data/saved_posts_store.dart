@@ -44,6 +44,10 @@ final class SavedPostsStore {
     await _prefs.setString(_key, jsonEncode(posts.map(_postToJson).toList()));
   }
 
+  Future<void> replaceAll(List<FeedPost> posts) async {
+    await _prefs.setString(_key, jsonEncode(posts.map(_postToJson).toList()));
+  }
+
   Future<bool> toggle(FeedPost post) async {
     if (isSaved(post.id)) {
       await remove(post.id);

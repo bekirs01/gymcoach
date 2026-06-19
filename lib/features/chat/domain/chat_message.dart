@@ -35,6 +35,10 @@ class ChatMessage {
     this.senderType = ChatSenderType.user,
     this.localPreviewBytes,
     this.localVoicePath,
+    this.editedAt,
+    this.deletedAt,
+    this.replyToMessageId,
+    this.replyToMessage,
   });
 
   final String id;
@@ -50,6 +54,10 @@ class ChatMessage {
   final ChatMessageSendState? sendState;
   final Uint8List? localPreviewBytes;
   final String? localVoicePath;
+  final DateTime? editedAt;
+  final DateTime? deletedAt;
+  final String? replyToMessageId;
+  final ChatMessage? replyToMessage;
 
   bool get isVoice => messageType == ChatMessageType.voice;
 
@@ -65,6 +73,23 @@ class ChatMessage {
 
   bool get isUploading =>
       isPending || sendState == ChatMessageSendState.sending;
+
+  bool get isDeleted => deletedAt != null;
+
+  bool get isEdited => editedAt != null;
+
+  bool get hasReply => replyToMessageId != null;
+
+  bool get hasCopyableText => body.trim().isNotEmpty && !isVoice && !isDeleted;
+
+  bool canEditFor(String currentUserId) {
+    if (isDeleted || isPending || isFailed) return false;
+    if (!isFromCurrentUser(currentUserId)) return false;
+    if (isVoice && body.trim().isEmpty) return false;
+    if (hasImage && body.trim().isEmpty) return false;
+    return messageType == ChatMessageType.text ||
+        (body.trim().isNotEmpty && (hasImage || messageType == ChatMessageType.mixed));
+  }
 
   String? get primaryImageUrl {
     for (final attachment in attachments) {
@@ -102,9 +127,18 @@ class ChatMessage {
     ChatMessageSendState? sendState,
     Uint8List? localPreviewBytes,
     String? localVoicePath,
+    DateTime? editedAt,
+    DateTime? deletedAt,
+    String? replyToMessageId,
+    ChatMessage? replyToMessage,
     bool clearSendState = false,
     bool clearLocalPreviewBytes = false,
     bool clearLocalVoicePath = false,
+    bool clearEditedAt = false,
+    bool clearDeletedAt = false,
+    bool clearReplyToMessageId = false,
+    bool clearReplyToMessage = false,
+    bool clearAttachments = false,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -113,7 +147,7 @@ class ChatMessage {
       sentAt: sentAt ?? this.sentAt,
       messageType: messageType ?? this.messageType,
       senderType: senderType ?? this.senderType,
-      attachments: attachments ?? this.attachments,
+      attachments: clearAttachments ? const [] : (attachments ?? this.attachments),
       clientTempId: clientTempId ?? this.clientTempId,
       isPending: isPending ?? this.isPending,
       hasFailed: hasFailed ?? this.hasFailed,
@@ -121,6 +155,11 @@ class ChatMessage {
       localPreviewBytes:
           clearLocalPreviewBytes ? null : (localPreviewBytes ?? this.localPreviewBytes),
       localVoicePath: clearLocalVoicePath ? null : (localVoicePath ?? this.localVoicePath),
+      editedAt: clearEditedAt ? null : (editedAt ?? this.editedAt),
+      deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
+      replyToMessageId:
+          clearReplyToMessageId ? null : (replyToMessageId ?? this.replyToMessageId),
+      replyToMessage: clearReplyToMessage ? null : (replyToMessage ?? this.replyToMessage),
     );
   }
 
@@ -155,9 +194,15 @@ class ChatMessage {
     return ChatSenderType.user;
   }
 
+  static DateTime? _parseOptionalTimestamp(Object? value) {
+    if (value == null) return null;
+    return DateTime.parse(value as String);
+  }
+
   factory ChatMessage.fromRow(
     Map<String, dynamic> row, {
     List<ChatAttachment> attachments = const [],
+    ChatMessage? replyToMessage,
   }) {
     return ChatMessage(
       id: row['id'] as String,
@@ -168,6 +213,10 @@ class ChatMessage {
       messageType: parseMessageType(row['message_type'] as String?),
       attachments: attachments,
       clientTempId: row['client_temp_id'] as String?,
+      editedAt: _parseOptionalTimestamp(row['edited_at']),
+      deletedAt: _parseOptionalTimestamp(row['deleted_at']),
+      replyToMessageId: row['reply_to_message_id'] as String?,
+      replyToMessage: replyToMessage,
     );
   }
 }

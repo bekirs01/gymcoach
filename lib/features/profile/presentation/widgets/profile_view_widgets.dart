@@ -344,7 +344,7 @@ class _AboutCard extends StatelessWidget {
   }
 }
 
-class ProfileFeedSection extends StatelessWidget {
+class ProfileFeedSection extends StatefulWidget {
   const ProfileFeedSection({
     super.key,
     required this.posts,
@@ -359,12 +359,26 @@ class ProfileFeedSection extends StatelessWidget {
   final IconData emptyIcon;
 
   @override
+  State<ProfileFeedSection> createState() => _ProfileFeedSectionState();
+}
+
+class _ProfileFeedSectionState extends State<ProfileFeedSection> {
+  final _hiddenPostIds = <String>{};
+
+  void _hidePost(String postId) {
+    if (postId.isEmpty || _hiddenPostIds.contains(postId)) return;
+    setState(() => _hiddenPostIds.add(postId));
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final visiblePosts = ProfileMediaFilter.visiblePosts(posts);
+    final visiblePosts = ProfileMediaFilter.visiblePosts(widget.posts)
+        .where((post) => !_hiddenPostIds.contains(post.id))
+        .toList();
     if (visiblePosts.isEmpty) {
       return ProfileEmptyTabState(
-        icon: emptyIcon,
-        message: emptyMessage,
+        icon: widget.emptyIcon,
+        message: widget.emptyMessage,
       );
     }
 
@@ -375,9 +389,11 @@ class ProfileFeedSection extends StatelessWidget {
       itemCount: visiblePosts.length,
       separatorBuilder: (context, index) => const SizedBox(height: 14),
       itemBuilder: (context, index) {
+        final post = visiblePosts[index];
         return ProfileFeedPostCard(
-          post: visiblePosts[index],
-          heroTagPrefix: '$heroTagPrefix-post-$index',
+          post: post,
+          heroTagPrefix: '${widget.heroTagPrefix}-post-$index',
+          onAllMediaFailed: () => _hidePost(post.id),
         );
       },
     );
@@ -389,10 +405,12 @@ class ProfileFeedPostCard extends StatefulWidget {
     super.key,
     required this.post,
     required this.heroTagPrefix,
+    this.onAllMediaFailed,
   });
 
   final FeedPost post;
   final String heroTagPrefix;
+  final VoidCallback? onAllMediaFailed;
 
   @override
   State<ProfileFeedPostCard> createState() => _ProfileFeedPostCardState();
@@ -400,6 +418,27 @@ class ProfileFeedPostCard extends StatefulWidget {
 
 class _ProfileFeedPostCardState extends State<ProfileFeedPostCard> {
   var _photoIndex = 0;
+  final _failedUrls = <String>{};
+  var _reportedAllMediaFailed = false;
+
+  List<FeedMedia> get _visibleMedia {
+    return ProfileMediaFilter.visibleMedia(
+      widget.post.media.where((item) => !_failedUrls.contains(item.url.trim())),
+    );
+  }
+
+  void _markFailed(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty || _failedUrls.contains(trimmed)) return;
+    setState(() => _failedUrls.add(trimmed));
+    if (_visibleMedia.isEmpty &&
+        widget.post.media.isNotEmpty &&
+        !widget.post.isWorkoutShare &&
+        !_reportedAllMediaFailed) {
+      _reportedAllMediaFailed = true;
+      widget.onAllMediaFailed?.call();
+    }
+  }
 
   String _relative(DateTime time) {
     final diff = DateTime.now().difference(time);
@@ -415,7 +454,11 @@ class _ProfileFeedPostCardState extends State<ProfileFeedPostCard> {
   Widget build(BuildContext context) {
     final post = widget.post;
     final name = post.author.displayName.isEmpty ? 'Athlete' : post.author.displayName;
-    final media = ProfileMediaFilter.visibleMedia(post.media);
+    final media = _visibleMedia;
+
+    if (post.media.isNotEmpty && media.isEmpty && !post.isWorkoutShare) {
+      return const SizedBox.shrink();
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -482,7 +525,12 @@ class _ProfileFeedPostCardState extends State<ProfileFeedPostCard> {
                           child: Image.network(
                             url,
                             fit: BoxFit.cover,
+                            loadingBuilder: (context, child, progress) {
+                              if (progress == null) return child;
+                              return const _ProfilePhotoPlaceholder(showSpinner: true);
+                            },
                             errorBuilder: (context, error, stackTrace) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) => _markFailed(url));
                               return const _ProfilePhotoPlaceholder();
                             },
                           ),

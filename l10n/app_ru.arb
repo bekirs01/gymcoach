@@ -425,6 +425,7 @@
   "languageSubtitle": "Язык интерфейса приложения",
   "languageEnglish": "Английский",
   "languageRussian": "Русский",
+  "languageTurkish": "Türkçe",
   "languagePickerTitle": "Выберите язык",
   "profilePreferencesSnack": "Настройки будут подключены в будущей версии.",
   "profileLogoutSnack": "Выход будет доступен после запуска аккаунтов.",

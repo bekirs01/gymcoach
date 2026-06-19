@@ -37,17 +37,33 @@ class _GymCoachAppState extends State<GymCoachApp> {
     );
     if (!mounted) return;
     setState(() {
-      _locale = code == 'ru' ? const Locale('ru') : const Locale('en');
+      _locale = _localeFromCode(code);
       _training = training;
       _prefsReady = true;
     });
   }
 
+  Locale _localeFromCode(String? code) {
+    return switch (code) {
+      'ru' => const Locale('ru'),
+      'tr' => const Locale('en'),
+      _ => const Locale('en'),
+    };
+  }
+
+  String _storageCodeFor(Locale locale) {
+    return switch (locale.languageCode) {
+      'ru' => 'ru',
+      'tr' => 'tr',
+      _ => 'en',
+    };
+  }
+
   Future<void> _setLocale(Locale locale) async {
-    final next = locale.languageCode == 'ru' ? const Locale('ru') : const Locale('en');
-    setState(() => _locale = next);
+    final code = _storageCodeFor(locale);
+    setState(() => _locale = _localeFromCode(code));
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_localePrefKey, next.languageCode);
+    await prefs.setString(_localePrefKey, code);
   }
 
   @override

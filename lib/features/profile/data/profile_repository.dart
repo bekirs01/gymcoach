@@ -37,10 +37,7 @@ final class ProfileRepository {
     final uid = await currentUserId();
     final remote = await fetchProfile(uid);
     if (remote == null) return UserProfile.withDefaults(membershipLevel: localFallback.membershipLevel, seed: localFallback);
-    return remote.copyWith(
-      membershipLevel: localFallback.membershipLevel,
-      notificationsEnabled: localFallback.notificationsEnabled,
-    );
+    return remote.copyWith(membershipLevel: localFallback.membershipLevel);
   }
 
   Future<void> ensureProfile(UserProfile profile) async {
@@ -81,6 +78,11 @@ final class ProfileRepository {
       'location_text': profile.locationText.trim(),
       'membership_level': profile.membershipLevel,
       'notifications_enabled': profile.notificationsEnabled,
+      'preferred_language': profile.preferredLanguage,
+      'preferred_units': profile.preferredUnits,
+      'training_reminders_enabled': profile.notificationsEnabled,
+      'training_reminder_time': profile.trainingReminderTime,
+      'training_reminder_days': profile.trainingReminderDays,
     };
   }
 
@@ -108,7 +110,12 @@ final class ProfileRepository {
       isPublicProfile: isPublic,
       locationText: _readString(row, 'location_text', fallback: ProfileDefaults.locationText),
       membershipLevel: _readString(row, 'membership_level'),
-      notificationsEnabled: row['notifications_enabled'] as bool? ?? true,
+      notificationsEnabled:
+          row['training_reminders_enabled'] as bool? ?? row['notifications_enabled'] as bool? ?? true,
+      preferredLanguage: _readString(row, 'preferred_language', fallback: 'en'),
+      preferredUnits: _readString(row, 'preferred_units', fallback: 'metric'),
+      trainingReminderTime: _readString(row, 'training_reminder_time', fallback: '19:00'),
+      trainingReminderDays: _readString(row, 'training_reminder_days', fallback: 'every_day'),
     );
   }
 

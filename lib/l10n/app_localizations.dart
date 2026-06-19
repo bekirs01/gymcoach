@@ -1538,6 +1538,12 @@ abstract class AppLocalizations {
   /// **'Russian'**
   String get languageRussian;
 
+  /// No description provided for @languageTurkish.
+  ///
+  /// In en, this message translates to:
+  /// **'Turkish'**
+  String get languageTurkish;
+
   /// No description provided for @languagePickerTitle.
   ///
   /// In en, this message translates to:

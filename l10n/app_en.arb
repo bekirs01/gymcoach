@@ -270,6 +270,7 @@
   "languageSubtitle": "App display language",
   "languageEnglish": "English",
   "languageRussian": "Russian",
+  "languageTurkish": "Turkish",
   "languagePickerTitle": "Choose language",
   "profilePreferencesSnack": "Preferences will connect to settings in a future release.",
   "profileLogoutSnack": "Logout will be available when accounts launch.",

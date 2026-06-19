@@ -8,6 +8,10 @@ class UserProfile {
     required this.fitnessGoal,
     required this.membershipLevel,
     required this.notificationsEnabled,
+    this.preferredLanguage = 'en',
+    this.preferredUnits = 'metric',
+    this.trainingReminderTime = '19:00',
+    this.trainingReminderDays = 'every_day',
     this.username = '',
     this.publicBio = '',
     this.privateNotes = '',
@@ -28,6 +32,10 @@ class UserProfile {
   final String fitnessGoal;
   final String membershipLevel;
   final bool notificationsEnabled;
+  final String preferredLanguage;
+  final String preferredUnits;
+  final String trainingReminderTime;
+  final String trainingReminderDays;
   final String username;
   final String publicBio;
   final String privateNotes;
@@ -52,6 +60,10 @@ class UserProfile {
     String? fitnessGoal,
     String? membershipLevel,
     bool? notificationsEnabled,
+    String? preferredLanguage,
+    String? preferredUnits,
+    String? trainingReminderTime,
+    String? trainingReminderDays,
     String? username,
     String? publicBio,
     String? privateNotes,
@@ -75,6 +87,10 @@ class UserProfile {
       fitnessGoal: fitnessGoal ?? this.fitnessGoal,
       membershipLevel: membershipLevel ?? this.membershipLevel,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+      preferredLanguage: preferredLanguage ?? this.preferredLanguage,
+      preferredUnits: preferredUnits ?? this.preferredUnits,
+      trainingReminderTime: trainingReminderTime ?? this.trainingReminderTime,
+      trainingReminderDays: trainingReminderDays ?? this.trainingReminderDays,
       username: username ?? this.username,
       publicBio: bio ?? publicBio ?? this.publicBio,
       privateNotes: privateNotes ?? this.privateNotes,

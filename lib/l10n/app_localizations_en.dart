@@ -803,6 +803,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageRussian => 'Russian';
 
   @override
+  String get languageTurkish => 'Turkish';
+
+  @override
   String get languagePickerTitle => 'Choose language';
 
   @override

@@ -91,6 +91,7 @@ abstract final class ChatLocalStore {
   static ChatConversation? sendMessage({
     required String participantUserId,
     required String body,
+    String? replyToMessageId,
   }) {
     ensureInitialized();
     final trimmed = body.trim();
@@ -99,18 +100,111 @@ abstract final class ChatLocalStore {
     final existing = _conversations[participantUserId];
     if (existing == null) return null;
 
+    ChatMessage? replyToMessage;
+    if (replyToMessageId != null) {
+      for (final item in existing.messages) {
+        if (item.id == replyToMessageId) {
+          replyToMessage = item;
+          break;
+        }
+      }
+    }
+
     final message = ChatMessage(
       id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
       senderId: SocialSeedRepository.currentUserId,
       body: trimmed,
       sentAt: DateTime.now(),
+      replyToMessageId: replyToMessageId,
+      replyToMessage: replyToMessage,
     );
 
     final updated = existing.copyWith(
       messages: [...existing.messages, message],
+      cachedLastMessageText: trimmed,
+      cachedLastMessageTime: message.sentAt,
     );
     _conversations[participantUserId] = updated;
     return updated;
+  }
+
+  static ChatConversation? editMessage({
+    required String participantUserId,
+    required String messageId,
+    required String newBody,
+  }) {
+    ensureInitialized();
+    final trimmed = newBody.trim();
+    if (trimmed.isEmpty) return null;
+
+    final existing = _conversations[participantUserId];
+    if (existing == null) return null;
+
+    final messages = existing.messages.map((message) {
+      if (message.id != messageId) return message;
+      return message.copyWith(
+        body: trimmed,
+        editedAt: DateTime.now(),
+      );
+    }).toList();
+
+    final updated = existing.copyWith(
+      messages: messages,
+      cachedLastMessageText: messages.isNotEmpty ? _previewFor(messages.last) : trimmed,
+    );
+    _conversations[participantUserId] = updated;
+    return updated;
+  }
+
+  static ChatConversation? softDeleteMessage({
+    required String participantUserId,
+    required String messageId,
+  }) {
+    ensureInitialized();
+    final existing = _conversations[participantUserId];
+    if (existing == null) return null;
+
+    final messages = existing.messages.map((message) {
+      if (message.id != messageId) return message;
+      return message.copyWith(
+        body: '',
+        deletedAt: DateTime.now(),
+        clearAttachments: true,
+        clearLocalPreviewBytes: true,
+        clearLocalVoicePath: true,
+      );
+    }).toList();
+
+    final updated = existing.copyWith(
+      messages: messages,
+      cachedLastMessageText: 'This message was deleted',
+    );
+    _conversations[participantUserId] = updated;
+    return updated;
+  }
+
+  static ChatConversation? hideMessageForMe({
+    required String participantUserId,
+    required String messageId,
+  }) {
+    ensureInitialized();
+    final existing = _conversations[participantUserId];
+    if (existing == null) return null;
+
+    final messages = existing.messages.where((message) => message.id != messageId).toList();
+    final updated = existing.copyWith(messages: messages);
+    _conversations[participantUserId] = updated;
+    return updated;
+  }
+
+  static String _previewFor(ChatMessage message) {
+    if (message.isDeleted) return 'This message was deleted';
+    if (message.isVoice) return 'Voice message';
+    if (message.hasImage) {
+      final caption = message.body.trim();
+      return caption.isEmpty ? 'Photo' : caption;
+    }
+    return message.body;
   }
 
   static ChatConversation? markAsRead(String participantUserId) {

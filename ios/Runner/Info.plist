@@ -72,5 +72,7 @@
 	<string>GymCoach uses your location while the app is open to show your position on the map and record territory capture routes.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>GymCoach uses the microphone to record voice messages in chat.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>GymCoach uses your photo library to upload posts, stories, and profile media.</string>
 </dict>
 </plist>
