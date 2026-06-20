@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../data/chat_repository.dart';
@@ -13,9 +14,12 @@ enum ChatMessageActionType {
   edit,
   delete,
   saveImage,
+  saveAudio,
+  share,
   details,
   retry,
   remove,
+  cancel,
 }
 
 class ChatMessageActionResult {
@@ -106,26 +110,43 @@ Future<void> showChatMessageDetailsSheet({
 }
 
 void showCopiedFeedback(BuildContext context) {
+  final l10n = AppLocalizations.of(context)!;
   ScaffoldMessenger.of(context).hideCurrentSnackBar();
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       behavior: SnackBarBehavior.floating,
       duration: const Duration(milliseconds: 1400),
       backgroundColor: PremiumColors.surfaceRaised,
-      content: const Text(
-        'Copied',
-        style: TextStyle(color: PremiumColors.textPrimary, fontWeight: FontWeight.w600),
+      content: Text(
+        l10n.chatCopied,
+        style: const TextStyle(color: PremiumColors.textPrimary, fontWeight: FontWeight.w600),
       ),
     ),
   );
 }
 
-String previewTextForMessage(ChatMessage message) {
-  if (message.isDeleted) return 'This message was deleted';
-  if (message.isVoice) return 'Voice message';
+void showSavedFeedback(BuildContext context) {
+  final l10n = AppLocalizations.of(context)!;
+  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(milliseconds: 1400),
+      backgroundColor: PremiumColors.surfaceRaised,
+      content: Text(
+        l10n.chatSaved,
+        style: const TextStyle(color: PremiumColors.textPrimary, fontWeight: FontWeight.w600),
+      ),
+    ),
+  );
+}
+
+String previewTextForMessage(ChatMessage message, AppLocalizations l10n) {
+  if (message.isDeleted) return l10n.chatMessageDeleted;
+  if (message.isVoice) return l10n.chatVoiceMessage;
   if (message.hasImage) {
     final caption = message.body.trim();
-    return caption.isEmpty ? 'Photo' : caption;
+    return caption.isEmpty ? l10n.chatPhoto : caption;
   }
   return message.body;
 }
@@ -136,89 +157,111 @@ List<ChatMessageActionItem> buildMessageActions({
   required String currentUserId,
   required bool canDeleteForEveryone,
   required bool canDeleteForMe,
+  required AppLocalizations l10n,
 }) {
   if (message.isFailed) {
-    return const [
+    return [
       ChatMessageActionItem(
         type: ChatMessageActionType.retry,
-        label: 'Retry send',
+        label: l10n.chatRetry,
         icon: Icons.refresh_rounded,
       ),
       ChatMessageActionItem(
         type: ChatMessageActionType.remove,
-        label: 'Remove',
+        label: l10n.chatRemove,
         icon: Icons.delete_outline_rounded,
         destructive: true,
       ),
       ChatMessageActionItem(
         type: ChatMessageActionType.details,
-        label: 'Details',
+        label: l10n.chatDetails,
         icon: Icons.info_outline_rounded,
       ),
     ];
   }
 
   if (message.isDeleted) {
-    return const [
+    return [
       ChatMessageActionItem(
         type: ChatMessageActionType.details,
-        label: 'Details',
+        label: l10n.chatDetails,
         icon: Icons.info_outline_rounded,
       ),
     ];
   }
 
   final actions = <ChatMessageActionItem>[
-    const ChatMessageActionItem(
+    ChatMessageActionItem(
       type: ChatMessageActionType.reply,
-      label: 'Reply',
+      label: l10n.chatReply,
       icon: Icons.reply_rounded,
     ),
   ];
 
   if (message.isVoice) {
+    actions.addAll([
+      ChatMessageActionItem(
+        type: ChatMessageActionType.saveAudio,
+        label: l10n.chatSave,
+        icon: Icons.download_rounded,
+      ),
+      ChatMessageActionItem(
+        type: ChatMessageActionType.share,
+        label: l10n.chatShare,
+        icon: Icons.ios_share_rounded,
+      ),
+    ]);
     if (message.hasCopyableText) {
       actions.add(
-        const ChatMessageActionItem(
+        ChatMessageActionItem(
           type: ChatMessageActionType.copyText,
-          label: 'Copy text',
+          label: l10n.chatCopy,
           icon: Icons.copy_rounded,
         ),
       );
     }
   } else if (message.hasImage) {
-    actions.add(
-      const ChatMessageActionItem(
+    actions.addAll([
+      ChatMessageActionItem(
         type: ChatMessageActionType.saveImage,
-        label: 'Save coming soon',
+        label: l10n.chatSave,
         icon: Icons.download_rounded,
-        enabled: false,
       ),
-    );
+      ChatMessageActionItem(
+        type: ChatMessageActionType.share,
+        label: l10n.chatShare,
+        icon: Icons.ios_share_rounded,
+      ),
+    ]);
     if (message.body.trim().isNotEmpty) {
       actions.add(
-        const ChatMessageActionItem(
+        ChatMessageActionItem(
           type: ChatMessageActionType.copyCaption,
-          label: 'Copy caption',
+          label: l10n.chatCopyCaption,
           icon: Icons.copy_rounded,
         ),
       );
     }
   } else if (message.hasCopyableText) {
-    actions.add(
-      const ChatMessageActionItem(
+    actions.addAll([
+      ChatMessageActionItem(
         type: ChatMessageActionType.copyText,
-        label: 'Copy text',
+        label: l10n.chatCopy,
         icon: Icons.copy_rounded,
       ),
-    );
+      ChatMessageActionItem(
+        type: ChatMessageActionType.share,
+        label: l10n.chatShare,
+        icon: Icons.ios_share_rounded,
+      ),
+    ]);
   }
 
   if (message.canEditFor(currentUserId)) {
     actions.add(
-      const ChatMessageActionItem(
+      ChatMessageActionItem(
         type: ChatMessageActionType.edit,
-        label: 'Edit message',
+        label: l10n.chatEditMessage,
         icon: Icons.edit_rounded,
       ),
     );
@@ -226,22 +269,27 @@ List<ChatMessageActionItem> buildMessageActions({
 
   if (canDeleteForEveryone || canDeleteForMe) {
     actions.add(
-      const ChatMessageActionItem(
+      ChatMessageActionItem(
         type: ChatMessageActionType.delete,
-        label: 'Delete message',
+        label: l10n.chatDeleteMessage,
         icon: Icons.delete_outline_rounded,
         destructive: true,
       ),
     );
   }
 
-  actions.add(
-    const ChatMessageActionItem(
+  actions.addAll([
+    ChatMessageActionItem(
       type: ChatMessageActionType.details,
-      label: 'Details',
+      label: l10n.chatDetails,
       icon: Icons.info_outline_rounded,
     ),
-  );
+    ChatMessageActionItem(
+      type: ChatMessageActionType.cancel,
+      label: l10n.cancel,
+      icon: Icons.close_rounded,
+    ),
+  ]);
 
   return actions;
 }
@@ -261,7 +309,8 @@ class _ChatMessageActionsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final preview = previewTextForMessage(message);
+    final l10n = AppLocalizations.of(context)!;
+    final preview = previewTextForMessage(message, l10n);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Container(
@@ -405,6 +454,7 @@ class _ChatMessageDeleteSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Container(
@@ -422,10 +472,10 @@ class _ChatMessageDeleteSheet extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Delete message?',
+              Text(
+                l10n.chatDeletePrompt,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
@@ -434,19 +484,19 @@ class _ChatMessageDeleteSheet extends StatelessWidget {
               const SizedBox(height: AppSpacing.md),
               if (canDeleteForEveryone)
                 _SheetButton(
-                  label: 'Delete for everyone',
+                  label: l10n.chatDeleteForEveryone,
                   destructive: true,
                   onTap: () => Navigator.pop(context, ChatMessageDeleteChoice.forEveryone),
                 ),
               if (canDeleteForMe)
                 _SheetButton(
-                  label: 'Delete for me',
+                  label: l10n.chatDeleteForMe,
                   destructive: canDeleteForEveryone,
                   onTap: () => Navigator.pop(context, ChatMessageDeleteChoice.forMe),
                 ),
               const SizedBox(height: AppSpacing.xs),
               _SheetButton(
-                label: 'Cancel',
+                label: l10n.cancel,
                 onTap: () => Navigator.pop(context),
               ),
             ],
@@ -470,6 +520,7 @@ class _ChatMessageDetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final sentLabel = ChatRepository.formatMessageTime(message.sentAt);
     final typeLabel = _typeLabel(message);
@@ -498,20 +549,20 @@ class _ChatMessageDetailsSheet extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Message details',
+              Text(
+                l10n.chatMessageDetails,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              _DetailRow(label: 'From', value: isMe ? 'You' : senderName),
-              _DetailRow(label: 'Sent', value: sentLabel),
-              _DetailRow(label: 'Type', value: typeLabel),
-              _DetailRow(label: 'Status', value: statusLabel),
+              _DetailRow(label: l10n.chatDetailFrom, value: isMe ? l10n.chatYou : senderName),
+              _DetailRow(label: l10n.chatDetailSent, value: sentLabel),
+              _DetailRow(label: l10n.chatDetailType, value: typeLabel),
+              _DetailRow(label: l10n.chatDetailStatus, value: statusLabel),
               if (message.attachments.isNotEmpty) ...[
                 _DetailRow(
                   label: 'File type',
@@ -537,7 +588,7 @@ class _ChatMessageDetailsSheet extends StatelessWidget {
                 ),
               const SizedBox(height: AppSpacing.sm),
               _SheetButton(
-                label: 'Close',
+                label: l10n.closeTooltip,
                 onTap: () => Navigator.pop(context),
               ),
             ],

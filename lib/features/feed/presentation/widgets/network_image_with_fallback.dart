@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
@@ -6,6 +8,7 @@ class NetworkImageWithFallback extends StatelessWidget {
   const NetworkImageWithFallback({
     super.key,
     required this.url,
+    this.localPath,
     this.fit = BoxFit.cover,
     this.width,
     this.height,
@@ -14,6 +17,7 @@ class NetworkImageWithFallback extends StatelessWidget {
   });
 
   final String url;
+  final String? localPath;
   final BoxFit fit;
   final double? width;
   final double? height;
@@ -22,6 +26,23 @@ class NetworkImageWithFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final local = localPath;
+    if ((url.isEmpty || url.trim().isEmpty) && local != null && local.isNotEmpty) {
+      final fileChild = Image.file(
+        File(local),
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) => _Placeholder(
+          width: width,
+          height: height,
+          icon: Icons.broken_image_outlined,
+        ),
+      );
+      if (borderRadius == null) return fileChild;
+      return ClipRRect(borderRadius: borderRadius!, child: fileChild);
+    }
+
     final child = Image.network(
       url,
       width: width,

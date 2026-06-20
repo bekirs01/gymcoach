@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/auth_session_service.dart';
 import '../../../core/supabase_operation_error.dart';
+import '../../../core/supabase_debug_log.dart';
 import '../../social/data/social_seed_data.dart';
 import '../domain/chat_attachment.dart';
 import '../domain/chat_conversation.dart';
@@ -25,33 +26,27 @@ final class SupabaseChatRepository {
   static const bucket = 'chat-media';
   static const _uuid = Uuid();
 
+  static List<ChatConversation>? _sessionConversations;
+
+  static List<ChatConversation> initialConversationsForDisplay() {
+    ChatLocalStore.ensureInitialized();
+    final cached = _sessionConversations;
+    if (cached != null && cached.isNotEmpty) {
+      return List<ChatConversation>.from(cached);
+    }
+    return ChatLocalStore.orderedConversations();
+  }
+
   final SharedPreferences _prefs;
   final SupabaseClient _client;
   RealtimeChannel? _messagesChannel;
 
-  Future<String> ensureAuthenticatedUserId() async {
-    try {
-      final session = await AuthSessionService.ensureSession();
-      return session.user.id;
-    } catch (error, stackTrace) {
-      throw SupabaseOperationError.classify(
-        operation: 'chat_sign_in',
-        action: 'ensureSession',
-        error: error,
-        stackTrace: stackTrace,
-        fallbackMessage: 'Could not start guest session',
-      );
-    }
+  List<ChatConversation> getInitialConversations() {
+    return SupabaseChatRepository.initialConversationsForDisplay();
   }
 
-  Future<String> resolveCurrentUserId() async {
-    return ensureAuthenticatedUserId();
-  }
-
-  bool get isAuthenticated => _client.auth.currentSession != null;
-
-  Future<List<ChatConversation>> loadConversations() async {
-    final local = ChatLocalStore.orderedConversations();
+  Future<List<ChatConversation>> loadRemoteConversations() async {
+    final local = getInitialConversations();
     List<ChatConversation> remote = const [];
 
     try {
@@ -64,10 +59,12 @@ final class SupabaseChatRepository {
       );
     }
 
-    return _mergeConversations(local, remote);
+    final merged = mergeConversations(local, remote);
+    _sessionConversations = merged;
+    return merged;
   }
 
-  List<ChatConversation> _mergeConversations(
+  static List<ChatConversation> mergeConversations(
     List<ChatConversation> local,
     List<ChatConversation> remote,
   ) {
@@ -86,6 +83,63 @@ final class SupabaseChatRepository {
       return bTime.compareTo(aTime);
     });
     return merged;
+  }
+
+  Future<String> ensureAuthenticatedUserId() async {
+    try {
+      return await AuthSessionService.ensureSupabaseSession();
+    } catch (error, stackTrace) {
+      throw SupabaseOperationError.classify(
+        operation: 'chat_sign_in',
+        action: 'ensureSupabaseSession',
+        error: error,
+        stackTrace: stackTrace,
+        fallbackMessage: 'Could not start guest session',
+      );
+    }
+  }
+
+  Future<T> _withChatSession<T>(Future<T> Function(String uid) action) async {
+    final uid = await AuthSessionService.ensureSupabaseSession();
+    try {
+      return await action(uid);
+    } catch (error) {
+      SupabaseDebugLog.database('chat operation failed, retrying once: $error');
+      return await action(uid);
+    }
+  }
+
+  String _conversationCacheKey(String seedUserId) => 'chat_seed_conv_$seedUserId';
+
+  Future<String?> cachedConversationId(String seedUserId) async {
+    return _prefs.getString(_conversationCacheKey(seedUserId));
+  }
+
+  Future<void> _cacheConversationId(String seedUserId, String conversationId) async {
+    await _prefs.setString(_conversationCacheKey(seedUserId), conversationId);
+  }
+
+  String _mediaStoragePath({
+    required String userId,
+    required String conversationId,
+    required String fileName,
+  }) {
+    return 'chat/$userId/$conversationId/$fileName';
+  }
+
+  String _safeFileName(String name) {
+    final sanitized = name.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    return sanitized.isEmpty ? 'file' : sanitized;
+  }
+
+  Future<String> resolveCurrentUserId() async {
+    return ensureAuthenticatedUserId();
+  }
+
+  bool get isAuthenticated => _client.auth.currentSession != null;
+
+  Future<List<ChatConversation>> loadConversations() async {
+    return loadRemoteConversations();
   }
 
   Future<List<ChatConversation>> _loadRemoteConversations() async {
@@ -112,37 +166,38 @@ final class SupabaseChatRepository {
       return const [];
     }
 
-    final conversations = <ChatConversation>[];
+    final results = await Future.wait(
+      ChatLocalStore.conversationOrder.map((seedUserId) async {
+        final user = SocialSeedRepository.userById(seedUserId);
+        if (user == null) return null;
 
-    for (final seedUserId in ChatLocalStore.conversationOrder) {
-      final user = SocialSeedRepository.userById(seedUserId);
-      if (user == null) continue;
+        try {
+          final conversationId = await _client.rpc<String>(
+            'get_or_create_seeded_conversation',
+            params: {
+              'p_seed_user_id': seedUserId,
+              'p_display_name': user.displayName,
+              'p_username': user.username,
+              'p_avatar_url': user.avatarUrl,
+            },
+          );
 
-      try {
-        final conversationId = await _client.rpc<String>(
-          'get_or_create_seeded_conversation',
-          params: {
-            'p_seed_user_id': seedUserId,
-            'p_display_name': user.displayName,
-            'p_username': user.username,
-            'p_avatar_url': user.avatarUrl,
-          },
-        );
+          await _cacheConversationId(seedUserId, conversationId);
+          return loadConversationSummary(conversationId);
+        } catch (error, stackTrace) {
+          SupabaseOperationError.classify(
+            operation: 'chat_load_seeded_conversation',
+            table: 'conversations',
+            action: 'rpc:get_or_create_seeded_conversation',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          return null;
+        }
+      }),
+    );
 
-        final summary = await loadConversationSummary(conversationId);
-        if (summary != null) conversations.add(summary);
-      } catch (error, stackTrace) {
-        SupabaseOperationError.classify(
-          operation: 'chat_load_seeded_conversation',
-          table: 'conversations',
-          action: 'rpc:get_or_create_seeded_conversation',
-          error: error,
-          stackTrace: stackTrace,
-        );
-      }
-    }
-
-    return conversations;
+    return results.whereType<ChatConversation>().toList();
   }
 
   Future<List<ChatConversation>> _loadRealConversations() async {
@@ -356,17 +411,27 @@ final class SupabaseChatRepository {
 
         final attachmentRows = row.remove('message_attachments');
         final attachments = <ChatAttachment>[];
+        final inlineMediaUrl = row['media_url'] as String?;
 
         if (attachmentRows is List) {
-          for (final attachmentRaw in attachmentRows) {
-            final attachment = ChatAttachment.fromRow(Map<String, dynamic>.from(attachmentRaw as Map));
-            final signed = await _signedUrlForAttachment(attachment);
-            attachments.add(attachment.copyWith(signedUrl: signed));
-          }
+          final resolved = await Future.wait(
+            attachmentRows.map((attachmentRaw) async {
+              final attachment = ChatAttachment.fromRow(
+                Map<String, dynamic>.from(attachmentRaw as Map),
+              );
+              if (inlineMediaUrl != null && inlineMediaUrl.isNotEmpty) {
+                return attachment.copyWith(signedUrl: inlineMediaUrl);
+              }
+              final signed = await _signedUrlForAttachment(attachment);
+              return attachment.copyWith(signedUrl: signed);
+            }),
+          );
+          attachments.addAll(resolved);
         }
 
         parsed.add(ChatMessage.fromRow(row, attachments: attachments));
       }
+      SupabaseDebugLog.merge('loaded ${parsed.length} messages for $conversationId');
       return _attachReplyMetadata(parsed);
     } catch (_) {
       return loadMessages(conversationId);
@@ -423,7 +488,22 @@ final class SupabaseChatRepository {
       },
     );
 
+    await _cacheConversationId(seedUserId, conversationId);
     return loadConversation(conversationId);
+  }
+
+  Future<ChatConversation?> loadCachedSeededConversation(String seedUserId) async {
+    final cachedId = await cachedConversationId(seedUserId);
+    if (cachedId == null || cachedId.isEmpty) return null;
+    try {
+      await ensureAuthenticatedUserId();
+      final summary = await loadConversationSummary(cachedId);
+      if (summary == null) return null;
+      final messages = await loadMessagesWithAttachments(cachedId);
+      return summary.copyWith(messages: messages);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<ChatConversation?> getOrCreateConversationWithUser(String otherUserId) async {
@@ -460,44 +540,46 @@ final class SupabaseChatRepository {
     String? clientTempId,
     String? replyToMessageId,
   }) async {
-    final uid = await ensureAuthenticatedUserId();
-    final trimmed = body.trim();
-    if (trimmed.isEmpty) {
-      throw ArgumentError('Message body cannot be empty');
-    }
+    return _withChatSession((uid) async {
+      final trimmed = body.trim();
+      if (trimmed.isEmpty) {
+        throw ArgumentError('Message body cannot be empty');
+      }
 
-    final insert = await _client
-        .from('messages')
-        .insert({
-          'conversation_id': conversationId,
-          'sender_id': uid,
-          'sender_type': 'user',
-          'body': trimmed,
-          'message_type': 'text',
-          'client_temp_id': ?clientTempId,
-          'reply_to_message_id': ?replyToMessageId,
-        })
-        .select()
-        .single();
+      final insert = await _client
+          .from('messages')
+          .insert({
+            'conversation_id': conversationId,
+            'sender_id': uid,
+            'sender_type': 'user',
+            'body': trimmed,
+            'message_type': 'text',
+            'status': 'sent',
+            'client_temp_id': ?clientTempId,
+            'reply_to_message_id': ?replyToMessageId,
+          })
+          .select()
+          .single();
 
-    await _updateConversationPreview(conversationId, trimmed);
-    return ChatMessage.fromRow(Map<String, dynamic>.from(insert));
+      await _updateConversationPreview(conversationId, trimmed);
+      return ChatMessage.fromRow(Map<String, dynamic>.from(insert));
+    });
   }
 
   Future<String> uploadChatImage({
     required String conversationId,
-    required String messageId,
     required XFile file,
     required Uint8List bytes,
     required String mimeType,
-    bool isSeeded = false,
   }) async {
     final uid = await ensureAuthenticatedUserId();
     final ext = _imageExtension(mimeType, file.name);
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final storagePath = isSeeded
-        ? 'guest/$uid/$conversationId/$messageId/image-$timestamp.$ext'
-        : 'conversations/$conversationId/$uid/$messageId/image-$timestamp.$ext';
+    final storagePath = _mediaStoragePath(
+      userId: uid,
+      conversationId: conversationId,
+      fileName: '${timestamp}_${_safeFileName(file.name.isEmpty ? 'photo.$ext' : file.name)}',
+    );
 
     await _client.storage.from(bucket).uploadBinary(
           storagePath,
@@ -508,14 +590,6 @@ final class SupabaseChatRepository {
     return storagePath;
   }
 
-  Future<bool> _isSeededConversation(String conversationId) async {
-    final row = await _client
-        .from('conversations')
-        .select('is_seeded')
-        .eq('id', conversationId)
-        .maybeSingle();
-    return row?['is_seeded'] == true;
-  }
 
   Future<ChatMessage> sendImageMessage({
     required String conversationId,
@@ -526,76 +600,79 @@ final class SupabaseChatRepository {
     int? height,
     String? clientTempId,
   }) async {
-    final uid = await ensureAuthenticatedUserId();
-    final messageId = _uuid.v4();
-    final trimmedCaption = caption.trim();
-    final mimeType = _imageMimeType(file.name);
-    final messageType = trimmedCaption.isEmpty ? 'image' : 'mixed';
-    final isSeeded = await _isSeededConversation(conversationId);
+    return _withChatSession((uid) async {
+      final messageId = _uuid.v4();
+      final trimmedCaption = caption.trim();
+      final mimeType = _imageMimeType(file.name);
+      final messageType = trimmedCaption.isEmpty ? 'image' : 'mixed';
 
-    final storagePath = await uploadChatImage(
-      conversationId: conversationId,
-      messageId: messageId,
-      file: file,
-      bytes: bytes,
-      mimeType: mimeType,
-      isSeeded: isSeeded,
-    );
+      final storagePath = await uploadChatImage(
+        conversationId: conversationId,
+        file: file,
+        bytes: bytes,
+        mimeType: mimeType,
+      );
+      final mediaUrl = await _publicOrSignedUrl(storagePath);
 
-    Map<String, dynamic> messageRow;
-    try {
-      messageRow = Map<String, dynamic>.from(await _client
-          .from('messages')
-          .insert({
-            'id': messageId,
-            'conversation_id': conversationId,
-            'sender_id': uid,
-            'sender_type': 'user',
-            'body': trimmedCaption,
-            'message_type': messageType,
-            'client_temp_id': ?clientTempId,
-          })
-          .select()
-          .single());
-    } catch (error) {
-      await _client.storage.from(bucket).remove([storagePath]);
-      rethrow;
-    }
+      Map<String, dynamic> messageRow;
+      try {
+        messageRow = Map<String, dynamic>.from(await _client
+            .from('messages')
+            .insert({
+              'id': messageId,
+              'conversation_id': conversationId,
+              'sender_id': uid,
+              'sender_type': 'user',
+              'body': trimmedCaption,
+              'message_type': messageType,
+              'status': 'sent',
+              'media_bucket': bucket,
+              'media_path': storagePath,
+              'media_url': mediaUrl,
+              'client_temp_id': ?clientTempId,
+            })
+            .select()
+            .single());
+      } catch (error) {
+        await _client.storage.from(bucket).remove([storagePath]);
+        rethrow;
+      }
 
-    Map<String, dynamic> attachmentRow;
-    try {
-      attachmentRow = Map<String, dynamic>.from(await _client
-          .from('message_attachments')
-          .insert({
-            'message_id': messageId,
-            'conversation_id': conversationId,
-            'uploader_id': uid,
-            'storage_bucket': bucket,
-            'storage_path': storagePath,
-            'mime_type': mimeType,
-            'size_bytes': bytes.length,
-            'width': ?width,
-            'height': ?height,
-            'original_file_name': file.name,
-          })
-          .select()
-          .single());
-    } catch (error) {
-      await _client.from('messages').delete().eq('id', messageId);
-      await _client.storage.from(bucket).remove([storagePath]);
-      rethrow;
-    }
+      Map<String, dynamic> attachmentRow;
+      try {
+        attachmentRow = Map<String, dynamic>.from(await _client
+            .from('message_attachments')
+            .insert({
+              'message_id': messageId,
+              'conversation_id': conversationId,
+              'uploader_id': uid,
+              'storage_bucket': bucket,
+              'storage_path': storagePath,
+              'mime_type': mimeType,
+              'size_bytes': bytes.length,
+              'width': ?width,
+              'height': ?height,
+              'original_file_name': file.name,
+            })
+            .select()
+            .single());
+      } catch (error) {
+        await _client.from('messages').delete().eq('id', messageId);
+        await _client.storage.from(bucket).remove([storagePath]);
+        rethrow;
+      }
 
-    final attachment = ChatAttachment.fromRow(attachmentRow);
-    final signedUrl = await _signedUrlForAttachment(attachment);
+      final attachment = ChatAttachment.fromRow(attachmentRow);
+      final signedUrl = mediaUrl ?? await _signedUrlForAttachment(attachment);
 
-    final preview = trimmedCaption.isEmpty ? 'Photo' : trimmedCaption;
-    await _updateConversationPreview(conversationId, preview);
+      final preview = trimmedCaption.isEmpty ? 'Photo' : trimmedCaption;
+      await _updateConversationPreview(conversationId, preview);
 
-    return ChatMessage.fromRow(
-      messageRow,
-      attachments: [attachment.copyWith(signedUrl: signedUrl)],
-    );
+      return ChatMessage.fromRow(
+        messageRow,
+        attachments: [attachment.copyWith(signedUrl: signedUrl)],
+      );
+    });
   }
 
   Future<ChatMessage> sendVoiceMessage({
@@ -605,76 +682,142 @@ final class SupabaseChatRepository {
     required List<double> waveform,
     String? clientTempId,
   }) async {
-    final uid = await ensureAuthenticatedUserId();
-    final messageId = _uuid.v4();
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final isSeeded = await _isSeededConversation(conversationId);
-    final storagePath = isSeeded
-        ? 'guest/$uid/$conversationId/$messageId/voice-$timestamp.m4a'
-        : 'conversations/$conversationId/$uid/$messageId/voice-$timestamp.m4a';
-    final file = File(localFilePath);
-    final bytes = await file.readAsBytes();
-    const mimeType = 'audio/m4a';
+    return _withChatSession((uid) async {
+      final messageId = _uuid.v4();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final storagePath = _mediaStoragePath(
+        userId: uid,
+        conversationId: conversationId,
+        fileName: '${timestamp}_voice.m4a',
+      );
+      final file = File(localFilePath);
+      final bytes = await file.readAsBytes();
+      const mimeType = 'audio/m4a';
 
-    await _client.storage.from(bucket).uploadBinary(
-          storagePath,
-          bytes,
-          fileOptions: FileOptions(contentType: mimeType, upsert: false),
-        );
+      await _client.storage.from(bucket).uploadBinary(
+            storagePath,
+            bytes,
+            fileOptions: FileOptions(contentType: mimeType, upsert: false),
+          );
 
-    Map<String, dynamic> messageRow;
+      final mediaUrl = await _publicOrSignedUrl(storagePath);
+
+      Map<String, dynamic> messageRow;
+      try {
+        messageRow = Map<String, dynamic>.from(await _client
+            .from('messages')
+            .insert({
+              'id': messageId,
+              'conversation_id': conversationId,
+              'sender_id': uid,
+              'sender_type': 'user',
+              'body': '',
+              'message_type': 'voice',
+              'status': 'sent',
+              'media_bucket': bucket,
+              'media_path': storagePath,
+              'media_url': mediaUrl,
+              'audio_duration_ms': durationMs,
+              'audio_waveform': waveform,
+              'client_temp_id': ?clientTempId,
+            })
+            .select()
+            .single());
+      } catch (error) {
+        await _client.storage.from(bucket).remove([storagePath]);
+        rethrow;
+      }
+
+      Map<String, dynamic> attachmentRow;
+      try {
+        attachmentRow = Map<String, dynamic>.from(await _client
+            .from('message_attachments')
+            .insert({
+              'message_id': messageId,
+              'conversation_id': conversationId,
+              'uploader_id': uid,
+              'storage_bucket': bucket,
+              'storage_path': storagePath,
+              'mime_type': mimeType,
+              'size_bytes': bytes.length,
+              'duration_ms': durationMs,
+              'waveform': waveform,
+              'original_file_name': 'voice-$timestamp.m4a',
+            })
+            .select()
+            .single());
+      } catch (error) {
+        await _client.from('messages').delete().eq('id', messageId);
+        await _client.storage.from(bucket).remove([storagePath]);
+        rethrow;
+      }
+
+      final attachment = ChatAttachment.fromRow(attachmentRow);
+      final signedUrl = mediaUrl ?? await _signedUrlForAttachment(attachment);
+
+      await _updateConversationPreview(conversationId, 'Voice message');
+
+      return ChatMessage.fromRow(
+        messageRow,
+        attachments: [attachment.copyWith(signedUrl: signedUrl)],
+      );
+    });
+  }
+
+  Future<String?> _publicOrSignedUrl(String storagePath) async {
     try {
-      messageRow = Map<String, dynamic>.from(await _client
+      return await _client.storage.from(bucket).createSignedUrl(storagePath, 3600);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ChatMessage?> updateMessageDeliveryStatus({
+    required String messageId,
+    required String conversationId,
+    required ChatDeliveryStatus status,
+  }) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    final patch = <String, dynamic>{
+      'status': ChatMessage.deliveryStatusToDb(status),
+    };
+    if (status == ChatDeliveryStatus.delivered) {
+      patch['delivered_at'] = now;
+    }
+    if (status == ChatDeliveryStatus.read) {
+      patch['read_at'] = now;
+      patch['delivered_at'] = now;
+    }
+
+    try {
+      final updated = await _client
           .from('messages')
-          .insert({
-            'id': messageId,
-            'conversation_id': conversationId,
-            'sender_id': uid,
-            'sender_type': 'user',
-            'body': '',
-            'message_type': 'voice',
-            'client_temp_id': clientTempId,
-          })
+          .update(patch)
+          .eq('id', messageId)
+          .eq('conversation_id', conversationId)
           .select()
-          .single());
-    } catch (error) {
-      await _client.storage.from(bucket).remove([storagePath]);
-      rethrow;
+          .single();
+      return ChatMessage.fromRow(Map<String, dynamic>.from(updated));
+    } catch (_) {
+      return null;
     }
+  }
 
-    Map<String, dynamic> attachmentRow;
+  Future<void> markOutgoingMessagesRead(String conversationId) async {
     try {
-      attachmentRow = Map<String, dynamic>.from(await _client
-          .from('message_attachments')
-          .insert({
-            'message_id': messageId,
-            'conversation_id': conversationId,
-            'uploader_id': uid,
-            'storage_bucket': bucket,
-            'storage_path': storagePath,
-            'mime_type': mimeType,
-            'size_bytes': bytes.length,
-            'duration_ms': durationMs,
-            'waveform': waveform,
-            'original_file_name': 'voice-$timestamp.m4a',
+      final uid = await ensureAuthenticatedUserId();
+      final now = DateTime.now().toUtc().toIso8601String();
+      await _client
+          .from('messages')
+          .update({
+            'status': 'read',
+            'read_at': now,
+            'delivered_at': now,
           })
-          .select()
-          .single());
-    } catch (error) {
-      await _client.from('messages').delete().eq('id', messageId);
-      await _client.storage.from(bucket).remove([storagePath]);
-      rethrow;
-    }
-
-    final attachment = ChatAttachment.fromRow(attachmentRow);
-    final signedUrl = await _signedUrlForAttachment(attachment);
-
-    await _updateConversationPreview(conversationId, 'Voice message');
-
-    return ChatMessage.fromRow(
-      messageRow,
-      attachments: [attachment.copyWith(signedUrl: signedUrl)],
-    );
+          .eq('conversation_id', conversationId)
+          .eq('sender_id', uid)
+          .neq('status', 'read');
+    } catch (_) {}
   }
 
   Future<String?> refreshSignedUrl(ChatAttachment attachment) {
@@ -764,6 +907,7 @@ final class SupabaseChatRepository {
           },
         )
         .subscribe();
+    SupabaseDebugLog.realtime('subscribed messages conversation=$conversationId');
   }
 
   void unsubscribeFromMessages() {
@@ -846,6 +990,7 @@ final class SupabaseChatRepository {
         .from('messages')
         .update({
           'deleted_at': DateTime.now().toUtc().toIso8601String(),
+          'deleted_for_everyone': true,
           'body': '',
         })
         .eq('id', messageId)

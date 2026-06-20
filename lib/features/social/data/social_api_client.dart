@@ -3,7 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/auth_session_service.dart';
 import '../../../core/device_user_id.dart';
+import '../../../core/supabase_debug_log.dart';
 import '../../feed/domain/feed_story.dart';
 import '../../profile/domain/user_profile.dart';
 import '../domain/feed_comment.dart';
@@ -30,8 +32,15 @@ final class SocialApiClient {
     return _currentUserId!;
   }
 
+  Future<void> _ensureReady() async {
+    await AuthSessionService.ensureSupabaseSession();
+    await currentUserId();
+  }
+
   Future<void> ensureProfile(UserProfile profile) async {
+    await _ensureReady();
     final uid = await currentUserId();
+    SupabaseDebugLog.database('ensureProfile user=$uid');
     await _client.from('profiles').upsert({
       'id': uid,
       'display_name': profile.displayName,
@@ -125,30 +134,36 @@ final class SocialApiClient {
   }
 
   Future<String> uploadImage(XFile file, String folder) async {
+    await _ensureReady();
     final uid = await currentUserId();
     final ext = file.name.split('.').last.toLowerCase();
     final safeExt = ext.length <= 5 ? ext : 'jpg';
     final path = '$uid/$folder/${DateTime.now().microsecondsSinceEpoch}.$safeExt';
     final bytes = await file.readAsBytes();
+    SupabaseDebugLog.storage('upload start bucket=$bucket path=$path');
     await _client.storage.from(bucket).uploadBinary(
           path,
           bytes,
           fileOptions: FileOptions(contentType: _contentType(safeExt), upsert: true),
         );
+    SupabaseDebugLog.storage('upload success bucket=$bucket path=$path');
     return _client.storage.from(bucket).getPublicUrl(path);
   }
 
   Future<String> uploadStoryImage(XFile file, String storyId) async {
+    await _ensureReady();
     final uid = await currentUserId();
     final ext = file.name.split('.').last.toLowerCase();
     final safeExt = ext.length <= 5 ? ext : 'jpg';
     final path = '$uid/$storyId-${DateTime.now().millisecondsSinceEpoch}.$safeExt';
     final bytes = await file.readAsBytes();
+    SupabaseDebugLog.storage('upload start bucket=$storyBucket path=$path');
     await _client.storage.from(storyBucket).uploadBinary(
           path,
           bytes,
           fileOptions: FileOptions(contentType: _contentType(safeExt), upsert: false),
         );
+    SupabaseDebugLog.storage('upload success bucket=$storyBucket path=$path');
     return path;
   }
 
@@ -197,8 +212,10 @@ final class SocialApiClient {
     String caption = '',
     required StoryUser ownStoryUser,
   }) async {
+    await _ensureReady();
     final uid = await currentUserId();
     final storyId = const Uuid().v4();
+    SupabaseDebugLog.database('createStory start user=$uid story=$storyId');
     final mediaPath = await uploadStoryImage(image, storyId);
     final mediaUrl = storyMediaPublicUrl(mediaPath);
 
@@ -210,10 +227,7 @@ final class SocialApiClient {
       'media_type': 'image',
       'caption': caption.trim(),
     });
-
-    final activeStories = await fetchActiveStories();
-    final ownStory = activeStories.where((story) => story.user.id == uid).firstOrNull;
-    if (ownStory != null) return ownStory;
+    SupabaseDebugLog.database('createStory success story=$storyId');
 
     return FeedStory(
       id: 'story_$uid',
@@ -261,9 +275,11 @@ final class SocialApiClient {
   }
 
   Future<void> createPost({required String caption, required List<XFile> images}) async {
+    await _ensureReady();
     final uid = await currentUserId();
     final now = DateTime.now().microsecondsSinceEpoch.toString();
     final postId = 'post_$now';
+    SupabaseDebugLog.database('createPost start user=$uid post=$postId');
     await _client.from('feed_posts').insert({
       'id': postId,
       'user_id': uid,
@@ -271,20 +287,25 @@ final class SocialApiClient {
       'visibility': 'public',
     });
 
-    final mediaRows = <Map<String, dynamic>>[];
-    for (var i = 0; i < images.length; i++) {
-      final url = await uploadImage(images[i], 'posts/$postId');
-      mediaRows.add({
-        'id': '${postId}_media_$i',
-        'post_id': postId,
-        'media_url': url,
-        'media_path': url,
-        'sort_order': i,
-      });
-    }
+    if (images.isEmpty) return;
+
+    final mediaRows = await Future.wait(
+      images.asMap().entries.map((entry) async {
+        final i = entry.key;
+        final url = await uploadImage(entry.value, 'posts/$postId');
+        return {
+          'id': '${postId}_media_$i',
+          'post_id': postId,
+          'media_url': url,
+          'media_path': url,
+          'sort_order': i,
+        };
+      }),
+    );
     if (mediaRows.isNotEmpty) {
       await _client.from('feed_post_media').insert(mediaRows);
     }
+    SupabaseDebugLog.database('createPost success post=$postId media=${mediaRows.length}');
   }
 
   Future<void> deletePost(String postId) async {

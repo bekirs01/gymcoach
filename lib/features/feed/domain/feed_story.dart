@@ -22,12 +22,17 @@ class FeedStorySlide {
   const FeedStorySlide({
     this.imageUrl,
     this.imageBytes,
+    this.localPath,
   });
 
   final String? imageUrl;
   final Uint8List? imageBytes;
+  final String? localPath;
 
-  bool get hasContent => (imageUrl != null && imageUrl!.isNotEmpty) || imageBytes != null;
+  bool get hasContent =>
+      (imageUrl != null && imageUrl!.isNotEmpty) ||
+      imageBytes != null ||
+      (localPath != null && localPath!.isNotEmpty);
 }
 
 class FeedStory {
@@ -36,23 +41,42 @@ class FeedStory {
     required this.user,
     required this.slides,
     this.latestAt,
+    this.localId,
+    this.isPendingUpload = false,
+    this.uploadFailed = false,
   });
 
   final String id;
   final StoryUser user;
   final List<FeedStorySlide> slides;
   final DateTime? latestAt;
+  final String? localId;
+  final bool isPendingUpload;
+  final bool uploadFailed;
 
   bool get hasSlides => slides.any((slide) => slide.hasContent);
 
-  FeedStory copyWithUser(StoryUser user) {
+  FeedStory copyWith({
+    String? id,
+    StoryUser? user,
+    List<FeedStorySlide>? slides,
+    DateTime? latestAt,
+    String? localId,
+    bool? isPendingUpload,
+    bool? uploadFailed,
+  }) {
     return FeedStory(
-      id: id,
-      user: user,
-      slides: slides,
-      latestAt: latestAt,
+      id: id ?? this.id,
+      user: user ?? this.user,
+      slides: slides ?? this.slides,
+      latestAt: latestAt ?? this.latestAt,
+      localId: localId ?? this.localId,
+      isPendingUpload: isPendingUpload ?? this.isPendingUpload,
+      uploadFailed: uploadFailed ?? this.uploadFailed,
     );
   }
+
+  FeedStory copyWithUser(StoryUser user) => copyWith(user: user);
 
   static FeedStory fromStoryRows(
     String userId,

@@ -46,7 +46,7 @@ class _GymCoachAppState extends State<GymCoachApp> {
   Locale _localeFromCode(String? code) {
     return switch (code) {
       'ru' => const Locale('ru'),
-      'tr' => const Locale('en'),
+      'tr' => const Locale('tr'),
       _ => const Locale('en'),
     };
   }
@@ -82,7 +82,7 @@ class _GymCoachAppState extends State<GymCoachApp> {
       theme: AppTheme.light(),
       locale: _locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: const [Locale('en'), Locale('ru')],
+      supportedLocales: const [Locale('en'), Locale('ru'), Locale('tr')],
       home: _TrainingBootstrap(
         training: _training!,
         onLocaleChanged: _setLocale,

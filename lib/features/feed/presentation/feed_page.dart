@@ -1,9 +1,14 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/premium_tokens.dart';
+import '../../../core/auth_session_service.dart';
+import '../../../core/offline/local_feed_cache.dart';
+import '../../../core/offline/offline_sync_service.dart';
+import '../../../core/supabase_debug_log.dart';
 import '../../../app/widgets/floating_tab_bar.dart';
 import '../../../app/widgets/premium_background.dart';
 import '../../profile/domain/user_profile.dart';
@@ -52,6 +57,8 @@ class _FeedPageState extends State<FeedPage> {
   List<FeedStory> _apiStories = const [];
   String? _deviceUserId;
   String? _avatarUrlOverride;
+  OfflineSyncService? _offlineSync;
+  VoidCallback? _feedSyncListener;
 
   StoryUser get _ownStoryUser => SocialSeedRepository.ownStoryUser(
         widget.profile,
@@ -81,29 +88,124 @@ class _FeedPageState extends State<FeedPage> {
   void initState() {
     super.initState();
     _feedPosts = SocialSeedRepository.allFeedPosts(currentProfile: widget.profile);
+    unawaited(_loadPendingFeed());
     unawaited(_bootstrap());
+  }
+
+  @override
+  void dispose() {
+    final listener = _feedSyncListener;
+    final sync = _offlineSync;
+    if (listener != null && sync != null) {
+      sync.removeFeedListener(listener);
+    }
+    super.dispose();
+  }
+
+  Future<void> _loadPendingFeed() async {
+    await LocalFeedCache.instance.ensureLoaded();
+    final pendingPosts = LocalFeedCache.instance.pendingPosts();
+    final pendingStories = LocalFeedCache.instance.pendingStories();
+    if (!mounted) return;
+    if (pendingPosts.isNotEmpty) {
+      setState(() {
+        _feedPosts = LocalFeedCache.mergePosts(remote: _feedPosts, local: pendingPosts);
+      });
+    }
+    if (pendingStories.isNotEmpty) {
+      final own = pendingStories.where((story) => story.user.isCurrentUser).firstOrNull;
+      if (own != null) {
+        setState(() => _userStory = own.copyWithUser(_ownStoryUser));
+      }
+    }
+  }
+
+  Future<void> _initOfflineSync(SharedPreferences prefs) async {
+    final sync = await OfflineSyncService.ensureInitialized(prefs);
+    _offlineSync = sync;
+    _feedSyncListener = () {
+      unawaited(_onFeedSyncUpdate());
+    };
+    sync.addFeedListener(_feedSyncListener!);
+    sync.start();
+  }
+
+  Future<void> _onFeedSyncUpdate() async {
+    await _loadPendingFeed();
+    await _syncApiPosts(allowNewPosts: true);
+    await _syncStories();
   }
 
   Future<void> _bootstrap() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      await _initOfflineSync(prefs);
+      try {
+        await AuthSessionService.ensureSupabaseSession();
+      } catch (_) {}
       final client = SocialApiClient(prefs: prefs);
-      await client.ensureProfile(widget.profile);
       final deviceUserId = await client.currentUserId();
-      final apiProfile = await client.getCurrentProfile();
       if (!mounted) return;
       setState(() {
         _client = client;
         _shareRepository = WorkoutShareRepository(prefs: prefs);
         _deviceUserId = deviceUserId;
-        if (apiProfile != null && apiProfile.avatarUrl.trim().isNotEmpty) {
-          _avatarUrlOverride = apiProfile.avatarUrl.trim();
-        }
       });
-      await _syncApiPosts();
-      await _syncStories();
-    } catch (_) {
+      unawaited(client.ensureProfile(widget.profile).then((_) async {
+        final apiProfile = await client.getCurrentProfile();
+        if (!mounted) return;
+        if (apiProfile != null && apiProfile.avatarUrl.trim().isNotEmpty) {
+          setState(() => _avatarUrlOverride = apiProfile.avatarUrl.trim());
+        }
+      }));
+      await Future.wait([
+        _syncApiPosts(),
+        _syncStories(),
+      ]);
+    } catch (error, stackTrace) {
+      SupabaseDebugLog.database('feed bootstrap failed: $error');
+      if (kDebugMode) debugPrintStack(stackTrace: stackTrace);
       if (!mounted) return;
+    }
+  }
+
+  Future<SocialApiClient?> _ensureClient() async {
+    final existing = _client;
+    if (existing != null) return existing;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await _initOfflineSync(prefs);
+      try {
+        await AuthSessionService.ensureSupabaseSession();
+      } catch (_) {}
+      final client = SocialApiClient(prefs: prefs);
+      final deviceUserId = await client.currentUserId();
+      if (!mounted) return null;
+      setState(() {
+        _client = client;
+        _shareRepository ??= WorkoutShareRepository(prefs: prefs);
+        _deviceUserId = deviceUserId;
+      });
+      unawaited(client.ensureProfile(widget.profile));
+      return client;
+    } catch (error, stackTrace) {
+      SupabaseDebugLog.database('feed ensureClient failed: $error');
+      if (kDebugMode) debugPrintStack(stackTrace: stackTrace);
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await _initOfflineSync(prefs);
+        final client = SocialApiClient(prefs: prefs);
+        final deviceUserId = await client.currentUserId();
+        if (!mounted) return null;
+        setState(() {
+          _client = client;
+          _shareRepository ??= WorkoutShareRepository(prefs: prefs);
+          _deviceUserId = deviceUserId;
+        });
+        return client;
+      } catch (_) {
+        return null;
+      }
     }
   }
 
@@ -113,9 +215,13 @@ class _FeedPageState extends State<FeedPage> {
     try {
       final apiPosts = await client.fetchFeed();
       if (!mounted) return;
-      final merged = SocialSeedRepository.mergeWithApiPosts(
-        apiPosts,
-        currentProfile: widget.profile,
+      final pending = LocalFeedCache.instance.pendingPosts();
+      final merged = LocalFeedCache.mergePosts(
+        remote: SocialSeedRepository.mergeWithApiPosts(
+          apiPosts,
+          currentProfile: widget.profile,
+        ),
+        local: pending,
       );
       setState(() {
         if (allowNewPosts) {
@@ -180,43 +286,34 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Future<void> _createPost() async {
-    final client = _client;
-    if (client != null) {
-      final created = await showCreatePostSheet(context: context, client: client);
-      if (created == true) {
-        await _syncApiPosts(allowNewPosts: true);
-      }
-      return;
-    }
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Post creation coming soon'),
-        behavior: SnackBarBehavior.floating,
-      ),
+    final client = await _ensureClient();
+    if (client == null || !mounted) return;
+    final created = await showCreatePostSheet(
+      context: context,
+      client: client,
+      profile: widget.profile,
+      offlineSync: _offlineSync,
     );
+    if (created != null && mounted) {
+      setState(() {
+        _feedPosts = LocalFeedCache.mergePosts(remote: _feedPosts, local: [created]);
+      });
+    }
+    unawaited(_syncApiPosts(allowNewPosts: true));
   }
 
   Future<void> _openCreateStory() async {
-    final client = _client;
-    if (client == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Story upload is unavailable right now. Check your connection and try again.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
+    final client = await _ensureClient();
+    if (client == null || !mounted) return;
     final story = await showCreateStorySheet(
       context: context,
       client: client,
       ownStoryUser: _ownStoryUser,
+      offlineSync: _offlineSync,
     );
     if (!mounted || story == null) return;
     setState(() => _userStory = story);
-    await _syncStories();
+    unawaited(_syncStories());
   }
 
   Future<bool> _checkWorkoutCopied(String postId) async {
@@ -229,13 +326,6 @@ class _FeedPageState extends State<FeedPage> {
     final repo = _shareRepository;
     final addPlan = widget.onAddCopiedWorkout;
     if (repo == null || addPlan == null) {
-      if (!mounted) return false;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Workout copy is unavailable right now.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
       return false;
     }
 

@@ -7,6 +7,7 @@ import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
 import 'app_localizations_ru.dart';
+import 'app_localizations_tr.dart';
 
 // ignore_for_file: type=lint
 
@@ -96,6 +97,7 @@ abstract class AppLocalizations {
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('ru'),
+    Locale('tr'),
   ];
 
   /// No description provided for @appTitle.
@@ -3229,6 +3231,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Report post'**
   String get feedReportPost;
+
+  /// No description provided for @chatMessagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get chatMessagesTitle;
+
+  /// No description provided for @chatSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get chatSearch;
+
+  /// No description provided for @chatNoConversations.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations found'**
+  String get chatNoConversations;
+
+  /// No description provided for @chatStartConversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Start the conversation'**
+  String get chatStartConversation;
+
+  /// No description provided for @chatCouldNotLoadConversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load conversation'**
+  String get chatCouldNotLoadConversation;
+
+  /// No description provided for @chatRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get chatRetry;
+
+  /// No description provided for @chatVoiceMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice message'**
+  String get chatVoiceMessage;
+
+  /// No description provided for @chatPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get chatPhoto;
+
+  /// No description provided for @chatMessageDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Message deleted'**
+  String get chatMessageDeleted;
+
+  /// No description provided for @chatFailedToSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send'**
+  String get chatFailedToSend;
+
+  /// No description provided for @chatEdited.
+  ///
+  /// In en, this message translates to:
+  /// **'edited'**
+  String get chatEdited;
+
+  /// No description provided for @chatYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get chatYou;
+
+  /// No description provided for @chatEditingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Editing message'**
+  String get chatEditingMessage;
+
+  /// No description provided for @chatCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get chatCopy;
+
+  /// No description provided for @chatCopyCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy caption'**
+  String get chatCopyCaption;
+
+  /// No description provided for @chatReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get chatReply;
+
+  /// No description provided for @chatShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get chatShare;
+
+  /// No description provided for @chatSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get chatSave;
+
+  /// No description provided for @chatDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete message'**
+  String get chatDeleteMessage;
+
+  /// No description provided for @chatDeleteForEveryone.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete for everyone'**
+  String get chatDeleteForEveryone;
+
+  /// No description provided for @chatDeleteForMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete for me'**
+  String get chatDeleteForMe;
+
+  /// No description provided for @chatDeletePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete message?'**
+  String get chatDeletePrompt;
+
+  /// No description provided for @chatDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get chatDetails;
+
+  /// No description provided for @chatRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get chatRemove;
+
+  /// No description provided for @chatCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get chatCopied;
+
+  /// No description provided for @chatSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get chatSaved;
+
+  /// No description provided for @chatMessageDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Message details'**
+  String get chatMessageDetails;
+
+  /// No description provided for @chatDetailFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get chatDetailFrom;
+
+  /// No description provided for @chatDetailSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get chatDetailSent;
+
+  /// No description provided for @chatDetailType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get chatDetailType;
+
+  /// No description provided for @chatDetailStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get chatDetailStatus;
+
+  /// No description provided for @chatEditMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit message'**
+  String get chatEditMessage;
+
+  /// No description provided for @chatMicrophoneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission is required'**
+  String get chatMicrophoneRequired;
 }
 
 class _AppLocalizationsDelegate
@@ -3242,7 +3442,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'ru'].contains(locale.languageCode);
+      <String>['en', 'ru', 'tr'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -3255,6 +3455,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsEn();
     case 'ru':
       return AppLocalizationsRu();
+    case 'tr':
+      return AppLocalizationsTr();
   }
 
   throw FlutterError(

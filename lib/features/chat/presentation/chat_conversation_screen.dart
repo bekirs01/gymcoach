@@ -1,16 +1,25 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gym/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
 import '../../../core/auth_session_service.dart';
+import '../../../core/offline/local_chat_cache.dart';
+import '../../../core/offline/offline_sync_service.dart';
+import '../../../core/offline/outbox_media_store.dart';
 import '../../../core/supabase_operation_error.dart';
 import '../../feed/presentation/social_avatar.dart';
+import '../../social/data/social_seed_data.dart';
 import '../data/chat_local_store.dart';
 import '../data/chat_repository.dart';
 import '../data/supabase_chat_repository.dart';
@@ -22,7 +31,9 @@ import '../domain/chat_conversation.dart';
 import '../domain/chat_message.dart';
 import 'chat_attachment_picker_sheet.dart';
 import 'chat_image_viewer_screen.dart';
+import 'chat_media_actions.dart';
 import 'chat_message_actions_sheet.dart';
+import 'chat_message_status_tick.dart';
 import 'chat_voice_recorder.dart';
 import 'voice_message_bubble.dart';
 
@@ -53,9 +64,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   ChatConversation? _conversation;
   String? _currentUserId;
   var _hasText = false;
-  var _loading = true;
+  var _loading = false;
+  var _syncingRemote = false;
   var _loadFailed = false;
-  String? _loadErrorMessage;
   var _sendingImage = false;
   var _voiceComposerActive = false;
   final _pendingTempIds = <String>{};
@@ -66,32 +77,118 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   ChatMessage? _replyTarget;
   ChatMessage? _editingMessage;
   String? _highlightedMessageId;
+  OfflineSyncService? _offlineSync;
+  ChatSyncListener? _chatSyncListener;
 
   @override
   void initState() {
     super.initState();
     _textController.addListener(_onTextChanged);
-    _bootstrap();
+    _showLocalConversationFirst();
+    _initOfflineSync();
+    _syncRemoteConversation();
   }
 
-  Future<void> _bootstrap() async {
-    await _loadRemoteConversation();
+  Future<void> _initOfflineSync() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sync = await OfflineSyncService.ensureInitialized(prefs);
+    if (!mounted) return;
+    _offlineSync = sync;
+    _chatSyncListener = (conversationId) {
+      if (widget.conversationId != null) {
+        if (widget.conversationId == conversationId) {
+          _reloadMessagesFromCache(conversationId);
+        }
+      } else {
+        final conversation = _conversation;
+        if (conversation != null &&
+            !conversation.id.startsWith('conv_') &&
+            conversation.id == conversationId) {
+          _reloadMessagesFromCache(conversationId);
+        }
+      }
+    };
+    sync.addChatListener(_chatSyncListener!);
+    sync.start();
   }
 
-  Future<void> _loadRemoteConversation() async {
+  void _reloadMessagesFromCache(String conversationId) {
+    final cached = LocalChatCache.instance.conversationFor(conversationId);
+    if (cached == null || !mounted) return;
+    final current = _conversation;
+    if (current == null) return;
     setState(() {
-      _loading = true;
-      _loadFailed = false;
-      _loadErrorMessage = null;
+      _conversation = current.copyWith(
+        messages: _attachReplyMetadata(cached.messages),
+        cachedLastMessageText: cached.cachedLastMessageText ?? current.cachedLastMessageText,
+        cachedLastMessageTime: cached.cachedLastMessageTime ?? current.cachedLastMessageTime,
+      );
+      _seedMessageIds(cached.messages);
     });
+  }
+
+  void _showLocalConversationFirst() {
+    ChatLocalStore.ensureInitialized();
+    ChatConversation? local;
+
+    if (widget.conversationId != null) {
+      local = LocalChatCache.instance.conversationFor(widget.conversationId!);
+    }
+    local ??= ChatLocalStore.conversationForUser(widget.participantUserId);
+
+    if (local == null) {
+      setState(() => _loading = true);
+      return;
+    }
+
+    _currentUserId = Supabase.instance.client.auth.currentUser?.id ??
+        SocialSeedRepository.currentUserId;
+    _conversation = local.copyWith(messages: _attachReplyMetadata(local.messages));
+    _seedMessageIds(local.messages);
+    setState(() => _loading = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: false));
+  }
+
+  Future<void> _syncRemoteConversation() async {
+    if (_syncingRemote) return;
+    _syncingRemote = true;
+
+    final hadLocal = _conversation != null;
 
     try {
-      await AuthSessionService.ensureSession();
       final prefs = await SharedPreferences.getInstance();
       final repository = SupabaseChatRepository(prefs: prefs);
-      final currentUserId = await repository.ensureAuthenticatedUserId();
-      ChatConversation? conversation;
+      _repository = repository;
 
+      await AuthSessionService.ensureSupabaseSession();
+      final currentUserId = await repository.ensureAuthenticatedUserId();
+      _currentUserId = currentUserId;
+
+      if (ChatRepository.isDemoParticipant(widget.participantUserId) &&
+          widget.conversationId == null) {
+        final cachedId = await repository.cachedConversationId(widget.participantUserId);
+        if (cachedId != null && cachedId.isNotEmpty) {
+          final local = ChatLocalStore.conversationForUser(widget.participantUserId);
+          if (local != null && mounted) {
+            setState(() {
+              _conversation = local.copyWith(
+                id: cachedId,
+                isRemote: true,
+                isSeeded: true,
+              );
+              _loading = false;
+              _loadFailed = false;
+            });
+          }
+        }
+        final cachedConversation =
+            await repository.loadCachedSeededConversation(widget.participantUserId);
+        if (cachedConversation != null && mounted) {
+          _applyRemoteConversation(repository, cachedConversation, currentUserId);
+        }
+      }
+
+      ChatConversation? conversation;
       if (widget.conversationId != null) {
         conversation = await repository.loadConversation(widget.conversationId!);
       } else if (ChatRepository.isDemoParticipant(widget.participantUserId)) {
@@ -103,45 +200,74 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       if (!mounted) return;
 
       if (conversation == null) {
-        setState(() {
-          _loading = false;
-          _loadFailed = true;
-          _loadErrorMessage = 'Could not load conversation';
-        });
+        if (!hadLocal && _conversation == null) {
+          setState(() {
+            _loading = false;
+            _loadFailed = true;
+          });
+        }
         return;
       }
 
-      _repository = repository;
-      _currentUserId = currentUserId;
-      _conversation = conversation.copyWith(
-        messages: _attachReplyMetadata(conversation.messages),
-      );
-      _seedMessageIds(conversation.messages);
-
-      repository.subscribeToMessages(
-        conversationId: conversation.id,
-        onInsert: _onRemoteMessageInserted,
-        onUpdate: _onRemoteMessageUpdated,
-      );
-
-      await repository.markConversationRead(conversation.id);
-
-      setState(() => _loading = false);
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: false));
+      _applyRemoteConversation(repository, conversation, currentUserId);
     } catch (error, stackTrace) {
-      final mapped = SupabaseOperationError.classify(
+      SupabaseOperationError.classify(
         operation: 'chat_load_conversation',
         error: error,
         stackTrace: stackTrace,
         fallbackMessage: 'Could not start guest session',
       );
       if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _loadFailed = true;
-        _loadErrorMessage = mapped.userMessage;
-      });
+      if (!hadLocal && _conversation == null) {
+        setState(() {
+          _loading = false;
+          _loadFailed = true;
+        });
+      }
+    } finally {
+      _syncingRemote = false;
     }
+  }
+
+  void _applyRemoteConversation(
+    SupabaseChatRepository repository,
+    ChatConversation conversation,
+    String currentUserId,
+  ) {
+    final local = ChatLocalStore.conversationForUser(widget.participantUserId);
+    final cached = LocalChatCache.instance.conversationFor(conversation.id);
+    final mergedMessages = LocalChatCache.mergeMessages(
+      remote: conversation.messages,
+      local: [
+        ...?local?.messages,
+        ...?cached?.messages,
+        ...?_conversation?.messages,
+      ],
+    );
+
+    _repository = repository;
+    _currentUserId = currentUserId;
+    _conversation = conversation.copyWith(
+      messages: _attachReplyMetadata(mergedMessages),
+    );
+    _seedMessageIds(mergedMessages);
+    unawaited(LocalChatCache.instance.saveConversation(_conversation!));
+
+    repository.subscribeToMessages(
+      conversationId: conversation.id,
+      onInsert: _onRemoteMessageInserted,
+      onUpdate: _onRemoteMessageUpdated,
+    );
+
+    unawaited(repository.markConversationRead(conversation.id));
+    unawaited(repository.markOutgoingMessagesRead(conversation.id));
+
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _loadFailed = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: false));
   }
 
   void _seedMessageIds(List<ChatMessage> messages) {
@@ -150,14 +276,72 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       ..addAll(messages.map((message) => message.id));
   }
 
-  String _previewForMessage(ChatMessage message) {
-    if (message.isDeleted) return 'This message was deleted';
-    if (message.isVoice) return 'Voice message';
+  AppLocalizations _l10n(BuildContext context) => AppLocalizations.of(context)!;
+
+  String _previewForMessage(ChatMessage message, [BuildContext? context]) {
+    final l10n = context == null ? null : _l10n(context);
+    if (message.isDeleted) return l10n?.chatMessageDeleted ?? 'Message deleted';
+    if (message.isVoice) return l10n?.chatVoiceMessage ?? 'Voice message';
     if (message.hasImage) {
       final caption = message.body.trim();
-      return caption.isEmpty ? 'Photo' : caption;
+      return caption.isEmpty ? (l10n?.chatPhoto ?? 'Photo') : caption;
     }
     return message.body;
+  }
+
+  void _scheduleDeliveryUpdates(ChatMessage message) {
+    final repository = _repository;
+    final conversation = _conversation;
+    if (repository == null || conversation == null) return;
+    if (message.id.startsWith('pending_')) return;
+
+    Future<void>.delayed(const Duration(milliseconds: 900), () async {
+      final delivered = await repository.updateMessageDeliveryStatus(
+        messageId: message.id,
+        conversationId: conversation.id,
+        status: ChatDeliveryStatus.delivered,
+      );
+      if (!mounted || delivered == null) return;
+      _replaceMessageInState(delivered);
+    });
+
+    Future<void>.delayed(const Duration(seconds: 2), () async {
+      final read = await repository.updateMessageDeliveryStatus(
+        messageId: message.id,
+        conversationId: conversation.id,
+        status: ChatDeliveryStatus.read,
+      );
+      if (!mounted || read == null) return;
+      _replaceMessageInState(read);
+    });
+  }
+
+  void _applySentMessage(ChatMessage sent, {bool preserveLocalPreview = false}) {
+    setState(() {
+      final current = _conversation;
+      if (current == null) return;
+
+      final messages = current.messages.map((message) {
+        if (message.clientTempId != null && message.clientTempId == sent.clientTempId) {
+          return sent.copyWith(
+            localPreviewBytes: preserveLocalPreview ? message.localPreviewBytes : sent.localPreviewBytes,
+            localVoicePath: preserveLocalPreview ? message.localVoicePath : sent.localVoicePath,
+          );
+        }
+        return message;
+      }).toList();
+
+      if (sent.clientTempId == null || !messages.any((message) => message.id == sent.id)) {
+        messages.add(sent);
+      }
+
+      _conversation = current.copyWith(
+        messages: _attachReplyMetadata(messages),
+        cachedLastMessageText: _previewForMessage(sent),
+        cachedLastMessageTime: sent.sentAt,
+      );
+    });
+    _scheduleDeliveryUpdates(sent);
   }
 
   void _onRemoteMessageUpdated(ChatMessage message) {
@@ -232,6 +416,49 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   }
 
   Future<void> _handleMessageLongPress(ChatMessage message, String currentUserId) async {
+    if (message.isPending && !message.hasFailed) {
+      HapticFeedback.mediumImpact();
+      setState(() => _highlightedMessageId = message.id);
+      final l10n = _l10n(context);
+      final result = await showChatMessageActionsSheet(
+        context: context,
+        message: message,
+        isMe: message.isFromCurrentUser(currentUserId),
+        senderName: _senderNameForMessage(message, currentUserId),
+        actions: [
+          ChatMessageActionItem(
+            type: ChatMessageActionType.retry,
+            label: l10n.chatRetry,
+            icon: Icons.refresh_rounded,
+          ),
+          ChatMessageActionItem(
+            type: ChatMessageActionType.remove,
+            label: l10n.chatRemove,
+            icon: Icons.delete_outline_rounded,
+            destructive: true,
+          ),
+          ChatMessageActionItem(
+            type: ChatMessageActionType.cancel,
+            label: l10n.cancel,
+            icon: Icons.close_rounded,
+          ),
+        ],
+      );
+      if (mounted) setState(() => _highlightedMessageId = null);
+      if (!mounted || result == null) return;
+      switch (result.type) {
+        case ChatMessageActionType.retry:
+          await _retryFailedMessage(message);
+        case ChatMessageActionType.remove:
+          await _removeFailedMessage(message);
+        case ChatMessageActionType.cancel:
+          break;
+        default:
+          break;
+      }
+      return;
+    }
+
     if (message.isPending) return;
 
     HapticFeedback.mediumImpact();
@@ -241,12 +468,14 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     final canDeleteForEveryone = isMe && !message.isDeleted && !message.id.startsWith('pending_');
     final canDeleteForMe = !message.isDeleted && !message.id.startsWith('pending_');
 
+    final l10n = _l10n(context);
     final actions = buildMessageActions(
       message: message,
       isMe: isMe,
       currentUserId: currentUserId,
       canDeleteForEveryone: canDeleteForEveryone,
       canDeleteForMe: canDeleteForMe,
+      l10n: l10n,
     );
 
     final result = await showChatMessageActionsSheet(
@@ -282,6 +511,18 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       case ChatMessageActionType.remove:
         _removeFailedMessage(message);
       case ChatMessageActionType.saveImage:
+      case ChatMessageActionType.saveAudio:
+        try {
+          await saveChatMediaLocally(
+            message: message,
+            fallbackFileName: attachmentFileName(message, message.voiceAttachment),
+          );
+          if (mounted) showSavedFeedback(context);
+        } catch (_) {}
+      case ChatMessageActionType.share:
+        await shareChatMessage(message: message);
+        if (mounted) showCopiedFeedback(context);
+      case ChatMessageActionType.cancel:
         break;
     }
   }
@@ -485,6 +726,11 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
 
   @override
   void dispose() {
+    final listener = _chatSyncListener;
+    final sync = _offlineSync;
+    if (listener != null && sync != null) {
+      sync.removeChatListener(listener);
+    }
     _repository?.unsubscribeFromMessages();
     _voicePlayback.stop();
     _voiceRecorder.dispose();
@@ -516,6 +762,50 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     }
   }
 
+  Future<bool> _ensureSendReady() async {
+    final conversation = _conversation;
+    if (conversation == null) return false;
+
+    if (conversation.id.startsWith('conv_')) {
+      if (_currentUserId != null) return true;
+      await _syncRemoteConversation();
+      return _conversation != null && _currentUserId != null;
+    }
+
+    _currentUserId ??= Supabase.instance.client.auth.currentUser?.id;
+    if (_currentUserId != null && !conversation.id.startsWith('conv_')) {
+      return true;
+    }
+
+    if (!_syncingRemote) {
+      await _syncRemoteConversation();
+    } else {
+      while (_syncingRemote && mounted) {
+        await Future<void>.delayed(const Duration(milliseconds: 40));
+      }
+    }
+
+    _currentUserId ??= Supabase.instance.client.auth.currentUser?.id;
+    final readyConversation = _conversation;
+    return readyConversation != null &&
+        _currentUserId != null &&
+        !readyConversation.id.startsWith('conv_');
+  }
+
+  bool get _usesOfflineOutbound {
+    final conversation = _conversation;
+    return conversation != null && !conversation.id.startsWith('conv_');
+  }
+
+  ChatMessage _failedMessage(ChatMessage optimistic) {
+    return optimistic.copyWith(
+      isPending: false,
+      hasFailed: true,
+      sendState: ChatMessageSendState.failed,
+      deliveryStatus: ChatDeliveryStatus.failed,
+    );
+  }
+
   Future<void> _sendMessage() async {
     if (_editingMessage != null) {
       await _saveEditedMessage();
@@ -525,10 +815,11 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
-    final repository = _repository;
+    if (!await _ensureSendReady()) return;
+
     final conversation = _conversation;
     final currentUserId = _currentUserId;
-    if (repository == null || conversation == null || currentUserId == null) return;
+    if (conversation == null || currentUserId == null) return;
 
     final replyTarget = _replyTarget;
     final replyToMessageId = replyTarget?.id.startsWith('pending_') == true ? null : replyTarget?.id;
@@ -540,6 +831,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       sentAt: DateTime.now(),
       clientTempId: clientTempId,
       isPending: true,
+      deliveryStatus: ChatDeliveryStatus.sending,
       replyToMessageId: replyToMessageId,
       replyToMessage: replyTarget,
     );
@@ -547,10 +839,28 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     _pendingTempIds.add(clientTempId);
     _textController.clear();
     _clearComposerContext();
-    setState(() {
-      _conversation = conversation.copyWith(messages: [...conversation.messages, optimistic]);
-    });
+    final updatedConversation = conversation.copyWith(
+      messages: [...conversation.messages, optimistic],
+      cachedLastMessageText: _previewForMessage(optimistic),
+      cachedLastMessageTime: optimistic.sentAt,
+    );
+    setState(() => _conversation = updatedConversation);
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    if (_usesOfflineOutbound) {
+      await LocalChatCache.instance.saveConversation(updatedConversation);
+      await _offlineSync?.enqueueChatText(
+        conversationId: conversation.id,
+        senderId: currentUserId,
+        body: text,
+        clientTempId: clientTempId,
+        replyToMessageId: replyToMessageId,
+      );
+      return;
+    }
+
+    final repository = _repository;
+    if (repository == null) return;
 
     try {
       final sent = await repository.sendTextMessage(
@@ -561,27 +871,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       );
       if (!mounted) return;
 
-      setState(() {
-        _pendingTempIds.remove(clientTempId);
-        _messageIds.add(sent.id);
-        final current = _conversation;
-        if (current == null) return;
-
-        final messages = current.messages.map((message) {
-          if (message.clientTempId == clientTempId) return sent;
-          return message;
-        }).toList();
-
-        if (!messages.any((message) => message.id == sent.id)) {
-          messages.add(sent);
-        }
-
-        _conversation = current.copyWith(
-          messages: _attachReplyMetadata(messages),
-          cachedLastMessageText: sent.body,
-          cachedLastMessageTime: sent.sentAt,
-        );
-      });
+      _pendingTempIds.remove(clientTempId);
+      _messageIds.add(sent.id);
+      _applySentMessage(sent);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -592,7 +884,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
           messages: current.messages
               .map(
                 (message) => message.clientTempId == clientTempId
-                    ? message.copyWith(isPending: false, hasFailed: true)
+                    ? _failedMessage(message)
                     : message,
               )
               .toList(),
@@ -620,8 +912,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         _pendingImage = picked;
         _pendingImageBytes = bytes;
       });
-    } catch (error) {
-      _showError(error.toString());
+    } catch (_) {
     }
   }
 
@@ -643,22 +934,27 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   }
 
   Future<void> _sendPendingImage() async {
-    final repository = _repository;
-    final conversation = _conversation;
-    final currentUserId = _currentUserId;
     final file = _pendingImage;
     final bytes = _pendingImageBytes;
-    if (repository == null ||
-        conversation == null ||
-        currentUserId == null ||
-        file == null ||
-        bytes == null ||
-        _sendingImage) {
-      return;
-    }
+    if (file == null || bytes == null || _sendingImage) return;
+    if (!await _ensureSendReady()) return;
+
+    final conversation = _conversation;
+    final currentUserId = _currentUserId;
+    if (conversation == null || currentUserId == null) return;
 
     final caption = _textController.text.trim();
     final clientTempId = _uuid.v4();
+    final mimeType = _imageMimeType(file.name);
+    String? localImagePath;
+    if (_usesOfflineOutbound) {
+      final mediaStore = OutboxMediaStore.instance;
+      localImagePath = await mediaStore.saveBytes(
+        bytes: bytes,
+        extension: mediaStore.extensionFromName(file.name, fallback: 'jpg'),
+      );
+    }
+
     final optimistic = ChatMessage(
       id: 'pending_$clientTempId',
       senderId: currentUserId,
@@ -667,19 +963,50 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       messageType: caption.isEmpty ? ChatMessageType.image : ChatMessageType.mixed,
       clientTempId: clientTempId,
       localPreviewBytes: bytes,
+      localImagePath: localImagePath,
       isPending: true,
+      deliveryStatus: ChatDeliveryStatus.sending,
     );
 
     _pendingTempIds.add(clientTempId);
-    _failedImageMimeTypes[clientTempId] = _imageMimeType(file.name);
+    _failedImageMimeTypes[clientTempId] = mimeType;
+    final updatedConversation = conversation.copyWith(
+      messages: [...conversation.messages, optimistic],
+      cachedLastMessageText: _previewForMessage(optimistic),
+      cachedLastMessageTime: optimistic.sentAt,
+    );
     setState(() {
       _sendingImage = true;
-      _conversation = conversation.copyWith(messages: [...conversation.messages, optimistic]);
+      _conversation = updatedConversation;
       _pendingImage = null;
       _pendingImageBytes = null;
     });
     _textController.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    if (_usesOfflineOutbound && localImagePath != null) {
+      final size = await _readImageSize(bytes);
+      await LocalChatCache.instance.saveConversation(updatedConversation);
+      await _offlineSync?.enqueueChatImage(
+        conversationId: conversation.id,
+        senderId: currentUserId,
+        clientTempId: clientTempId,
+        localMediaPath: localImagePath,
+        caption: caption,
+        mimeType: mimeType,
+        width: size?.width,
+        height: size?.height,
+        originalFileName: file.name,
+      );
+      if (mounted) setState(() => _sendingImage = false);
+      return;
+    }
+
+    final repository = _repository;
+    if (repository == null) {
+      if (mounted) setState(() => _sendingImage = false);
+      return;
+    }
 
     try {
       final size = await _readImageSize(bytes);
@@ -694,28 +1021,13 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       );
       if (!mounted) return;
 
-      setState(() {
-        _pendingTempIds.remove(clientTempId);
-        _messageIds.add(sent.id);
-        final current = _conversation;
-        if (current == null) return;
-
-        final messages = current.messages.map((message) {
-          if (message.clientTempId == clientTempId) return sent;
-          return message;
-        }).toList();
-
-        if (!messages.any((message) => message.id == sent.id)) {
-          messages.add(sent);
-        }
-
-        _conversation = current.copyWith(
-          messages: messages,
-          cachedLastMessageText: _previewForMessage(sent),
-          cachedLastMessageTime: sent.sentAt,
-        );
-      });
-    } catch (error) {
+      _pendingTempIds.remove(clientTempId);
+      _messageIds.add(sent.id);
+      _applySentMessage(
+        sent.copyWith(localPreviewBytes: bytes, localImagePath: localImagePath),
+        preserveLocalPreview: true,
+      );
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _pendingTempIds.remove(clientTempId);
@@ -725,23 +1037,23 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
           messages: current.messages
               .map(
                 (message) => message.clientTempId == clientTempId
-                    ? message.copyWith(isPending: false, hasFailed: true)
+                    ? _failedMessage(message)
                     : message,
               )
               .toList(),
         );
       });
-      _showError('Failed to send photo');
     } finally {
       if (mounted) setState(() => _sendingImage = false);
     }
   }
 
   Future<void> _sendVoiceMessage(VoiceRecordingResult result) async {
-    final repository = _repository;
+    if (!await _ensureSendReady()) return;
+
     final conversation = _conversation;
     final currentUserId = _currentUserId;
-    if (repository == null || conversation == null || currentUserId == null) return;
+    if (conversation == null || currentUserId == null) return;
 
     final waveform = WaveformUtils.generateSamples(
       barCount: 28,
@@ -749,6 +1061,15 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       seed: result.filePath,
     );
     final clientTempId = _uuid.v4();
+    String voicePath = result.filePath;
+    if (_usesOfflineOutbound) {
+      voicePath = await OutboxMediaStore.instance.copyFromPath(
+        sourcePath: result.filePath,
+        extension: 'm4a',
+      );
+      await _voiceRecorder.deleteFile(result.filePath);
+    }
+
     final placeholderAttachment = ChatAttachment(
       id: 'pending',
       messageId: 'pending_$clientTempId',
@@ -770,49 +1091,57 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       messageType: ChatMessageType.voice,
       attachments: [placeholderAttachment],
       clientTempId: clientTempId,
-      localVoicePath: result.filePath,
+      localVoicePath: voicePath,
       isPending: true,
+      deliveryStatus: ChatDeliveryStatus.sending,
     );
 
     _pendingTempIds.add(clientTempId);
-    setState(() {
-      _conversation = conversation.copyWith(messages: [...conversation.messages, optimistic]);
-    });
+    final updatedConversation = conversation.copyWith(
+      messages: [...conversation.messages, optimistic],
+      cachedLastMessageText: _previewForMessage(optimistic),
+      cachedLastMessageTime: optimistic.sentAt,
+    );
+    setState(() => _conversation = updatedConversation);
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    if (_usesOfflineOutbound) {
+      await LocalChatCache.instance.saveConversation(updatedConversation);
+      await _offlineSync?.enqueueChatAudio(
+        conversationId: conversation.id,
+        senderId: currentUserId,
+        clientTempId: clientTempId,
+        localMediaPath: voicePath,
+        durationMs: result.durationMs,
+        waveform: waveform,
+        mimeType: result.mimeType,
+      );
+      return;
+    }
+
+    final repository = _repository;
+    if (repository == null) return;
 
     try {
       final sent = await repository.sendVoiceMessage(
         conversationId: conversation.id,
-        localFilePath: result.filePath,
+        localFilePath: voicePath,
         durationMs: result.durationMs,
         waveform: waveform,
         clientTempId: clientTempId,
       );
-      await _voiceRecorder.deleteFile(result.filePath);
+      if (!_usesOfflineOutbound) {
+        await _voiceRecorder.deleteFile(voicePath);
+      }
       if (!mounted) return;
 
-      setState(() {
-        _pendingTempIds.remove(clientTempId);
-        _messageIds.add(sent.id);
-        final current = _conversation;
-        if (current == null) return;
-
-        final messages = current.messages.map((message) {
-          if (message.clientTempId == clientTempId) return sent;
-          return message;
-        }).toList();
-
-        if (!messages.any((message) => message.id == sent.id)) {
-          messages.add(sent);
-        }
-
-        _conversation = current.copyWith(
-          messages: messages,
-          cachedLastMessageText: _previewForMessage(sent),
-          cachedLastMessageTime: sent.sentAt,
-        );
-      });
-    } catch (error) {
+      _pendingTempIds.remove(clientTempId);
+      _messageIds.add(sent.id);
+      _applySentMessage(
+        sent.copyWith(localVoicePath: voicePath),
+        preserveLocalPreview: true,
+      );
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _pendingTempIds.remove(clientTempId);
@@ -822,37 +1151,65 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
           messages: current.messages
               .map(
                 (message) => message.clientTempId == clientTempId
-                    ? message.copyWith(isPending: false, hasFailed: true)
+                    ? _failedMessage(message.copyWith(localVoicePath: voicePath))
                     : message,
               )
               .toList(),
         );
       });
-      _showError('Failed to send voice message');
-      rethrow;
     }
   }
 
-  void _removeFailedMessage(ChatMessage message) {
+  Future<void> _removeFailedMessage(ChatMessage message) async {
     final tempId = message.clientTempId;
+    final conversation = _conversation;
+    if (conversation == null) return;
+
+    if (tempId != null && _usesOfflineOutbound) {
+      await _offlineSync?.cancelItem(tempId);
+    }
+
+    final updated = conversation.copyWith(
+      messages: conversation.messages.where((item) => item.id != message.id).toList(),
+    );
     setState(() {
-      final current = _conversation;
-      if (current == null) return;
-      _conversation = current.copyWith(
-        messages: current.messages.where((item) => item.id != message.id).toList(),
-      );
+      _conversation = updated;
       if (tempId != null) {
         _failedImageMimeTypes.remove(tempId);
       }
     });
+    if (_usesOfflineOutbound) {
+      await LocalChatCache.instance.saveConversation(updated);
+    }
   }
 
   Future<void> _retryFailedMessage(ChatMessage message) async {
+    final tempId = message.clientTempId;
+    if (tempId != null && _usesOfflineOutbound) {
+      final optimistic = message.copyWith(
+        isPending: true,
+        hasFailed: false,
+        clearSendState: true,
+        deliveryStatus: ChatDeliveryStatus.sending,
+      );
+      final conversation = _conversation;
+      if (conversation == null) return;
+      final updated = conversation.copyWith(
+        messages: conversation.messages
+            .map((item) => item.id == message.id ? optimistic : item)
+            .toList(),
+      );
+      setState(() => _conversation = updated);
+      await LocalChatCache.instance.saveConversation(updated);
+      await _offlineSync?.retryItem(tempId);
+      return;
+    }
+
     if (message.isVoice) {
       final localPath = message.localVoicePath;
       final attachment = message.voiceAttachment;
       if (localPath == null || localPath.isEmpty) return;
-      _removeFailedMessage(message);
+      await _removeFailedMessage(message);
       await _sendVoiceMessage(
         VoiceRecordingResult(
           filePath: localPath,
@@ -939,7 +1296,6 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
                 .toList(),
           );
         });
-        _showError('Failed to send photo');
       }
       return;
     }
@@ -978,11 +1334,10 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       return;
     }
 
-    final attachment = message.voiceAttachment;
-    if (attachment == null) return;
-
-    var url = attachment.signedUrl;
+    var url = message.primaryVoiceUrl;
     if (url == null || url.isEmpty) {
+      final attachment = message.voiceAttachment;
+      if (attachment == null) return;
       final repository = _repository;
       if (repository == null) return;
       url = await repository.refreshSignedUrl(attachment);
@@ -993,12 +1348,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(message),
-      ),
-    );
+    debugPrint('[ChatConversation] $message');
   }
 
   Future<void> _openImageViewer(ChatMessage message) async {
@@ -1076,7 +1426,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
                         if (_replyTarget != null)
                           _ComposerContextBanner(
                             title: _senderNameForMessage(_replyTarget!, currentUserId),
-                            subtitle: previewTextForMessage(_replyTarget!),
+                            subtitle: previewTextForMessage(_replyTarget!, _l10n(context)),
                             onClose: _clearComposerContext,
                           ),
                         if (_editingMessage != null)
@@ -1090,7 +1440,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
                           controller: _textController,
                           hasText: _hasText,
                           hasPendingImage: _pendingImageBytes != null,
-                          enabled: !_loading && !_loadFailed && conversation != null,
+                          enabled: conversation != null && _repository != null,
                           isEditing: _editingMessage != null,
                           onAttachment: _pickAttachment,
                           onMicrophone: _startVoiceRecording,
@@ -1109,6 +1459,37 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   }
 
   Widget _buildMessageArea(ChatConversation? conversation, String currentUserId) {
+    if (conversation != null && conversation.messages.isNotEmpty) {
+      return ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
+        itemCount: conversation.messages.length,
+        itemBuilder: (context, index) {
+          final message = conversation.messages[index];
+          final isMe = message.isFromCurrentUser(currentUserId);
+          return _MessageBubble(
+            message: message,
+            isMe: isMe,
+            isHighlighted: _highlightedMessageId == message.id,
+            participantName: conversation.participantName,
+            currentUserId: currentUserId,
+            onLongPress: () => _handleMessageLongPress(message, currentUserId),
+            onImageTap: message.hasImage && !message.hasFailed && !message.isDeleted
+                ? () => _openImageViewer(message)
+                : null,
+            onVoiceToggle: message.isVoice && !message.isDeleted ? () => _toggleVoicePlayback(message) : null,
+            onRetry: message.hasFailed && isMe ? () => _retryFailedMessage(message) : null,
+            onDelete: message.hasFailed && isMe ? () => _removeFailedMessage(message) : null,
+          );
+        },
+      );
+    }
+
     if (_loading) {
       return const Center(
         child: CircularProgressIndicator(color: PremiumColors.accentBlue),
@@ -1120,13 +1501,13 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              _loadErrorMessage ?? 'Could not load conversation',
-              style: const TextStyle(color: PremiumColors.textSecondary),
+            const Text(
+              'Could not load conversation',
+              style: TextStyle(color: PremiumColors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.sm),
             TextButton(
-              onPressed: _loadRemoteConversation,
+              onPressed: _syncRemoteConversation,
               child: const Text('Retry'),
             ),
           ],
@@ -1134,42 +1515,11 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       );
     }
 
-    if (conversation.messages.isEmpty) {
-      return const Center(
-        child: Text(
-          'Start the conversation',
-          style: TextStyle(color: PremiumColors.textSecondary),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        AppSpacing.sm,
-        AppSpacing.md,
-        AppSpacing.md,
+    return const Center(
+      child: Text(
+        'Start the conversation',
+        style: TextStyle(color: PremiumColors.textSecondary),
       ),
-      itemCount: conversation.messages.length,
-      itemBuilder: (context, index) {
-        final message = conversation.messages[index];
-        final isMe = message.isFromCurrentUser(currentUserId);
-        return _MessageBubble(
-          message: message,
-          isMe: isMe,
-          isHighlighted: _highlightedMessageId == message.id,
-          participantName: conversation.participantName,
-          currentUserId: currentUserId,
-          onLongPress: () => _handleMessageLongPress(message, currentUserId),
-          onImageTap: message.hasImage && !message.hasFailed && !message.isDeleted
-              ? () => _openImageViewer(message)
-              : null,
-          onVoiceToggle: message.isVoice && !message.isDeleted ? () => _toggleVoicePlayback(message) : null,
-          onRetry: message.hasFailed && isMe ? () => _retryFailedMessage(message) : null,
-          onDelete: message.hasFailed && isMe ? () => _removeFailedMessage(message) : null,
-        );
-      },
     );
   }
 }
@@ -1264,15 +1614,9 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final timeLabel = ChatRepository.formatMessageTime(message.sentAt);
     final maxWidth = MediaQuery.sizeOf(context).width * 0.7;
-    final statusParts = <String>[];
-    if (message.hasFailed) {
-      statusParts.add('Failed to send');
-    } else {
-      statusParts.add(timeLabel);
-      if (message.isEdited) statusParts.add('edited');
-    }
 
     Widget bubble;
     if (message.isDeleted) {
@@ -1354,13 +1698,47 @@ class _MessageBubble extends StatelessWidget {
               left: isMe ? 0 : AppSpacing.xs,
               right: isMe ? AppSpacing.xs : 0,
             ),
-            child: Text(
-              statusParts.join(' · '),
-              style: TextStyle(
-                color: message.hasFailed ? PremiumColors.bannerOrange : PremiumColors.textMuted,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (message.hasFailed)
+                  Text(
+                    l10n.chatFailedToSend,
+                    style: const TextStyle(
+                      color: PremiumColors.bannerOrange,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  )
+                else ...[
+                  Text(
+                    timeLabel,
+                    style: const TextStyle(
+                      color: PremiumColors.textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (message.isEdited) ...[
+                    const Text(
+                      ' · ',
+                      style: TextStyle(color: PremiumColors.textMuted, fontSize: 11),
+                    ),
+                    Text(
+                      l10n.chatEdited,
+                      style: const TextStyle(
+                        color: PremiumColors.textMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                  if (isMe) ...[
+                    const SizedBox(width: 4),
+                    ChatMessageStatusTick(message: message, isMe: isMe, size: 13),
+                  ],
+                ],
+              ],
             ),
           ),
         ],
@@ -1376,6 +1754,7 @@ class _DeletedBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: PremiumColors.surface.withValues(alpha: 0.72),
@@ -1399,7 +1778,7 @@ class _DeletedBubble extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'This message was deleted',
+              l10n.chatMessageDeleted,
               style: TextStyle(
                 color: PremiumColors.textMuted.withValues(alpha: 0.9),
                 fontSize: 14,
@@ -1458,7 +1837,7 @@ class _ReplyPreviewChip extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            previewTextForMessage(replyTo),
+            previewTextForMessage(replyTo, AppLocalizations.of(context)!),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -1563,6 +1942,7 @@ class _FailedMediaBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: PremiumColors.surface.withValues(alpha: 0.95),
@@ -1612,10 +1992,10 @@ class _FailedMediaBubble extends StatelessWidget {
                 child: const Icon(Icons.error_outline_rounded, color: PremiumColors.bannerOrange, size: 20),
               ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Could not send',
-                style: TextStyle(
+                l10n.chatFailedToSend,
+                style: const TextStyle(
                   color: PremiumColors.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -1757,6 +2137,7 @@ class _ImageBubble extends StatelessWidget {
     final caption = message.body.trim();
     final imageUrl = message.primaryImageUrl;
     final localBytes = message.localPreviewBytes;
+    final localImagePath = message.localImagePath;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -1790,7 +2171,7 @@ class _ImageBubble extends StatelessWidget {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: message.isPending ? null : onTap,
+            onTap: onTap,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1801,6 +2182,8 @@ class _ImageBubble extends StatelessWidget {
                     children: [
                       if (localBytes != null)
                         Image.memory(localBytes, fit: BoxFit.cover)
+                      else if (localImagePath != null && localImagePath.isNotEmpty)
+                        Image.file(File(localImagePath), fit: BoxFit.cover)
                       else if (imageUrl != null && imageUrl.isNotEmpty)
                         Image.network(
                           imageUrl,
@@ -1829,15 +2212,6 @@ class _ImageBubble extends StatelessWidget {
                           color: PremiumColors.surfaceRaised,
                           alignment: Alignment.center,
                           child: const Icon(Icons.image_outlined, color: PremiumColors.textMuted),
-                        ),
-                      if (message.isPending)
-                        Container(
-                          color: Colors.black.withValues(alpha: 0.35),
-                          alignment: Alignment.center,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: PremiumColors.accentBlue,
-                          ),
                         ),
                     ],
                   ),

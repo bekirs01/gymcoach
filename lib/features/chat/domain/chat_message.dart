@@ -15,6 +15,14 @@ enum ChatMessageSendState {
   failed,
 }
 
+enum ChatDeliveryStatus {
+  sending,
+  sent,
+  delivered,
+  read,
+  failed,
+}
+
 enum ChatSenderType {
   user,
   seededContact,
@@ -34,11 +42,21 @@ class ChatMessage {
     this.sendState,
     this.senderType = ChatSenderType.user,
     this.localPreviewBytes,
+    this.localImagePath,
     this.localVoicePath,
     this.editedAt,
     this.deletedAt,
     this.replyToMessageId,
     this.replyToMessage,
+    this.deliveryStatus = ChatDeliveryStatus.sent,
+    this.deliveredAt,
+    this.readAt,
+    this.deletedForEveryone = false,
+    this.mediaBucket,
+    this.mediaPath,
+    this.mediaUrl,
+    this.audioDurationMs,
+    this.audioWaveform = const [],
   });
 
   final String id;
@@ -53,11 +71,21 @@ class ChatMessage {
   final bool hasFailed;
   final ChatMessageSendState? sendState;
   final Uint8List? localPreviewBytes;
+  final String? localImagePath;
   final String? localVoicePath;
   final DateTime? editedAt;
   final DateTime? deletedAt;
   final String? replyToMessageId;
   final ChatMessage? replyToMessage;
+  final ChatDeliveryStatus deliveryStatus;
+  final DateTime? deliveredAt;
+  final DateTime? readAt;
+  final bool deletedForEveryone;
+  final String? mediaBucket;
+  final String? mediaPath;
+  final String? mediaUrl;
+  final int? audioDurationMs;
+  final List<double> audioWaveform;
 
   bool get isVoice => messageType == ChatMessageType.voice;
 
@@ -69,12 +97,16 @@ class ChatMessage {
   }
 
   bool get isFailed =>
-      hasFailed || sendState == ChatMessageSendState.failed;
+      hasFailed ||
+      sendState == ChatMessageSendState.failed ||
+      deliveryStatus == ChatDeliveryStatus.failed;
 
   bool get isUploading =>
-      isPending || sendState == ChatMessageSendState.sending;
+      isPending ||
+      sendState == ChatMessageSendState.sending ||
+      deliveryStatus == ChatDeliveryStatus.sending;
 
-  bool get isDeleted => deletedAt != null;
+  bool get isDeleted => deletedAt != null || deletedForEveryone;
 
   bool get isEdited => editedAt != null;
 
@@ -92,6 +124,8 @@ class ChatMessage {
   }
 
   String? get primaryImageUrl {
+    final inline = mediaUrl;
+    if (inline != null && inline.isNotEmpty) return inline;
     for (final attachment in attachments) {
       if (attachment.attachmentType == ChatAttachmentType.image) {
         final url = attachment.signedUrl;
@@ -99,6 +133,15 @@ class ChatMessage {
       }
     }
     return null;
+  }
+
+  String? get primaryVoiceUrl {
+    final inline = mediaUrl;
+    if (inline != null && inline.isNotEmpty) return inline;
+    final attachment = voiceAttachment;
+    final url = attachment?.signedUrl;
+    if (url != null && url.isNotEmpty) return url;
+    return localVoicePath;
   }
 
   ChatAttachment? get voiceAttachment {
@@ -126,6 +169,7 @@ class ChatMessage {
     bool? hasFailed,
     ChatMessageSendState? sendState,
     Uint8List? localPreviewBytes,
+    String? localImagePath,
     String? localVoicePath,
     DateTime? editedAt,
     DateTime? deletedAt,
@@ -133,12 +177,29 @@ class ChatMessage {
     ChatMessage? replyToMessage,
     bool clearSendState = false,
     bool clearLocalPreviewBytes = false,
+    bool clearLocalImagePath = false,
     bool clearLocalVoicePath = false,
     bool clearEditedAt = false,
     bool clearDeletedAt = false,
     bool clearReplyToMessageId = false,
     bool clearReplyToMessage = false,
     bool clearAttachments = false,
+    ChatDeliveryStatus? deliveryStatus,
+    DateTime? deliveredAt,
+    DateTime? readAt,
+    bool? deletedForEveryone,
+    String? mediaBucket,
+    String? mediaPath,
+    String? mediaUrl,
+    int? audioDurationMs,
+    List<double>? audioWaveform,
+    bool clearDeliveredAt = false,
+    bool clearReadAt = false,
+    bool clearMediaBucket = false,
+    bool clearMediaPath = false,
+    bool clearMediaUrl = false,
+    bool clearAudioDurationMs = false,
+    bool clearAudioWaveform = false,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -154,13 +215,53 @@ class ChatMessage {
       sendState: clearSendState ? null : (sendState ?? this.sendState),
       localPreviewBytes:
           clearLocalPreviewBytes ? null : (localPreviewBytes ?? this.localPreviewBytes),
+      localImagePath: clearLocalImagePath ? null : (localImagePath ?? this.localImagePath),
       localVoicePath: clearLocalVoicePath ? null : (localVoicePath ?? this.localVoicePath),
       editedAt: clearEditedAt ? null : (editedAt ?? this.editedAt),
       deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
       replyToMessageId:
           clearReplyToMessageId ? null : (replyToMessageId ?? this.replyToMessageId),
       replyToMessage: clearReplyToMessage ? null : (replyToMessage ?? this.replyToMessage),
+      deliveryStatus: deliveryStatus ?? this.deliveryStatus,
+      deliveredAt: clearDeliveredAt ? null : (deliveredAt ?? this.deliveredAt),
+      readAt: clearReadAt ? null : (readAt ?? this.readAt),
+      deletedForEveryone: deletedForEveryone ?? this.deletedForEveryone,
+      mediaBucket: clearMediaBucket ? null : (mediaBucket ?? this.mediaBucket),
+      mediaPath: clearMediaPath ? null : (mediaPath ?? this.mediaPath),
+      mediaUrl: clearMediaUrl ? null : (mediaUrl ?? this.mediaUrl),
+      audioDurationMs: clearAudioDurationMs ? null : (audioDurationMs ?? this.audioDurationMs),
+      audioWaveform: clearAudioWaveform ? const [] : (audioWaveform ?? this.audioWaveform),
     );
+  }
+
+  static ChatDeliveryStatus parseDeliveryStatus(String? value) {
+    switch (value) {
+      case 'sending':
+        return ChatDeliveryStatus.sending;
+      case 'delivered':
+        return ChatDeliveryStatus.delivered;
+      case 'read':
+        return ChatDeliveryStatus.read;
+      case 'failed':
+        return ChatDeliveryStatus.failed;
+      default:
+        return ChatDeliveryStatus.sent;
+    }
+  }
+
+  static String deliveryStatusToDb(ChatDeliveryStatus status) {
+    switch (status) {
+      case ChatDeliveryStatus.sending:
+        return 'sending';
+      case ChatDeliveryStatus.delivered:
+        return 'delivered';
+      case ChatDeliveryStatus.read:
+        return 'read';
+      case ChatDeliveryStatus.failed:
+        return 'failed';
+      case ChatDeliveryStatus.sent:
+        return 'sent';
+    }
   }
 
   static ChatMessageType parseMessageType(String? value) {
@@ -204,6 +305,14 @@ class ChatMessage {
     List<ChatAttachment> attachments = const [],
     ChatMessage? replyToMessage,
   }) {
+    final waveformRaw = row['audio_waveform'];
+    final waveform = <double>[];
+    if (waveformRaw is List) {
+      for (final value in waveformRaw) {
+        if (value is num) waveform.add(value.toDouble().clamp(0.0, 1.0));
+      }
+    }
+
     return ChatMessage(
       id: row['id'] as String,
       senderId: row['sender_id'] as String,
@@ -217,6 +326,15 @@ class ChatMessage {
       deletedAt: _parseOptionalTimestamp(row['deleted_at']),
       replyToMessageId: row['reply_to_message_id'] as String?,
       replyToMessage: replyToMessage,
+      deliveryStatus: parseDeliveryStatus(row['status'] as String?),
+      deliveredAt: _parseOptionalTimestamp(row['delivered_at']),
+      readAt: _parseOptionalTimestamp(row['read_at']),
+      deletedForEveryone: row['deleted_for_everyone'] == true,
+      mediaBucket: row['media_bucket'] as String?,
+      mediaPath: row['media_path'] as String?,
+      mediaUrl: row['media_url'] as String?,
+      audioDurationMs: (row['audio_duration_ms'] as num?)?.toInt(),
+      audioWaveform: waveform,
     );
   }
 }

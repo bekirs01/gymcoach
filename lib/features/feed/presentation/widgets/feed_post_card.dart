@@ -389,12 +389,31 @@ class _ApiFeedPostCardState extends State<ApiFeedPostCard> {
                     itemCount: post.media.length,
                     onPageChanged: (i) => setState(() => _photoIndex = i),
                     itemBuilder: (context, i) {
-                      final url = post.media[i].url;
+                      final media = post.media[i];
+                      final url = media.url;
                       return GestureDetector(
-                        onTap: () => showPremiumImageViewer(context, imageUrl: url),
-                        child: NetworkImageWithFallback(
-                          url: url,
-                          fit: BoxFit.cover,
+                        onTap: url.isNotEmpty
+                            ? () => showPremiumImageViewer(context, imageUrl: url)
+                            : null,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            NetworkImageWithFallback(
+                              url: url,
+                              localPath: media.localPath,
+                              fit: BoxFit.cover,
+                            ),
+                            if (post.isPendingUpload)
+                              Positioned(
+                                top: 10,
+                                left: 10,
+                                child: Icon(
+                                  Icons.schedule_rounded,
+                                  size: 16,
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                              ),
+                          ],
                         ),
                       );
                     },

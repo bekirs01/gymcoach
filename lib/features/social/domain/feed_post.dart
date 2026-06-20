@@ -19,6 +19,10 @@ class FeedPost {
     this.postType = FeedPostType.normal,
     this.sharedWorkoutSnapshot,
     this.deletedAt,
+    this.localId,
+    this.isPendingUpload = false,
+    this.uploadFailed = false,
+    this.localMediaPaths = const [],
   });
 
   final String id;
@@ -34,6 +38,10 @@ class FeedPost {
   final FeedPostType postType;
   final SharedWorkoutSnapshot? sharedWorkoutSnapshot;
   final DateTime? deletedAt;
+  final String? localId;
+  final bool isPendingUpload;
+  final bool uploadFailed;
+  final List<String> localMediaPaths;
 
   bool get isWorkoutShare => postType == FeedPostType.workoutShare;
 
@@ -51,6 +59,10 @@ class FeedPost {
     FeedPostType? postType,
     SharedWorkoutSnapshot? sharedWorkoutSnapshot,
     DateTime? deletedAt,
+    String? localId,
+    bool? isPendingUpload,
+    bool? uploadFailed,
+    List<String>? localMediaPaths,
   }) {
     return FeedPost(
       id: id ?? this.id,
@@ -66,6 +78,10 @@ class FeedPost {
       postType: postType ?? this.postType,
       sharedWorkoutSnapshot: sharedWorkoutSnapshot ?? this.sharedWorkoutSnapshot,
       deletedAt: deletedAt ?? this.deletedAt,
+      localId: localId ?? this.localId,
+      isPendingUpload: isPendingUpload ?? this.isPendingUpload,
+      uploadFailed: uploadFailed ?? this.uploadFailed,
+      localMediaPaths: localMediaPaths ?? this.localMediaPaths,
     );
   }
 

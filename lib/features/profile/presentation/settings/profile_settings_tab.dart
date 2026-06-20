@@ -121,22 +121,32 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> with WidgetsBin
     await _persist(_profile.copyWith(preferredUnits: picked.storageCode));
   }
 
+  Future<void> _openSystemSettings() async {
+    final opened = await _permissionService.openSystemSettings();
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open Settings'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   Future<void> _toggleReminders(bool enabled) async {
     if (enabled) {
       final snapshot = await _permissionService.read(SettingsPermissionKind.notifications);
       if (!snapshot.isGranted) {
-        final requested = await _permissionService.request(SettingsPermissionKind.notifications);
-        await _refreshPermissions();
-        if (!requested.isGranted) {
-          if (!mounted) return;
-          final open = await showOpenSettingsSheet(
-            context: context,
-            title: 'Notifications required',
-            message: 'Enable notifications in system settings to receive training reminders.',
-          );
-          if (open == true) {
-            await _permissionService.openSystemSettings();
+        if (snapshot.canRequest) {
+          final requested = await _permissionService.request(SettingsPermissionKind.notifications);
+          await _refreshPermissions();
+          if (!requested.isGranted) {
+            await _openSystemSettings();
+            return;
           }
+        } else {
+          await _openSystemSettings();
           return;
         }
       }
@@ -170,32 +180,20 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> with WidgetsBin
 
     if (enable) {
       if (current.isGranted) return;
-      final result = await _permissionService.request(kind);
-      await _refreshPermissions();
-      if (!result.isGranted && !result.canRequest) {
-        if (!mounted) return;
-        final open = await showOpenSettingsSheet(
-          context: context,
-          title: 'Permission required',
-          message: 'This permission must be enabled in iOS Settings before GymCoach can use it.',
-        );
-        if (open == true) {
-          await _permissionService.openSystemSettings();
+      if (current.canRequest) {
+        final result = await _permissionService.request(kind);
+        await _refreshPermissions();
+        if (!result.isGranted) {
+          await _openSystemSettings();
         }
+      } else {
+        await _openSystemSettings();
       }
       return;
     }
 
     if (!current.isGranted) return;
-    if (!mounted) return;
-    final open = await showOpenSettingsSheet(
-      context: context,
-      title: 'Change in Settings',
-      message: 'Permissions can only be turned off from iOS Settings. GymCoach will open Settings for you.',
-    );
-    if (open == true) {
-      await _permissionService.openSystemSettings();
-    }
+    await _openSystemSettings();
   }
 
   Future<void> _confirmLogout() async {

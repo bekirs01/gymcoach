@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../features/profile/domain/profile_defaults.dart';
+import 'supabase_debug_log.dart';
 
 abstract final class AuthSessionService {
   static const guestUsername = 'bekir_guest';
@@ -15,15 +16,25 @@ abstract final class AuthSessionService {
     return user.isAnonymous;
   }
 
+  static Future<String> ensureSupabaseSession() async {
+    final session = await ensureSession();
+    SupabaseDebugLog.session('session ready user=${session.user.id}');
+    return session.user.id;
+  }
+
+  static Future<String> ensureChatSession() => ensureSupabaseSession();
+
   static Future<Session> ensureSession() async {
     final client = Supabase.instance.client;
     final existing = client.auth.currentSession;
     if (existing != null) {
+      SupabaseDebugLog.session('reusing existing session user=${existing.user.id}');
       await _ensureProfile(existing.user.id, existing.user.isAnonymous);
       return existing;
     }
 
     try {
+      SupabaseDebugLog.session('creating anonymous session');
       final response = await client.auth.signInAnonymously();
       final session = response.session;
       final userId = response.user?.id;

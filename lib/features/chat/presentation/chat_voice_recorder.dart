@@ -134,7 +134,6 @@ class ChatVoiceComposerState extends State<ChatVoiceComposer> {
       widget.onModeChanged?.call(false);
     } catch (_) {
       if (mounted) setState(() => _sending = false);
-      rethrow;
     }
   }
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' show ImageFilter;
 
@@ -715,6 +716,11 @@ class _StorySlideImage extends StatelessWidget {
       return _StoryContainedImage(bytes: slide.imageBytes!);
     }
 
+    final localPath = slide.localPath;
+    if (localPath != null && localPath.isNotEmpty) {
+      return _StoryContainedImage(localPath: localPath);
+    }
+
     return _StoryContainedImage(imageUrl: slide.imageUrl ?? '');
   }
 }
@@ -723,15 +729,26 @@ class _StoryContainedImage extends StatelessWidget {
   const _StoryContainedImage({
     this.bytes,
     this.imageUrl,
+    this.localPath,
   });
 
   final Uint8List? bytes;
   final String? imageUrl;
+  final String? localPath;
 
   Widget _backgroundImage() {
     if (bytes != null) {
       return Image.memory(
         bytes!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) => const _StoryImageFallback(),
+      );
+    }
+    if (localPath != null && localPath!.isNotEmpty) {
+      return Image.file(
+        File(localPath!),
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
@@ -751,6 +768,13 @@ class _StoryContainedImage extends StatelessWidget {
     if (bytes != null) {
       return Image.memory(
         bytes!,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => const _StoryImageFallback(),
+      );
+    }
+    if (localPath != null && localPath!.isNotEmpty) {
+      return Image.file(
+        File(localPath!),
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) => const _StoryImageFallback(),
       );

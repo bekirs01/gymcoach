@@ -1722,4 +1722,103 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get feedReportPost => 'Пожаловаться';
+
+  @override
+  String get chatMessagesTitle => 'Сообщения';
+
+  @override
+  String get chatSearch => 'Поиск';
+
+  @override
+  String get chatNoConversations => 'Беседы не найдены';
+
+  @override
+  String get chatStartConversation => 'Начните разговор';
+
+  @override
+  String get chatCouldNotLoadConversation => 'Не удалось загрузить чат';
+
+  @override
+  String get chatRetry => 'Повторить';
+
+  @override
+  String get chatVoiceMessage => 'Голосовое сообщение';
+
+  @override
+  String get chatPhoto => 'Фото';
+
+  @override
+  String get chatMessageDeleted => 'Сообщение удалено';
+
+  @override
+  String get chatFailedToSend => 'Не удалось отправить';
+
+  @override
+  String get chatEdited => 'изменено';
+
+  @override
+  String get chatYou => 'Вы';
+
+  @override
+  String get chatEditingMessage => 'Редактирование сообщения';
+
+  @override
+  String get chatCopy => 'Копировать';
+
+  @override
+  String get chatCopyCaption => 'Копировать подпись';
+
+  @override
+  String get chatReply => 'Ответить';
+
+  @override
+  String get chatShare => 'Поделиться';
+
+  @override
+  String get chatSave => 'Сохранить';
+
+  @override
+  String get chatDeleteMessage => 'Удалить сообщение';
+
+  @override
+  String get chatDeleteForEveryone => 'Удалить у всех';
+
+  @override
+  String get chatDeleteForMe => 'Удалить у меня';
+
+  @override
+  String get chatDeletePrompt => 'Удалить сообщение?';
+
+  @override
+  String get chatDetails => 'Подробности';
+
+  @override
+  String get chatRemove => 'Удалить';
+
+  @override
+  String get chatCopied => 'Скопировано';
+
+  @override
+  String get chatSaved => 'Сохранено';
+
+  @override
+  String get chatMessageDetails => 'Сведения о сообщении';
+
+  @override
+  String get chatDetailFrom => 'От';
+
+  @override
+  String get chatDetailSent => 'Отправлено';
+
+  @override
+  String get chatDetailType => 'Тип';
+
+  @override
+  String get chatDetailStatus => 'Статус';
+
+  @override
+  String get chatEditMessage => 'Редактировать';
+
+  @override
+  String get chatMicrophoneRequired => 'Нужен доступ к микрофону';
 }

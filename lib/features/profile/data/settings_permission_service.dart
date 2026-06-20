@@ -54,7 +54,7 @@ final class SettingsPermissionService {
     return _mapStatus(status);
   }
 
-  Future<void> openSystemSettings() => openAppSettings();
+  Future<bool> openSystemSettings() => openAppSettings();
 
   Permission _permissionFor(SettingsPermissionKind kind) {
     return switch (kind) {

@@ -4,9 +4,9 @@ import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
 
-/// The translations for English (`en`).
-class AppLocalizationsEn extends AppLocalizations {
-  AppLocalizationsEn([String locale = 'en']) : super(locale);
+/// The translations for Turkish (`tr`).
+class AppLocalizationsTr extends AppLocalizations {
+  AppLocalizationsTr([String locale = 'tr']) : super(locale);
 
   @override
   String get appTitle => 'GymCoach';
@@ -1716,101 +1716,101 @@ class AppLocalizationsEn extends AppLocalizations {
   String get feedReportPost => 'Report post';
 
   @override
-  String get chatMessagesTitle => 'Messages';
+  String get chatMessagesTitle => 'Mesajlar';
 
   @override
-  String get chatSearch => 'Search';
+  String get chatSearch => 'Ara';
 
   @override
-  String get chatNoConversations => 'No conversations found';
+  String get chatNoConversations => 'Konuşma bulunamadı';
 
   @override
-  String get chatStartConversation => 'Start the conversation';
+  String get chatStartConversation => 'Sohbete başla';
 
   @override
-  String get chatCouldNotLoadConversation => 'Could not load conversation';
+  String get chatCouldNotLoadConversation => 'Sohbet yüklenemedi';
 
   @override
-  String get chatRetry => 'Retry';
+  String get chatRetry => 'Tekrar dene';
 
   @override
-  String get chatVoiceMessage => 'Voice message';
+  String get chatVoiceMessage => 'Sesli mesaj';
 
   @override
-  String get chatPhoto => 'Photo';
+  String get chatPhoto => 'Fotoğraf';
 
   @override
-  String get chatMessageDeleted => 'Message deleted';
+  String get chatMessageDeleted => 'Mesaj silindi';
 
   @override
-  String get chatFailedToSend => 'Failed to send';
+  String get chatFailedToSend => 'Gönderilemedi';
 
   @override
-  String get chatEdited => 'edited';
+  String get chatEdited => 'düzenlendi';
 
   @override
-  String get chatYou => 'You';
+  String get chatYou => 'Sen';
 
   @override
-  String get chatEditingMessage => 'Editing message';
+  String get chatEditingMessage => 'Mesaj düzenleniyor';
 
   @override
-  String get chatCopy => 'Copy';
+  String get chatCopy => 'Kopyala';
 
   @override
-  String get chatCopyCaption => 'Copy caption';
+  String get chatCopyCaption => 'Açıklamayı kopyala';
 
   @override
-  String get chatReply => 'Reply';
+  String get chatReply => 'Yanıtla';
 
   @override
-  String get chatShare => 'Share';
+  String get chatShare => 'Paylaş';
 
   @override
-  String get chatSave => 'Save';
+  String get chatSave => 'Kaydet';
 
   @override
-  String get chatDeleteMessage => 'Delete message';
+  String get chatDeleteMessage => 'Mesajı sil';
 
   @override
-  String get chatDeleteForEveryone => 'Delete for everyone';
+  String get chatDeleteForEveryone => 'Herkesten sil';
 
   @override
-  String get chatDeleteForMe => 'Delete for me';
+  String get chatDeleteForMe => 'Benden sil';
 
   @override
-  String get chatDeletePrompt => 'Delete message?';
+  String get chatDeletePrompt => 'Mesaj silinsin mi?';
 
   @override
-  String get chatDetails => 'Details';
+  String get chatDetails => 'Ayrıntılar';
 
   @override
-  String get chatRemove => 'Remove';
+  String get chatRemove => 'Kaldır';
 
   @override
-  String get chatCopied => 'Copied';
+  String get chatCopied => 'Kopyalandı';
 
   @override
-  String get chatSaved => 'Saved';
+  String get chatSaved => 'Kaydedildi';
 
   @override
-  String get chatMessageDetails => 'Message details';
+  String get chatMessageDetails => 'Mesaj ayrıntıları';
 
   @override
-  String get chatDetailFrom => 'From';
+  String get chatDetailFrom => 'Gönderen';
 
   @override
-  String get chatDetailSent => 'Sent';
+  String get chatDetailSent => 'Gönderildi';
 
   @override
-  String get chatDetailType => 'Type';
+  String get chatDetailType => 'Tür';
 
   @override
-  String get chatDetailStatus => 'Status';
+  String get chatDetailStatus => 'Durum';
 
   @override
-  String get chatEditMessage => 'Edit message';
+  String get chatEditMessage => 'Mesajı düzenle';
 
   @override
-  String get chatMicrophoneRequired => 'Microphone permission is required';
+  String get chatMicrophoneRequired => 'Sesli mesaj için mikrofon izni gerekli';
 }

@@ -3,8 +3,11 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../app/theme/premium_tokens.dart';
+import '../../../core/offline/offline_sync_service.dart';
+import '../../../core/offline/outbox_media_store.dart';
 import '../../social/data/social_api_client.dart';
 import '../domain/feed_story.dart';
 
@@ -12,6 +15,7 @@ Future<FeedStory?> showCreateStorySheet({
   required BuildContext context,
   required SocialApiClient client,
   required StoryUser ownStoryUser,
+  OfflineSyncService? offlineSync,
 }) {
   return showModalBottomSheet<FeedStory>(
     context: context,
@@ -20,6 +24,7 @@ Future<FeedStory?> showCreateStorySheet({
     builder: (_) => _CreateStorySheet(
       client: client,
       ownStoryUser: ownStoryUser,
+      offlineSync: offlineSync,
     ),
   );
 }
@@ -28,28 +33,28 @@ class _CreateStorySheet extends StatefulWidget {
   const _CreateStorySheet({
     required this.client,
     required this.ownStoryUser,
+    this.offlineSync,
   });
 
   final SocialApiClient client;
   final StoryUser ownStoryUser;
+  final OfflineSyncService? offlineSync;
 
   @override
   State<_CreateStorySheet> createState() => _CreateStorySheetState();
 }
 
 class _CreateStorySheetState extends State<_CreateStorySheet> {
+  static const _uuid = Uuid();
+
   final _picker = ImagePicker();
   XFile? _image;
   Uint8List? _previewBytes;
   var _picking = false;
   var _saving = false;
-  String? _error;
 
   Future<void> _pickImage(ImageSource source) async {
-    setState(() {
-      _picking = true;
-      _error = null;
-    });
+    setState(() => _picking = true);
     try {
       final picked = await _picker.pickImage(
         source: source,
@@ -63,9 +68,7 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
         _image = picked;
         _previewBytes = bytes;
       });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = e.toString());
+    } catch (_) {
     } finally {
       if (mounted) setState(() => _picking = false);
     }
@@ -73,26 +76,42 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
 
   Future<void> _publish() async {
     final image = _image;
-    if (image == null) {
-      setState(() => _error = 'Add a photo for your story.');
-      return;
-    }
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
+    final bytes = _previewBytes;
+    if (image == null || bytes == null) return;
+    setState(() => _saving = true);
+
     try {
-      final story = await widget.client.createStory(
+      final localId = _uuid.v4();
+      final mediaStore = OutboxMediaStore.instance;
+      final localPath = await mediaStore.saveBytes(
+        bytes: bytes,
+        extension: mediaStore.extensionFromName(image.name, fallback: 'jpg'),
+      );
+
+      final story = FeedStory(
+        id: 'story_${widget.ownStoryUser.id}',
+        localId: localId,
+        user: widget.ownStoryUser,
+        slides: [FeedStorySlide(imageBytes: bytes, localPath: localPath)],
+        latestAt: DateTime.now(),
+        isPendingUpload: true,
+      );
+
+      final sync = widget.offlineSync ?? OfflineSyncService.instance;
+      if (sync != null) {
+        await sync.enqueueStory(story: story, localMediaPath: localPath);
+        if (mounted) Navigator.pop(context, story);
+        return;
+      }
+
+      final remoteStory = await widget.client.createStory(
         image: image,
         ownStoryUser: widget.ownStoryUser,
       );
-      if (mounted) Navigator.pop(context, story);
-    } catch (e) {
+      if (mounted) Navigator.pop(context, remoteStory);
+    } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _saving = false;
-        _error = e.toString();
-      });
+      setState(() => _saving = false);
     }
   }
 
@@ -218,15 +237,6 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
                           )
                         : const Text('Share story'),
                   ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      _error!,
-                      style: const TextStyle(color: Colors.redAccent),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
                   SizedBox(height: bottomInset > 0 ? 8 : 0),
                 ],
               ),

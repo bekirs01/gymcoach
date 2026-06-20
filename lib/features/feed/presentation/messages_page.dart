@@ -1,11 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
-import '../../../core/auth_session_service.dart';
-import '../../../core/supabase_operation_error.dart';
-import '../../chat/data/chat_local_store.dart';
+import '../../../core/offline/local_chat_cache.dart';
+import '../../../core/offline/offline_sync_service.dart';
 import '../../chat/data/chat_repository.dart';
 import '../../chat/data/supabase_chat_repository.dart';
 import '../../chat/domain/chat_conversation.dart';
@@ -21,52 +22,53 @@ class MessagesPage extends StatefulWidget {
 
 class _MessagesPageState extends State<MessagesPage> {
   var _query = '';
-  var _loading = true;
-  var _loadFailed = false;
-  String? _statusMessage;
+  var _syncing = false;
   List<ChatConversation> _conversations = [];
+  SupabaseChatRepository? _repository;
 
   @override
   void initState() {
     super.initState();
-    _loadConversations();
+    _conversations = _loadInitialConversations();
+    unawaited(_initOfflineSync());
+    _syncRemoteConversations();
   }
 
-  Future<void> _loadConversations() async {
-    setState(() {
-      _loading = true;
-      _loadFailed = false;
-      _statusMessage = null;
+  Future<void> _initOfflineSync() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sync = await OfflineSyncService.ensureInitialized(prefs);
+    sync.addChatListener((_) {
+      if (!mounted) return;
+      final cached = LocalChatCache.instance.allConversations();
+      if (cached.isEmpty) return;
+      setState(() {
+        _conversations = SupabaseChatRepository.mergeConversations(_conversations, cached);
+      });
     });
+    sync.start();
+  }
 
-    ChatLocalStore.ensureInitialized();
-    final localFallback = ChatLocalStore.orderedConversations();
+  List<ChatConversation> _loadInitialConversations() {
+    return SupabaseChatRepository.initialConversationsForDisplay();
+  }
+
+  Future<void> _syncRemoteConversations() async {
+    if (_syncing) return;
+    _syncing = true;
 
     try {
-      await AuthSessionService.ensureSession();
       final prefs = await SharedPreferences.getInstance();
       final repository = SupabaseChatRepository(prefs: prefs);
-      final conversations = await repository.loadConversations();
+      _repository = repository;
+
+      final merged = await repository.loadRemoteConversations();
+      final cached = LocalChatCache.instance.allConversations();
+      final withCache = SupabaseChatRepository.mergeConversations(merged, cached);
       if (!mounted) return;
-      setState(() {
-        _conversations = conversations.isNotEmpty ? conversations : localFallback;
-        _loading = false;
-        _loadFailed = _conversations.isEmpty;
-      });
-    } catch (error, stackTrace) {
-      final mapped = SupabaseOperationError.classify(
-        operation: 'messages_load_conversations',
-        error: error,
-        stackTrace: stackTrace,
-        fallbackMessage: 'Could not start guest session',
-      );
-      if (!mounted) return;
-      setState(() {
-        _conversations = localFallback;
-        _loading = false;
-        _loadFailed = _conversations.isEmpty;
-        _statusMessage = _conversations.isEmpty ? mapped.userMessage : null;
-      });
+      setState(() => _conversations = withCache);
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _syncing = false);
     }
   }
 
@@ -80,15 +82,30 @@ class _MessagesPageState extends State<MessagesPage> {
 
   Future<void> _onConversationTap(ChatConversation conversation) async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => ChatConversationScreen(
-          participantUserId: conversation.participantUserId,
-          conversationId: conversation.isRemote ? conversation.id : null,
-        ),
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 220),
+        reverseTransitionDuration: const Duration(milliseconds: 180),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.04, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+              child: ChatConversationScreen(
+                participantUserId: conversation.participantUserId,
+                conversationId: conversation.isRemote ? conversation.id : null,
+              ),
+            ),
+          );
+        },
       ),
     );
     if (!mounted) return;
-    await _loadConversations();
+    _conversations = _repository?.getInitialConversations() ?? _loadInitialConversations();
+    setState(() {});
+    _syncRemoteConversations();
   }
 
   @override
@@ -155,51 +172,33 @@ class _MessagesPageState extends State<MessagesPage> {
               ),
               const SizedBox(height: AppSpacing.sm),
               Expanded(
-                child: _loading
+                child: conversations.isEmpty
                     ? const Center(
-                        child: CircularProgressIndicator(color: PremiumColors.accentBlue),
+                        child: Text(
+                          'No conversations found',
+                          style: TextStyle(color: PremiumColors.textSecondary),
+                        ),
                       )
-                    : conversations.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  _loadFailed && _conversations.isEmpty
-                                      ? (_statusMessage ?? 'Could not load conversations')
-                                      : 'No conversations found',
-                                  style: const TextStyle(color: PremiumColors.textSecondary),
-                                ),
-                                if (_loadFailed) ...[
-                                  const SizedBox(height: AppSpacing.sm),
-                                  TextButton(
-                                    onPressed: _loadConversations,
-                                    child: const Text('Retry'),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.xl),
-                            itemCount: conversations.length,
-                            separatorBuilder: (context, index) => Divider(
-                              height: 1,
-                              color: Colors.white.withValues(alpha: 0.06),
-                            ),
-                            itemBuilder: (context, index) {
-                              final conversation = conversations[index];
-                              final unread = conversation.unreadCount > 0;
-                              return _ConversationRow(
-                                name: conversation.participantName,
-                                avatarUrl: conversation.avatarUrl,
-                                lastMessage: conversation.lastMessagePreview,
-                                time: ChatRepository.formatRelativeTime(conversation.lastMessageTime),
-                                unread: unread,
-                                onTap: () => _onConversationTap(conversation),
-                              );
-                            },
-                          ),
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.xl),
+                        itemCount: conversations.length,
+                        separatorBuilder: (context, index) => Divider(
+                          height: 1,
+                          color: Colors.white.withValues(alpha: 0.06),
+                        ),
+                        itemBuilder: (context, index) {
+                          final conversation = conversations[index];
+                          final unread = conversation.unreadCount > 0;
+                          return _ConversationRow(
+                            name: conversation.participantName,
+                            avatarUrl: conversation.avatarUrl,
+                            lastMessage: conversation.lastMessagePreview,
+                            time: ChatRepository.formatRelativeTime(conversation.lastMessageTime),
+                            unread: unread,
+                            onTap: () => _onConversationTap(conversation),
+                          );
+                        },
+                      ),
               ),
             ],
           ),

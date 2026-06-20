@@ -5,6 +5,7 @@ class FeedMedia {
     required this.url,
     required this.path,
     required this.sortOrder,
+    this.localPath,
   });
 
   final String id;
@@ -12,6 +13,7 @@ class FeedMedia {
   final String url;
   final String path;
   final int sortOrder;
+  final String? localPath;
 
   factory FeedMedia.fromRow(Map<String, dynamic> row) {
     return FeedMedia(
@@ -20,6 +22,7 @@ class FeedMedia {
       url: row['media_url'] as String? ?? '',
       path: row['media_path'] as String? ?? '',
       sortOrder: (row['sort_order'] as num?)?.toInt() ?? 0,
+      localPath: row['local_path'] as String?,
     );
   }
 }
