@@ -80,6 +80,50 @@ abstract final class WorkoutImageResolver {
     'Cardio': 'assets/images/workouts/cardio.jpg',
   };
 
+  static const _exerciseAliases = <String, String>{
+    'overhead press': 'Shoulder Press',
+    'arnold press': 'Shoulder Press',
+    'seated dumbbell press': 'Shoulder Press',
+    'barbell curl': 'Biceps Curl',
+    'ez bar curl': 'Biceps Curl',
+    'cable curl': 'Biceps Curl',
+    'concentration curl': 'Biceps Curl',
+    'preacher curl': 'Biceps Curl',
+    'incline dumbbell curl': 'Biceps Curl',
+    'flat bench press': 'Barbell Bench Press',
+    'incline barbell press': 'Barbell Bench Press',
+    'incline dumbbell press': 'Barbell Bench Press',
+    'dumbbell bench press': 'Barbell Bench Press',
+    'barbell bench press': 'Barbell Bench Press',
+    'pec deck fly': 'Chest Fly',
+    'cable chest fly': 'Chest Fly',
+    'rear delt fly': 'Face Pull',
+    'cable lateral raise': 'Lateral Raise',
+    'upright row': 'Lateral Raise',
+    'back squat': 'Squat',
+    'front squat': 'Squat',
+    'leg press': 'Squat',
+    'leg extension': 'Squat',
+    'calf raise': 'Squat',
+    'walking lunge': 'Lunge',
+    'bulgarian split squat': 'Lunge',
+    'plank hold': 'Plank',
+    'hanging leg raise': 'Leg Raise',
+    'russian twist': 'Bicycle Crunch',
+    'dead bug': 'Plank',
+    'pallof press': 'Cable Crunch',
+    'barbell row': 'Seated Row',
+    'seated cable row': 'Seated Row',
+    'chest supported row': 'Seated Row',
+    'single arm dumbbell row': 'Seated Row',
+    'straight arm pulldown': 'Lat Pulldown',
+    'pull ups': 'Pull-up',
+    'pull up': 'Pull-up',
+    'push ups': 'Push-up',
+    'push up': 'Push-up',
+    'triceps pushdown': 'Dips',
+  };
+
   static bool isValidNetworkUrl(String? value) {
     if (value == null) return false;
     final trimmed = value.trim();
@@ -134,25 +178,27 @@ abstract final class WorkoutImageResolver {
         return ResolvedWorkoutImage(
           source: WorkoutImageSource.asset,
           path: exerciseAsset,
-          isExerciseDiagram: true,
+          isExerciseDiagram: isExerciseDiagramAsset(exerciseAsset),
         );
       }
     }
 
-    final groupAsset = muscleGroupAsset(muscleGroup);
-    if (groupAsset != null) {
-      return ResolvedWorkoutImage(
-        source: WorkoutImageSource.asset,
-        path: groupAsset,
-      );
-    }
+    if (names.isEmpty) {
+      final groupAsset = muscleGroupAsset(muscleGroup);
+      if (groupAsset != null) {
+        return ResolvedWorkoutImage(
+          source: WorkoutImageSource.asset,
+          path: groupAsset,
+        );
+      }
 
-    final nameAsset = muscleGroupAsset(workoutName);
-    if (nameAsset != null) {
-      return ResolvedWorkoutImage(
-        source: WorkoutImageSource.asset,
-        path: nameAsset,
-      );
+      final nameAsset = muscleGroupAsset(workoutName);
+      if (nameAsset != null) {
+        return ResolvedWorkoutImage(
+          source: WorkoutImageSource.asset,
+          path: nameAsset,
+        );
+      }
     }
 
     return const ResolvedWorkoutImage(
@@ -207,6 +253,12 @@ abstract final class WorkoutImageResolver {
     if (exact != null) return exact;
 
     final normalized = _normalize(name);
+    final aliasTarget = _exerciseAliases[normalized];
+    if (aliasTarget != null) {
+      final aliasAsset = WorkoutExerciseCatalog.imageForName(aliasTarget);
+      if (aliasAsset != null) return aliasAsset;
+    }
+
     for (final exercise in WorkoutExerciseCatalog.allExercises) {
       if (_normalize(exercise.name) == normalized) {
         return exercise.imageAsset;
@@ -225,12 +277,10 @@ abstract final class WorkoutImageResolver {
     }
     if (bestScore >= 2) return bestMatch;
 
-    final keywordAsset = muscleGroupAsset(name);
-    if (keywordAsset != null) return keywordAsset;
-
-    final categoryTitle = WorkoutExerciseCatalog.categoryTitleForName(name);
-    if (categoryTitle != null) {
-      return _categoryAssets[categoryTitle];
+    for (final category in WorkoutExerciseCatalog.categories) {
+      if (normalized.contains(_normalize(category.title))) {
+        return category.exercises.first.imageAsset;
+      }
     }
 
     return null;

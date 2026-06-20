@@ -84,6 +84,24 @@ final class LocalChatCache {
     return cached?.toConversation();
   }
 
+  ChatConversation? conversationForParticipant(String participantUserId) {
+    for (final cached in _conversations.values) {
+      if (cached.participantUserId == participantUserId) {
+        return cached.toConversation();
+      }
+    }
+    return null;
+  }
+
+  String? conversationIdForParticipant(String participantUserId) {
+    for (final entry in _conversations.entries) {
+      if (entry.value.participantUserId == participantUserId) {
+        return entry.key;
+      }
+    }
+    return null;
+  }
+
   List<ChatConversation> allConversations() {
     return _conversations.values.map((item) => item.toConversation()).toList();
   }
@@ -158,7 +176,9 @@ final class LocalChatCache {
         continue;
       }
       if (_shouldPreferLocal(existing, message)) {
-        byKey[key] = message;
+        byKey[key] = _mergeLocalMedia(message, existing);
+      } else {
+        byKey[key] = _mergeLocalMedia(existing, message);
       }
     }
 
@@ -180,7 +200,27 @@ final class LocalChatCache {
     if (local.id.startsWith('pending_') && !remote.id.startsWith('pending_')) {
       return false;
     }
+    if (local.hasImage &&
+        (local.localImagePath?.isNotEmpty == true || local.localPreviewBytes != null) &&
+        (remote.primaryImageUrl == null || remote.primaryImageUrl!.isEmpty)) {
+      return true;
+    }
+    if (local.isVoice &&
+        local.localVoicePath?.isNotEmpty == true &&
+        (remote.primaryVoiceUrl == null || remote.primaryVoiceUrl!.isEmpty)) {
+      return true;
+    }
     return false;
+  }
+
+  static ChatMessage _mergeLocalMedia(ChatMessage primary, ChatMessage secondary) {
+    return primary.copyWith(
+      localPreviewBytes: primary.localPreviewBytes ?? secondary.localPreviewBytes,
+      localImagePath: primary.localImagePath ?? secondary.localImagePath,
+      localVoicePath: primary.localVoicePath ?? secondary.localVoicePath,
+      isPending: primary.isPending || secondary.isPending,
+      hasFailed: primary.hasFailed || secondary.hasFailed,
+    );
   }
 
   static String _previewFor(ChatMessage message) {

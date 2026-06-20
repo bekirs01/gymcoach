@@ -1,5 +1,5 @@
 abstract final class ProfileDefaults {
-  static const displayName = 'Бекир Сучукаран';
+  static const displayName = 'Бекир Сучыкаран';
   static const username = '';
   static const locationText = 'Yekaterinburg, Russia';
   static const weightKg = 78.5;
@@ -13,6 +13,7 @@ abstract final class ProfileDefaults {
   static const isPublicProfile = true;
 
   static const legacyDisplayName = 'Alex Morgan';
+  static const legacyMisspelledDisplayName = 'Бекир Сучукаран';
 
   static String get initials {
     final parts = displayName.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
@@ -24,7 +25,11 @@ abstract final class ProfileDefaults {
 
   static String normalizeDisplayName(String value) {
     final trimmed = value.trim();
-    if (trimmed.isEmpty || trimmed == legacyDisplayName) return displayName;
+    if (trimmed.isEmpty ||
+        trimmed == legacyDisplayName ||
+        trimmed == legacyMisspelledDisplayName) {
+      return displayName;
+    }
     return trimmed;
   }
 

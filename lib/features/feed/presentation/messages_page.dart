@@ -30,8 +30,23 @@ class _MessagesPageState extends State<MessagesPage> {
   void initState() {
     super.initState();
     _conversations = _loadInitialConversations();
-    unawaited(_initOfflineSync());
-    _syncRemoteConversations();
+    unawaited(_bootstrap());
+  }
+
+  Future<void> _bootstrap() async {
+    await LocalChatCache.instance.ensureLoaded();
+    _mergeCachedConversations();
+    await _initOfflineSync();
+    await _syncRemoteConversations();
+  }
+
+  void _mergeCachedConversations() {
+    final cached = LocalChatCache.instance.allConversations();
+    if (cached.isEmpty) return;
+    if (!mounted) return;
+    setState(() {
+      _conversations = SupabaseChatRepository.mergeConversations(_conversations, cached);
+    });
   }
 
   Future<void> _initOfflineSync() async {
@@ -81,6 +96,20 @@ class _MessagesPageState extends State<MessagesPage> {
   }
 
   Future<void> _onConversationTap(ChatConversation conversation) async {
+    final prefs = await SharedPreferences.getInstance();
+    final repository = _repository ?? SupabaseChatRepository(prefs: prefs);
+    _repository ??= repository;
+
+    var conversationId = conversation.isRemote ? conversation.id : null;
+    if (conversationId == null || conversationId.startsWith('conv_')) {
+      conversationId = LocalChatCache.instance.conversationIdForParticipant(
+            conversation.participantUserId,
+          ) ??
+          await repository.cachedConversationId(conversation.participantUserId);
+    }
+
+    if (!mounted) return;
+
     await Navigator.of(context).push<void>(
       PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 220),
@@ -95,7 +124,7 @@ class _MessagesPageState extends State<MessagesPage> {
               ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
               child: ChatConversationScreen(
                 participantUserId: conversation.participantUserId,
-                conversationId: conversation.isRemote ? conversation.id : null,
+                conversationId: conversationId,
               ),
             ),
           );
@@ -103,9 +132,12 @@ class _MessagesPageState extends State<MessagesPage> {
       ),
     );
     if (!mounted) return;
-    _conversations = _repository?.getInitialConversations() ?? _loadInitialConversations();
+    await LocalChatCache.instance.ensureLoaded();
+    _mergeCachedConversations();
+    _conversations = repository.getInitialConversations();
+    _mergeCachedConversations();
     setState(() {});
-    _syncRemoteConversations();
+    await _syncRemoteConversations();
   }
 
   @override

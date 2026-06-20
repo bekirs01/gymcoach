@@ -21,6 +21,8 @@ final class LocalFeedCache {
 
   List<FeedPost> _pendingPosts = [];
   List<FeedStory> _pendingStories = [];
+  FeedStory? _cachedOwnStory;
+  List<FeedStory> _cachedApiStories = const [];
   var _loaded = false;
   File? _file;
 
@@ -57,6 +59,14 @@ final class LocalFeedCache {
       _pendingStories = storyRows
           .map((row) => _storyFromJson(Map<String, dynamic>.from(row as Map)))
           .toList();
+      final ownStoryRow = map['cached_own_story'];
+      if (ownStoryRow is Map) {
+        _cachedOwnStory = _storyFromJson(Map<String, dynamic>.from(ownStoryRow));
+      }
+      final cachedStoryRows = map['cached_api_stories'] as List<dynamic>? ?? const [];
+      _cachedApiStories = cachedStoryRows
+          .map((row) => _storyFromJson(Map<String, dynamic>.from(row as Map)))
+          .toList();
     } catch (_) {}
     _loaded = true;
   }
@@ -70,6 +80,20 @@ final class LocalFeedCache {
       if (story.user.id == userId) return story;
     }
     return null;
+  }
+
+  FeedStory? cachedOwnStory() => _cachedOwnStory;
+
+  List<FeedStory> cachedApiStories() => List.unmodifiable(_cachedApiStories);
+
+  Future<void> saveSyncedStories({
+    FeedStory? own,
+    required List<FeedStory> apiStories,
+  }) async {
+    await ensureLoaded();
+    _cachedOwnStory = own;
+    _cachedApiStories = List<FeedStory>.from(apiStories);
+    await _persist();
   }
 
   Future<void> upsertPost(FeedPost post) async {
@@ -149,6 +173,8 @@ final class LocalFeedCache {
     final map = {
       'pending_posts': _pendingPosts.map(_postToJson).toList(),
       'pending_stories': _pendingStories.map(_storyToJson).toList(),
+      if (_cachedOwnStory != null) 'cached_own_story': _storyToJson(_cachedOwnStory!),
+      'cached_api_stories': _cachedApiStories.map(_storyToJson).toList(),
     };
     await file.writeAsString(jsonEncode(map), flush: true);
   }

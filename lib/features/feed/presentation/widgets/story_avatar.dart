@@ -104,7 +104,7 @@ class StoryAvatar extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (isOwnStory)
+                  if (isOwnStory && !hasUnseenStory)
                     Positioned(
                       right: 0,
                       bottom: 0,

@@ -306,6 +306,39 @@ abstract final class SocialSeedRepository {
     }).toList();
   }
 
+  static List<FeedStory> mergeWithApiStories(
+    List<FeedStory> apiStories, {
+    Set<String> excludeUserIds = const {},
+  }) {
+    final excluded = excludeUserIds.where((id) => id.trim().isNotEmpty).toSet();
+    final byUserId = <String, FeedStory>{};
+    for (final story in demoStories()) {
+      if (excluded.contains(story.user.id)) continue;
+      byUserId[story.user.id] = story;
+    }
+    for (final story in apiStories) {
+      if (excluded.contains(story.user.id)) continue;
+      if (story.hasSlides) {
+        byUserId[story.user.id] = story;
+      }
+    }
+
+    final merged = <FeedStory>[];
+    for (final story in apiStories) {
+      if (excluded.contains(story.user.id)) continue;
+      if (!story.hasSlides || _storyRowOrder.contains(story.user.id)) continue;
+      merged.add(story);
+    }
+    for (final userId in _storyRowOrder) {
+      if (excluded.contains(userId)) continue;
+      final story = byUserId[userId];
+      if (story != null && story.hasSlides) {
+        merged.add(story);
+      }
+    }
+    return merged;
+  }
+
   static StoryUser ownStoryUser(UserProfile profile, {String? userId, String? avatarUrlOverride}) {
     final seed = currentUserSeed(profile);
     final displayName = profile.displayName.trim().isEmpty ? seed.displayName : profile.displayName.trim();

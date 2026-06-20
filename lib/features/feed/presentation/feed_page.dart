@@ -19,7 +19,6 @@ import '../../social/data/social_api_client.dart';
 import '../../social/data/social_seed_data.dart';
 import '../../social/domain/feed_post.dart';
 import '../../workout_share/data/workout_share_repository.dart';
-import '../data/feed_demo_data.dart';
 import '../domain/feed_story.dart';
 import 'create_choice_sheet.dart';
 import 'create_post_sheet.dart';
@@ -52,7 +51,6 @@ class _FeedPageState extends State<FeedPage> {
   WorkoutShareRepository? _shareRepository;
   var _refreshing = false;
   List<FeedPost> _feedPosts = const [];
-  final List<FeedStory> _demoStories = FeedDemoData.demoStories();
   FeedStory? _userStory;
   List<FeedStory> _apiStories = const [];
   String? _deviceUserId;
@@ -66,9 +64,22 @@ class _FeedPageState extends State<FeedPage> {
         avatarUrlOverride: _avatarUrlOverride,
       );
 
+  Set<String> get _ownStoryUserIds => {
+        if (_deviceUserId != null && _deviceUserId!.isNotEmpty) _deviceUserId!,
+        _ownStoryUser.id,
+        SocialSeedRepository.currentUserId,
+      };
+
+  bool _isOwnStory(FeedStory story) {
+    if (story.user.isCurrentUser) return true;
+    return _ownStoryUserIds.contains(story.user.id);
+  }
+
   List<FeedStory> get _rowStories {
-    if (_apiStories.isNotEmpty) return _apiStories;
-    return _demoStories;
+    return SocialSeedRepository.mergeWithApiStories(
+      _apiStories,
+      excludeUserIds: _ownStoryUserIds,
+    );
   }
 
   List<FeedStory> get _playableStories {
@@ -76,11 +87,7 @@ class _FeedPageState extends State<FeedPage> {
     if (_userStory != null && _userStory!.hasSlides) {
       items.add(_userStory!);
     }
-    if (_apiStories.isNotEmpty) {
-      items.addAll(_apiStories.where((story) => story.hasSlides));
-    } else {
-      items.addAll(_demoStories.where((story) => story.hasSlides));
-    }
+    items.addAll(_rowStories);
     return items;
   }
 
@@ -89,6 +96,7 @@ class _FeedPageState extends State<FeedPage> {
     super.initState();
     _feedPosts = SocialSeedRepository.allFeedPosts(currentProfile: widget.profile);
     unawaited(_loadPendingFeed());
+    unawaited(_hydrateCachedStories());
     unawaited(_bootstrap());
   }
 
@@ -113,11 +121,27 @@ class _FeedPageState extends State<FeedPage> {
       });
     }
     if (pendingStories.isNotEmpty) {
-      final own = pendingStories.where((story) => story.user.isCurrentUser).firstOrNull;
+      final own = pendingStories.where(_isOwnStory).firstOrNull;
       if (own != null) {
         setState(() => _userStory = own.copyWithUser(_ownStoryUser));
       }
     }
+  }
+
+  Future<void> _hydrateCachedStories() async {
+    await LocalFeedCache.instance.ensureLoaded();
+    final cachedOwn = LocalFeedCache.instance.cachedOwnStory();
+    final cachedApi = LocalFeedCache.instance.cachedApiStories();
+    if (!mounted) return;
+    if (cachedOwn == null && cachedApi.isEmpty) return;
+    setState(() {
+      if (cachedOwn != null && cachedOwn.hasSlides && (_userStory == null || !_userStory!.hasSlides)) {
+        _userStory = cachedOwn.copyWithUser(_ownStoryUser);
+      }
+      if (_apiStories.isEmpty && cachedApi.isNotEmpty) {
+        _apiStories = cachedApi;
+      }
+    });
   }
 
   Future<void> _initOfflineSync(SharedPreferences prefs) async {
@@ -158,10 +182,8 @@ class _FeedPageState extends State<FeedPage> {
           setState(() => _avatarUrlOverride = apiProfile.avatarUrl.trim());
         }
       }));
-      await Future.wait([
-        _syncApiPosts(),
-        _syncStories(),
-      ]);
+      unawaited(_syncStories());
+      await _syncApiPosts();
     } catch (error, stackTrace) {
       SupabaseDebugLog.database('feed bootstrap failed: $error');
       if (kDebugMode) debugPrintStack(stackTrace: stackTrace);
@@ -251,19 +273,38 @@ class _FeedPageState extends State<FeedPage> {
       final stories = await client.fetchActiveStories();
       if (!mounted) return;
       final uid = _deviceUserId ?? await client.currentUserId();
+      if (_deviceUserId == null || _deviceUserId!.isEmpty) {
+        _deviceUserId = uid;
+      }
       FeedStory? own;
       final others = <FeedStory>[];
       for (final story in stories) {
-        if (story.user.id == uid) {
+        if (_isOwnStory(story)) {
           own = story.copyWithUser(_ownStoryUser);
         } else {
           others.add(story);
         }
       }
+      if (own == null || !own.hasSlides) {
+        await LocalFeedCache.instance.ensureLoaded();
+        final pending = LocalFeedCache.instance.ownPendingStory(uid);
+        if (pending != null && pending.hasSlides) {
+          own = pending.copyWithUser(_ownStoryUser);
+        }
+      }
+      if ((own == null || !own.hasSlides) && _userStory != null && _userStory!.hasSlides) {
+        own = _userStory!.copyWithUser(_ownStoryUser);
+      }
       setState(() {
         _userStory = own;
         _apiStories = others;
       });
+      unawaited(
+        LocalFeedCache.instance.saveSyncedStories(
+          own: own != null && own.hasSlides ? own : null,
+          apiStories: others,
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
     }

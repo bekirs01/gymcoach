@@ -73,7 +73,12 @@ final class SupabaseChatRepository {
     };
 
     for (final conversation in remote) {
-      byParticipant[conversation.participantUserId] = conversation;
+      final existing = byParticipant[conversation.participantUserId];
+      if (existing == null) {
+        byParticipant[conversation.participantUserId] = conversation;
+        continue;
+      }
+      byParticipant[conversation.participantUserId] = _mergeConversationPair(existing, conversation);
     }
 
     final merged = byParticipant.values.toList();
@@ -83,6 +88,36 @@ final class SupabaseChatRepository {
       return bTime.compareTo(aTime);
     });
     return merged;
+  }
+
+  static ChatConversation _mergeConversationPair(
+    ChatConversation existing,
+    ChatConversation incoming,
+  ) {
+    final messages = incoming.messages.length >= existing.messages.length
+        ? incoming.messages
+        : existing.messages;
+    final lastFromMessages = messages.isNotEmpty ? messages.last : null;
+
+    final existingTime = existing.lastMessageTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final incomingTime = incoming.lastMessageTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final incomingIsNewer = incomingTime.isAfter(existingTime);
+
+    final resolvedId = incoming.isRemote && !incoming.id.startsWith('conv_')
+        ? incoming.id
+        : (existing.isRemote && !existing.id.startsWith('conv_') ? existing.id : incoming.id);
+
+    return incoming.copyWith(
+      id: resolvedId,
+      messages: messages,
+      isRemote: existing.isRemote || incoming.isRemote,
+      isSeeded: existing.isSeeded || incoming.isSeeded,
+      unreadCount: incoming.unreadCount > 0 ? incoming.unreadCount : existing.unreadCount,
+      cachedLastMessageText: incomingIsNewer
+          ? (incoming.cachedLastMessageText ?? lastFromMessages?.body)
+          : (existing.cachedLastMessageText ?? incoming.cachedLastMessageText),
+      cachedLastMessageTime: incomingIsNewer ? incomingTime : existingTime,
+    );
   }
 
   Future<String> ensureAuthenticatedUserId() async {

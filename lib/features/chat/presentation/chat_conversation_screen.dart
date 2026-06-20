@@ -84,9 +84,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   void initState() {
     super.initState();
     _textController.addListener(_onTextChanged);
-    _showLocalConversationFirst();
-    _initOfflineSync();
-    _syncRemoteConversation();
+    unawaited(_bootstrapLocalConversation());
+    unawaited(_initOfflineSync());
+    unawaited(_syncRemoteConversation());
   }
 
   Future<void> _initOfflineSync() async {
@@ -127,17 +127,34 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     });
   }
 
-  void _showLocalConversationFirst() {
-    ChatLocalStore.ensureInitialized();
+  Future<void> _bootstrapLocalConversation() async {
+    await LocalChatCache.instance.ensureLoaded();
+    if (!mounted) return;
+
     ChatConversation? local;
 
-    if (widget.conversationId != null) {
-      local = LocalChatCache.instance.conversationFor(widget.conversationId!);
+    final conversationId = widget.conversationId;
+    if (conversationId != null && conversationId.isNotEmpty) {
+      local = LocalChatCache.instance.conversationFor(conversationId);
     }
+
+    local ??= LocalChatCache.instance.conversationForParticipant(widget.participantUserId);
+
+    if (local == null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final cachedId = await SupabaseChatRepository(prefs: prefs)
+            .cachedConversationId(widget.participantUserId);
+        if (cachedId != null && cachedId.isNotEmpty) {
+          local = LocalChatCache.instance.conversationFor(cachedId);
+        }
+      } catch (_) {}
+    }
+
     local ??= ChatLocalStore.conversationForUser(widget.participantUserId);
 
     if (local == null) {
-      setState(() => _loading = true);
+      if (mounted) setState(() => _loading = true);
       return;
     }
 
@@ -145,6 +162,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         SocialSeedRepository.currentUserId;
     _conversation = local.copyWith(messages: _attachReplyMetadata(local.messages));
     _seedMessageIds(local.messages);
+    if (!mounted) return;
     setState(() => _loading = false);
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: false));
   }
@@ -806,6 +824,10 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     );
   }
 
+  Future<void> _persistConversation(ChatConversation conversation) async {
+    await LocalChatCache.instance.saveConversation(conversation);
+  }
+
   Future<void> _sendMessage() async {
     if (_editingMessage != null) {
       await _saveEditedMessage();
@@ -845,6 +867,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       cachedLastMessageTime: optimistic.sentAt,
     );
     setState(() => _conversation = updatedConversation);
+    unawaited(_persistConversation(updatedConversation));
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
     if (_usesOfflineOutbound) {
@@ -981,6 +1004,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       _pendingImage = null;
       _pendingImageBytes = null;
     });
+    unawaited(_persistConversation(updatedConversation));
     _textController.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
@@ -1103,6 +1127,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       cachedLastMessageTime: optimistic.sentAt,
     );
     setState(() => _conversation = updatedConversation);
+    unawaited(_persistConversation(updatedConversation));
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
     if (_usesOfflineOutbound) {
@@ -2207,11 +2232,35 @@ class _ImageBubble extends StatelessWidget {
                             );
                           },
                         )
+                      else if (message.isPending)
+                        Container(
+                          color: PremiumColors.surfaceRaised,
+                          alignment: Alignment.center,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: PremiumColors.accentBlue,
+                          ),
+                        )
                       else
                         Container(
                           color: PremiumColors.surfaceRaised,
                           alignment: Alignment.center,
                           child: const Icon(Icons.image_outlined, color: PremiumColors.textMuted),
+                        ),
+                      if (message.isPending &&
+                          (localBytes != null ||
+                              (localImagePath != null && localImagePath.isNotEmpty)))
+                        Container(
+                          color: Colors.black.withValues(alpha: 0.28),
+                          alignment: Alignment.center,
+                          child: const SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: PremiumColors.accentBlue,
+                            ),
+                          ),
                         ),
                     ],
                   ),
