@@ -68,6 +68,7 @@ class _SocialAvatarState extends State<SocialAvatar> {
           width: widget.size,
           height: widget.size,
           fit: BoxFit.cover,
+          gaplessPlayback: true,
           errorBuilder: (context, error, stackTrace) {
             if (!isFallback && !_primaryFailed) {
               _primaryFailed = true;

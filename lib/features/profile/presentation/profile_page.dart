@@ -11,6 +11,7 @@ import '../../social/data/social_seed_data.dart';
 import '../../social/domain/feed_post.dart';
 import '../data/profile_repository.dart';
 import '../domain/profile_defaults.dart';
+import '../domain/profile_image_precache.dart';
 import '../domain/profile_image_assets.dart';
 import '../domain/profile_media_filter.dart';
 import '../domain/profile_settings_options.dart';
@@ -76,6 +77,10 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     _profile = widget.profile;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(ProfileImagePrecache.warm(context: context, profile: _profile));
+    });
     unawaited(_bootstrapSocial());
   }
 
@@ -144,6 +149,13 @@ class _ProfilePageState extends State<ProfilePage> {
         _profile = remoteProfile;
         _applySeedFallback();
       });
+      unawaited(
+        ProfileImagePrecache.warm(
+          context: context,
+          profile: _profile,
+          extraMedia: resolvedPosts.expand((post) => post.media),
+        ),
+      );
       widget.onProfileChanged(_profile);
       _syncLocaleFromProfile();
     } catch (_) {

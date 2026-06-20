@@ -81,14 +81,40 @@ class _RussianFlag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      children: [
-        Expanded(child: ColoredBox(color: Color(0xFFFFFFFF))),
-        Expanded(child: ColoredBox(color: Color(0xFF0039A6))),
-        Expanded(child: ColoredBox(color: Color(0xFFD52B1E))),
-      ],
+    return CustomPaint(
+      painter: _RussianFlagPainter(),
+      child: const SizedBox.expand(),
     );
   }
+}
+
+class _RussianFlagPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stripeHeight = size.height / 3;
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, stripeHeight),
+      Paint()..color = const Color(0xFFFFFFFF),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, stripeHeight, size.width, stripeHeight),
+      Paint()..color = const Color(0xFF0039A6),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, stripeHeight * 2, size.width, stripeHeight),
+      Paint()..color = const Color(0xFFD52B1E),
+    );
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.5
+        ..color = Colors.white.withValues(alpha: 0.12),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _TurkishFlag extends StatelessWidget {

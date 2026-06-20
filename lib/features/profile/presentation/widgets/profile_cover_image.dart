@@ -34,8 +34,13 @@ class ProfileCoverImage extends StatelessWidget {
               fit: BoxFit.cover,
               width: double.infinity,
               height: height,
+              gaplessPlayback: true,
               color: Colors.black.withValues(alpha: darkenAlpha),
               colorBlendMode: BlendMode.darken,
+              frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                if (wasSynchronouslyLoaded || frame != null) return child;
+                return _assetCover();
+              },
               errorBuilder: (context, error, stackTrace) => _assetCover(),
             )
           : _assetCover(),

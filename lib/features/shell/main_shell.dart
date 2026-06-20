@@ -17,6 +17,7 @@ import '../plans/domain/workout_plan.dart';
 import '../plans/presentation/copy_plan_date_sheet.dart';
 import '../plans/presentation/create_plan_sheet.dart';
 import '../plans/presentation/plan_detail_page.dart';
+import '../profile/domain/profile_image_precache.dart';
 import '../profile/domain/user_profile.dart';
 import '../profile/presentation/profile_page.dart';
 import '../progress/presentation/progress_page.dart';
@@ -46,6 +47,17 @@ class _MainShellState extends State<MainShell> {
 
   TrainingAppState get _t => widget.training;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _warmProfileImages());
+  }
+
+  void _warmProfileImages() {
+    if (!mounted) return;
+    unawaited(ProfileImagePrecache.warm(context: context, profile: _t.profile));
+  }
+
   Future<void> _addPlan(WorkoutPlan plan) => _t.addPlan(plan);
 
   Future<void> _upsertPlan(WorkoutPlan plan) => _t.upsertPlan(plan);
@@ -56,13 +68,18 @@ class _MainShellState extends State<MainShell> {
     setState(() => _selectedIndex = 3);
   }
 
-  void _openProfile(BuildContext context) {
-    unawaited(showProfileSheet(
+  Future<void> _openProfile(BuildContext context) async {
+    await ProfileImagePrecache.warm(context: context, profile: _t.profile);
+    if (!context.mounted) return;
+    await showProfileSheet(
       context: context,
       profile: _t.profile,
-      onProfileChanged: (p) => unawaited(_t.updateProfile(p)),
+      onProfileChanged: (p) {
+        unawaited(_t.updateProfile(p));
+        _warmProfileImages();
+      },
       onLocaleChanged: widget.onLocaleChanged,
-    ));
+    );
   }
 
   Future<void> _handleSessionComplete(WorkoutPlan plan, WorkoutCompletion completion) =>

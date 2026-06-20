@@ -187,9 +187,10 @@ class _ProfilePhotoTile extends StatelessWidget {
             fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
-            loadingBuilder: (context, child, progress) {
-              if (progress == null) return child;
-              return const _ProfilePhotoPlaceholder(showSpinner: true);
+            gaplessPlayback: true,
+            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+              if (wasSynchronouslyLoaded || frame != null) return child;
+              return const _ProfilePhotoPlaceholder();
             },
             errorBuilder: (context, error, stackTrace) {
               WidgetsBinding.instance.addPostFrameCallback((_) => onFailed());
