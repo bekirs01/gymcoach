@@ -57,6 +57,12 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
   LocationPermissionState? _trackedPermissionState;
   Timer? _styleLoadTimer;
   var _mapTilesFailed = false;
+  var _syncingMap = false;
+  Line? _captureRouteShadow;
+  Line? _captureRouteMain;
+  Circle? _captureStartDot;
+  Circle? _captureLatestDot;
+  Fill? _captureLoopFill;
 
   bool get _isIosSimulator =>
       !kIsWeb && Platform.isIOS && Platform.environment.containsKey('SIMULATOR_DEVICE_NAME');
@@ -262,90 +268,158 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
   }
 
   Future<void> _syncMap() async {
+    if (_syncingMap) return;
+    _syncingMap = true;
+    try {
+      final controller = _mapController;
+      if (controller == null || !_styleReady) return;
+
+      final styleUrl = _activeStyleString;
+      if (_loadedStyleUrl != styleUrl) {
+        _styleReady = false;
+        _lastSyncedSnapshot = null;
+        await _clearCaptureAnnotations();
+        await controller.setStyle(styleUrl);
+        _loadedStyleUrl = styleUrl;
+        return;
+      }
+
+      final snapshot = _MapSyncSnapshot.from(widget.controller);
+      if (_lastSyncedSnapshot == snapshot) return;
+
+      final previous = _lastSyncedSnapshot;
+      final captureOnly = previous != null &&
+          previous.territorySignature == snapshot.territorySignature &&
+          previous.mapMode == snapshot.mapMode &&
+          snapshot.isCapturingRouteVisible &&
+          (previous.capturePointCount != snapshot.capturePointCount ||
+              previous.loopClosed != snapshot.loopClosed ||
+              previous.capturePhase != snapshot.capturePhase);
+
+      _lastSyncedSnapshot = snapshot;
+
+      if (captureOnly) {
+        await _updateCaptureRoute(controller);
+        if (snapshot.capturePhase == CapturePhase.capturing &&
+            snapshot.capturePointCount > (previous.capturePointCount)) {
+          unawaited(_followLatestCapturePoint());
+        }
+        return;
+      }
+
+      await _clearCaptureAnnotations();
+      await controller.clearFills();
+      await controller.clearLines();
+      await controller.clearCircles();
+      await controller.clearSymbols();
+
+      for (final territory in widget.controller.territories) {
+        if (_isDemoTerritory(territory)) continue;
+        final ring = _ringFromTerritory(territory);
+        if (ring == null) continue;
+        final fillColor = territory.isOwnedByCurrentUser
+            ? PremiumColors.accentBlue
+            : _ownerColor(territory.ownerId);
+        await controller.addFill(
+          FillOptions(
+            geometry: [ring],
+            fillColor: _colorHex(fillColor),
+            fillOpacity: territory.isOwnedByCurrentUser ? 0.42 : 0.36,
+            fillOutlineColor: _colorHex(fillColor),
+          ),
+          {'territoryId': territory.id},
+        );
+
+        final centroid = _centroidFromRing(ring);
+        if (centroid == null) continue;
+
+        await controller.addCircle(
+          CircleOptions(
+            geometry: centroid,
+            circleRadius: 16,
+            circleColor: _colorHex(fillColor),
+            circleOpacity: 0.95,
+            circleStrokeWidth: 2.5,
+            circleStrokeColor: '#FFFFFF',
+          ),
+          {'territoryId': territory.id},
+        );
+
+        await controller.addSymbol(
+          SymbolOptions(
+            geometry: centroid,
+            textField: _initials(territory.ownerDisplayName),
+            textSize: 11,
+            textColor: '#FFFFFF',
+            textHaloColor: '#000000',
+            textHaloWidth: 0.8,
+            fontNames: const ['Noto Sans Regular'],
+          ),
+          {'territoryId': territory.id},
+        );
+
+        await controller.addSymbol(
+          SymbolOptions(
+            geometry: centroid,
+            textField: territory.name,
+            textSize: 12,
+            textColor: '#1A1A2E',
+            textHaloColor: '#FFFFFF',
+            textHaloWidth: 1.6,
+            textOffset: const Offset(0, 2.8),
+            fontNames: const ['Noto Sans Regular'],
+          ),
+          {'territoryId': territory.id},
+        );
+      }
+
+      if (widget.controller.isCapturingRouteVisible) {
+        await _updateCaptureRoute(controller);
+      }
+    } finally {
+      _syncingMap = false;
+    }
+  }
+
+  Future<void> _clearCaptureAnnotations() async {
     final controller = _mapController;
-    if (controller == null || !_styleReady) return;
-
-    final styleUrl = _activeStyleString;
-    if (_loadedStyleUrl != styleUrl) {
-      _styleReady = false;
-      _lastSyncedSnapshot = null;
-      await controller.setStyle(styleUrl);
-      _loadedStyleUrl = styleUrl;
-      return;
+    if (controller == null) return;
+    if (_captureRouteShadow != null) {
+      await controller.removeLine(_captureRouteShadow!);
+      _captureRouteShadow = null;
     }
-
-    final snapshot = _MapSyncSnapshot.from(widget.controller);
-    if (_lastSyncedSnapshot == snapshot) return;
-    _lastSyncedSnapshot = snapshot;
-
-    await controller.clearFills();
-    await controller.clearLines();
-    await controller.clearCircles();
-    await controller.clearSymbols();
-
-    for (final territory in widget.controller.territories) {
-      if (_isDemoTerritory(territory)) continue;
-      final ring = _ringFromTerritory(territory);
-      if (ring == null) continue;
-      final fillColor = territory.isOwnedByCurrentUser
-          ? PremiumColors.accentBlue
-          : _ownerColor(territory.ownerId);
-      await controller.addFill(
-        FillOptions(
-          geometry: [ring],
-          fillColor: _colorHex(fillColor),
-          fillOpacity: territory.isOwnedByCurrentUser ? 0.42 : 0.36,
-          fillOutlineColor: _colorHex(fillColor),
-        ),
-        {'territoryId': territory.id},
-      );
-
-      final centroid = _centroidFromRing(ring);
-      if (centroid == null) continue;
-
-      await controller.addCircle(
-        CircleOptions(
-          geometry: centroid,
-          circleRadius: 16,
-          circleColor: _colorHex(fillColor),
-          circleOpacity: 0.95,
-          circleStrokeWidth: 2.5,
-          circleStrokeColor: '#FFFFFF',
-        ),
-        {'territoryId': territory.id},
-      );
-
-      await controller.addSymbol(
-        SymbolOptions(
-          geometry: centroid,
-          textField: _initials(territory.ownerDisplayName),
-          textSize: 11,
-          textColor: '#FFFFFF',
-          textHaloColor: '#000000',
-          textHaloWidth: 0.8,
-          fontNames: const ['Noto Sans Regular'],
-        ),
-        {'territoryId': territory.id},
-      );
-
-      await controller.addSymbol(
-        SymbolOptions(
-          geometry: centroid,
-          textField: territory.name,
-          textSize: 12,
-          textColor: '#1A1A2E',
-          textHaloColor: '#FFFFFF',
-          textHaloWidth: 1.6,
-          textOffset: const Offset(0, 2.8),
-          fontNames: const ['Noto Sans Regular'],
-        ),
-        {'territoryId': territory.id},
-      );
+    if (_captureRouteMain != null) {
+      await controller.removeLine(_captureRouteMain!);
+      _captureRouteMain = null;
     }
-
-    if (widget.controller.isCapturingRouteVisible) {
-      await _drawActiveCapture(controller);
+    if (_captureStartDot != null) {
+      await controller.removeCircle(_captureStartDot!);
+      _captureStartDot = null;
     }
+    if (_captureLatestDot != null) {
+      await controller.removeCircle(_captureLatestDot!);
+      _captureLatestDot = null;
+    }
+    if (_captureLoopFill != null) {
+      await controller.removeFill(_captureLoopFill!);
+      _captureLoopFill = null;
+    }
+  }
+
+  Future<void> _updateCaptureRoute(MapLibreMapController controller) async {
+    await _clearCaptureAnnotations();
+    await _drawActiveCapture(controller);
+  }
+
+  Future<void> _followLatestCapturePoint() async {
+    if (widget.controller.capturePhase != CapturePhase.capturing) return;
+    final points = widget.controller.capturePoints;
+    if (points.isEmpty) return;
+    final last = points.last;
+    await _safeCameraUpdate(
+      CameraUpdate.newLatLng(LatLng(last.latitude, last.longitude)),
+      animate: true,
+    );
   }
 
   Future<void> _drawActiveCapture(MapLibreMapController controller) async {
@@ -358,7 +432,7 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     if (loopClosed && points.length >= 3) {
       final ring = _ringFromCapturePoints(points, closeLoop: true);
       if (ring != null) {
-        await controller.addFill(
+        _captureLoopFill = await controller.addFill(
           FillOptions(
             geometry: [ring],
             fillColor: _colorHex(PremiumColors.accentBlue),
@@ -370,25 +444,28 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
     }
 
     if (route.length >= 2) {
-      await controller.addLine(
+      _captureRouteShadow = await controller.addLine(
         LineOptions(
           geometry: route,
           lineColor: '#FFFFFF',
-          lineWidth: 7,
-          lineOpacity: 0.85,
+          lineWidth: 8,
+          lineOpacity: 0.92,
+          lineJoin: 'round',
         ),
       );
-      await controller.addLine(
+      _captureRouteMain = await controller.addLine(
         LineOptions(
           geometry: route,
           lineColor: _colorHex(PremiumColors.accentBlue),
-          lineWidth: 4.5,
+          lineWidth: 5,
+          lineOpacity: 1,
+          lineJoin: 'round',
         ),
       );
     }
 
     final start = route.first;
-    await controller.addCircle(
+    _captureStartDot = await controller.addCircle(
       CircleOptions(
         geometry: start,
         circleRadius: loopClosed ? 10 : 8,
@@ -398,6 +475,20 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
         circleStrokeColor: '#FFFFFF',
       ),
     );
+
+    if (route.length >= 2) {
+      final latest = route.last;
+      _captureLatestDot = await controller.addCircle(
+        CircleOptions(
+          geometry: latest,
+          circleRadius: 7,
+          circleColor: '#FFFFFF',
+          circleOpacity: 1,
+          circleStrokeWidth: 3,
+          circleStrokeColor: _colorHex(PremiumColors.accentBlue),
+        ),
+      );
+    }
   }
 
   List<LatLng>? _ringFromCapturePoints(
@@ -630,7 +721,7 @@ class TerritoryMapViewState extends State<TerritoryMapView> {
               myLocationRenderMode:
                   Platform.isIOS ? MyLocationRenderMode.compass : MyLocationRenderMode.normal,
               myLocationTrackingMode: widget.controller.capturePhase == CapturePhase.capturing
-                  ? MyLocationTrackingMode.tracking
+                  ? MyLocationTrackingMode.trackingCompass
                   : MyLocationTrackingMode.none,
               compassEnabled: false,
               logoEnabled: false,
@@ -822,6 +913,9 @@ final class _MapSyncSnapshot {
   final String territorySignature;
   final String mapMode;
   final bool loopClosed;
+
+  bool get isCapturingRouteVisible =>
+      capturePhase == CapturePhase.capturing || capturePhase == CapturePhase.naming;
 
   factory _MapSyncSnapshot.from(TerritoryMapController controller) {
     return _MapSyncSnapshot(

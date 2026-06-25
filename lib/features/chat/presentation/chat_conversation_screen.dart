@@ -72,6 +72,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   final _pendingTempIds = <String>{};
   final _messageIds = <String>{};
   final _failedImageMimeTypes = <String, String>{};
+  final _imageCacheDownloads = <String, Future<void>>{};
   XFile? _pendingImage;
   Uint8List? _pendingImageBytes;
   ChatMessage? _replyTarget;
@@ -120,8 +121,10 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     setState(() {
       _conversation = current.copyWith(
         messages: _attachReplyMetadata(cached.messages),
-        cachedLastMessageText: cached.cachedLastMessageText ?? current.cachedLastMessageText,
-        cachedLastMessageTime: cached.cachedLastMessageTime ?? current.cachedLastMessageTime,
+        cachedLastMessageText:
+            cached.cachedLastMessageText ?? current.cachedLastMessageText,
+        cachedLastMessageTime:
+            cached.cachedLastMessageTime ?? current.cachedLastMessageTime,
       );
       _seedMessageIds(cached.messages);
     });
@@ -138,13 +141,16 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       local = LocalChatCache.instance.conversationFor(conversationId);
     }
 
-    local ??= LocalChatCache.instance.conversationForParticipant(widget.participantUserId);
+    local ??= LocalChatCache.instance.conversationForParticipant(
+      widget.participantUserId,
+    );
 
     if (local == null) {
       try {
         final prefs = await SharedPreferences.getInstance();
-        final cachedId = await SupabaseChatRepository(prefs: prefs)
-            .cachedConversationId(widget.participantUserId);
+        final cachedId = await SupabaseChatRepository(
+          prefs: prefs,
+        ).cachedConversationId(widget.participantUserId);
         if (cachedId != null && cachedId.isNotEmpty) {
           local = LocalChatCache.instance.conversationFor(cachedId);
         }
@@ -158,13 +164,18 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       return;
     }
 
-    _currentUserId = Supabase.instance.client.auth.currentUser?.id ??
+    _currentUserId =
+        Supabase.instance.client.auth.currentUser?.id ??
         SocialSeedRepository.currentUserId;
-    _conversation = local.copyWith(messages: _attachReplyMetadata(local.messages));
+    _conversation = local.copyWith(
+      messages: _attachReplyMetadata(local.messages),
+    );
     _seedMessageIds(local.messages);
     if (!mounted) return;
     setState(() => _loading = false);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: false));
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _scrollToBottom(animated: false),
+    );
   }
 
   Future<void> _syncRemoteConversation() async {
@@ -184,9 +195,13 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
 
       if (ChatRepository.isDemoParticipant(widget.participantUserId) &&
           widget.conversationId == null) {
-        final cachedId = await repository.cachedConversationId(widget.participantUserId);
+        final cachedId = await repository.cachedConversationId(
+          widget.participantUserId,
+        );
         if (cachedId != null && cachedId.isNotEmpty) {
-          final local = ChatLocalStore.conversationForUser(widget.participantUserId);
+          final local = ChatLocalStore.conversationForUser(
+            widget.participantUserId,
+          );
           if (local != null && mounted) {
             setState(() {
               _conversation = local.copyWith(
@@ -199,20 +214,30 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
             });
           }
         }
-        final cachedConversation =
-            await repository.loadCachedSeededConversation(widget.participantUserId);
+        final cachedConversation = await repository
+            .loadCachedSeededConversation(widget.participantUserId);
         if (cachedConversation != null && mounted) {
-          _applyRemoteConversation(repository, cachedConversation, currentUserId);
+          _applyRemoteConversation(
+            repository,
+            cachedConversation,
+            currentUserId,
+          );
         }
       }
 
       ChatConversation? conversation;
       if (widget.conversationId != null) {
-        conversation = await repository.loadConversation(widget.conversationId!);
+        conversation = await repository.loadConversation(
+          widget.conversationId!,
+        );
       } else if (ChatRepository.isDemoParticipant(widget.participantUserId)) {
-        conversation = await repository.getOrCreateSeededConversation(widget.participantUserId);
+        conversation = await repository.getOrCreateSeededConversation(
+          widget.participantUserId,
+        );
       } else {
-        conversation = await repository.getOrCreateConversationWithUser(widget.participantUserId);
+        conversation = await repository.getOrCreateConversationWithUser(
+          widget.participantUserId,
+        );
       }
 
       if (!mounted) return;
@@ -270,6 +295,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     );
     _seedMessageIds(mergedMessages);
     unawaited(LocalChatCache.instance.saveConversation(_conversation!));
+    unawaited(_warmRemoteImageCache(_conversation!));
 
     repository.subscribeToMessages(
       conversationId: conversation.id,
@@ -285,7 +311,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       _loading = false;
       _loadFailed = false;
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: false));
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _scrollToBottom(animated: false),
+    );
   }
 
   void _seedMessageIds(List<ChatMessage> messages) {
@@ -334,31 +362,47 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     });
   }
 
-  void _applySentMessage(ChatMessage sent, {bool preserveLocalPreview = false}) {
+  void _applySentMessage(
+    ChatMessage sent, {
+    bool preserveLocalPreview = false,
+  }) {
     setState(() {
       final current = _conversation;
       if (current == null) return;
 
       final messages = current.messages.map((message) {
-        if (message.clientTempId != null && message.clientTempId == sent.clientTempId) {
+        if (message.clientTempId != null &&
+            message.clientTempId == sent.clientTempId) {
           return sent.copyWith(
-            localPreviewBytes: preserveLocalPreview ? message.localPreviewBytes : sent.localPreviewBytes,
-            localVoicePath: preserveLocalPreview ? message.localVoicePath : sent.localVoicePath,
+            localPreviewBytes: preserveLocalPreview
+                ? message.localPreviewBytes
+                : sent.localPreviewBytes,
+            localImagePath: preserveLocalPreview
+                ? message.localImagePath
+                : sent.localImagePath,
+            localVoicePath: preserveLocalPreview
+                ? message.localVoicePath
+                : sent.localVoicePath,
           );
         }
         return message;
       }).toList();
 
-      if (sent.clientTempId == null || !messages.any((message) => message.id == sent.id)) {
+      if (sent.clientTempId == null ||
+          !messages.any((message) => message.id == sent.id)) {
         messages.add(sent);
       }
 
+      final merged = LocalChatCache.dedupeMessages(messages);
+      _seedMessageIds(merged);
       _conversation = current.copyWith(
-        messages: _attachReplyMetadata(messages),
+        messages: _attachReplyMetadata(merged),
         cachedLastMessageText: _previewForMessage(sent),
         cachedLastMessageTime: sent.sentAt,
       );
     });
+    final updated = _conversation;
+    if (updated != null) unawaited(_persistConversation(updated));
     _scheduleDeliveryUpdates(sent);
   }
 
@@ -377,6 +421,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
           replyToMessage: item.replyToMessage ?? message.replyToMessage,
           localPreviewBytes: item.localPreviewBytes,
           localVoicePath: item.localVoicePath,
+          localImagePath: item.localImagePath,
         );
       }
       return item;
@@ -385,23 +430,27 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     final preview = _previewForMessage(message);
     setState(() {
       _conversation = current.copyWith(
-        messages: _attachReplyMetadata(messages),
-        cachedLastMessageText: messages.isNotEmpty && messages.last.id == message.id
+        messages: _attachReplyMetadata(LocalChatCache.dedupeMessages(messages)),
+        cachedLastMessageText:
+            messages.isNotEmpty && messages.last.id == message.id
             ? preview
             : current.cachedLastMessageText,
       );
     });
+    final updated = _conversation;
+    if (updated != null) {
+      unawaited(_persistConversation(updated));
+      unawaited(_warmRemoteImageCache(updated));
+    }
   }
 
   List<ChatMessage> _attachReplyMetadata(List<ChatMessage> messages) {
     final byId = {for (final message in messages) message.id: message};
-    return messages
-        .map((message) {
-          final replyId = message.replyToMessageId;
-          if (replyId == null) return message;
-          return message.copyWith(replyToMessage: byId[replyId]);
-        })
-        .toList();
+    return messages.map((message) {
+      final replyId = message.replyToMessageId;
+      if (replyId == null) return message;
+      return message.copyWith(replyToMessage: byId[replyId]);
+    }).toList();
   }
 
   String _senderNameForMessage(ChatMessage message, String currentUserId) {
@@ -429,11 +478,16 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       _replyTarget = null;
       _editingMessage = message;
       _textController.text = message.body;
-      _textController.selection = TextSelection.collapsed(offset: message.body.length);
+      _textController.selection = TextSelection.collapsed(
+        offset: message.body.length,
+      );
     });
   }
 
-  Future<void> _handleMessageLongPress(ChatMessage message, String currentUserId) async {
+  Future<void> _handleMessageLongPress(
+    ChatMessage message,
+    String currentUserId,
+  ) async {
     if (message.isPending && !message.hasFailed) {
       HapticFeedback.mediumImpact();
       setState(() => _highlightedMessageId = message.id);
@@ -483,8 +537,10 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     setState(() => _highlightedMessageId = message.id);
 
     final isMe = message.isFromCurrentUser(currentUserId);
-    final canDeleteForEveryone = isMe && !message.isDeleted && !message.id.startsWith('pending_');
-    final canDeleteForMe = !message.isDeleted && !message.id.startsWith('pending_');
+    final canDeleteForEveryone =
+        isMe && !message.isDeleted && !message.id.startsWith('pending_');
+    final canDeleteForMe =
+        !message.isDeleted && !message.id.startsWith('pending_');
 
     final l10n = _l10n(context);
     final actions = buildMessageActions(
@@ -516,7 +572,12 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       case ChatMessageActionType.edit:
         _setEditingTarget(message);
       case ChatMessageActionType.delete:
-        await _confirmAndDeleteMessage(message, isMe, canDeleteForEveryone, canDeleteForMe);
+        await _confirmAndDeleteMessage(
+          message,
+          isMe,
+          canDeleteForEveryone,
+          canDeleteForMe,
+        );
       case ChatMessageActionType.details:
         await showChatMessageDetailsSheet(
           context: context,
@@ -533,7 +594,10 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         try {
           await saveChatMediaLocally(
             message: message,
-            fallbackFileName: attachmentFileName(message, message.voiceAttachment),
+            fallbackFileName: attachmentFileName(
+              message,
+              message.voiceAttachment,
+            ),
           );
           if (mounted) showSavedFeedback(context);
         } catch (_) {}
@@ -584,7 +648,8 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         messages: conversation.messages
             .map((item) => item.id == message.id ? deleted : item)
             .toList(),
-        cachedLastMessageText: conversation.messages.isNotEmpty &&
+        cachedLastMessageText:
+            conversation.messages.isNotEmpty &&
                 conversation.messages.last.id == message.id
             ? 'This message was deleted'
             : conversation.cachedLastMessageText,
@@ -611,7 +676,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     } catch (error, stackTrace) {
       debugPrint('softDeleteMessage failed: $error\n$stackTrace');
       if (!mounted) return;
-      _showError('Could not delete message');
+      _showError(_l10n(context).chatCouldNotDelete);
     }
   }
 
@@ -622,7 +687,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
 
     setState(() {
       _conversation = conversation.copyWith(
-        messages: conversation.messages.where((item) => item.id != message.id).toList(),
+        messages: conversation.messages
+            .where((item) => item.id != message.id)
+            .toList(),
       );
     });
 
@@ -644,7 +711,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     } catch (error, stackTrace) {
       debugPrint('deleteMessageForMe failed: $error\n$stackTrace');
       if (!mounted) return;
-      _showError('Could not delete message');
+      _showError(_l10n(context).chatCouldNotDelete);
     }
   }
 
@@ -670,7 +737,8 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         messages: conversation.messages
             .map((item) => item.id == editing.id ? optimistic : item)
             .toList(),
-        cachedLastMessageText: conversation.messages.isNotEmpty &&
+        cachedLastMessageText:
+            conversation.messages.isNotEmpty &&
                 conversation.messages.last.id == editing.id
             ? newBody
             : conversation.cachedLastMessageText,
@@ -699,10 +767,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     } catch (error, stackTrace) {
       debugPrint('editMessage failed: $error\n$stackTrace');
       if (!mounted) return;
-      _showError('Could not update message');
+      _showError(_l10n(context).chatCouldNotUpdate);
     }
   }
-
 
   void _onRemoteMessageInserted(ChatMessage message) {
     if (!mounted) return;
@@ -710,23 +777,37 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     final current = _conversation;
     if (current == null) return;
 
-    if (message.clientTempId != null && _pendingTempIds.contains(message.clientTempId!)) {
+    if (message.clientTempId != null &&
+        _pendingTempIds.contains(message.clientTempId!)) {
       setState(() {
         _pendingTempIds.remove(message.clientTempId!);
         _messageIds.add(message.id);
         final messages = current.messages.map((item) {
-          if (item.clientTempId == message.clientTempId) return message;
+          if (item.clientTempId == message.clientTempId) {
+            return message.copyWith(
+              localPreviewBytes: item.localPreviewBytes,
+              localImagePath: item.localImagePath,
+              localVoicePath: item.localVoicePath,
+            );
+          }
           return item;
         }).toList();
         if (!messages.any((item) => item.id == message.id)) {
           messages.add(message);
         }
+        final merged = LocalChatCache.dedupeMessages(messages);
         _conversation = current.copyWith(
-          messages: _attachReplyMetadata(messages),
+          messages: _attachReplyMetadata(merged),
           cachedLastMessageText: _previewForMessage(message),
           cachedLastMessageTime: message.sentAt,
         );
+        _seedMessageIds(merged);
       });
+      final updated = _conversation;
+      if (updated != null) {
+        unawaited(_persistConversation(updated));
+        unawaited(_warmRemoteImageCache(updated));
+      }
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
       return;
     }
@@ -734,11 +815,22 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     if (_messageIds.contains(message.id)) return;
 
     setState(() {
-      _messageIds.add(message.id);
+      final merged = LocalChatCache.dedupeMessages([
+        ...current.messages,
+        message,
+      ]);
+      _seedMessageIds(merged);
       _conversation = current.copyWith(
-        messages: _attachReplyMetadata([...current.messages, message]),
+        messages: _attachReplyMetadata(merged),
+        cachedLastMessageText: _previewForMessage(merged.last),
+        cachedLastMessageTime: merged.last.sentAt,
       );
     });
+    final updated = _conversation;
+    if (updated != null) {
+      unawaited(_persistConversation(updated));
+      unawaited(_warmRemoteImageCache(updated));
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
@@ -828,6 +920,96 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     await LocalChatCache.instance.saveConversation(conversation);
   }
 
+  void _replaceLocalImagePath({
+    required String clientTempId,
+    required String localImagePath,
+  }) {
+    final current = _conversation;
+    if (current == null || localImagePath.isEmpty) return;
+
+    final messages = current.messages.map((message) {
+      if (message.clientTempId == clientTempId) {
+        return message.copyWith(localImagePath: localImagePath);
+      }
+      return message;
+    }).toList();
+
+    final updated = current.copyWith(messages: _attachReplyMetadata(messages));
+    setState(() => _conversation = updated);
+    unawaited(_persistConversation(updated));
+  }
+
+  void _replaceImagePathForMessage({
+    required String messageId,
+    required String localImagePath,
+  }) {
+    final current = _conversation;
+    if (current == null || localImagePath.isEmpty) return;
+
+    final messages = current.messages.map((message) {
+      if (message.id == messageId && message.localImagePath != localImagePath) {
+        return message.copyWith(localImagePath: localImagePath);
+      }
+      return message;
+    }).toList();
+
+    final updated = current.copyWith(messages: _attachReplyMetadata(messages));
+    setState(() => _conversation = updated);
+    unawaited(_persistConversation(updated));
+  }
+
+  Future<void> _warmRemoteImageCache(ChatConversation conversation) async {
+    for (final message in conversation.messages) {
+      if (!message.hasImage || message.localImagePath?.isNotEmpty == true) {
+        continue;
+      }
+      final imageUrl = message.primaryImageUrl;
+      if (imageUrl == null || imageUrl.isEmpty) continue;
+
+      final key = '${message.id}:$imageUrl';
+      _imageCacheDownloads.putIfAbsent(
+        key,
+        () => _downloadImageToLocalCache(
+          messageId: message.id,
+          imageUrl: imageUrl,
+        ),
+      );
+    }
+  }
+
+  Future<void> _downloadImageToLocalCache({
+    required String messageId,
+    required String imageUrl,
+  }) async {
+    final client = HttpClient();
+    try {
+      final request = await client.getUrl(Uri.parse(imageUrl));
+      final response = await request.close();
+      if (response.statusCode < 200 || response.statusCode >= 300) return;
+      final bytes = await consolidateHttpClientResponseBytes(response);
+      if (bytes.isEmpty) return;
+
+      final path = await OutboxMediaStore.instance.saveBytes(
+        bytes: bytes,
+        extension: _extensionFromImageUrl(imageUrl),
+      );
+      if (!mounted) return;
+      _replaceImagePathForMessage(messageId: messageId, localImagePath: path);
+    } catch (_) {
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  String _extensionFromImageUrl(String imageUrl) {
+    final path = Uri.tryParse(imageUrl)?.path.toLowerCase() ?? '';
+    final ext = path.split('.').last;
+    if (ext == 'png' || ext == 'webp' || ext == 'heic' || ext == 'jpg') {
+      return ext;
+    }
+    return 'jpg';
+  }
+
   Future<void> _sendMessage() async {
     if (_editingMessage != null) {
       await _saveEditedMessage();
@@ -844,7 +1026,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     if (conversation == null || currentUserId == null) return;
 
     final replyTarget = _replyTarget;
-    final replyToMessageId = replyTarget?.id.startsWith('pending_') == true ? null : replyTarget?.id;
+    final replyToMessageId = replyTarget?.id.startsWith('pending_') == true
+        ? null
+        : replyTarget?.id;
     final clientTempId = _uuid.v4();
     final optimistic = ChatMessage(
       id: 'pending_$clientTempId',
@@ -935,8 +1119,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         _pendingImage = picked;
         _pendingImageBytes = bytes;
       });
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   void _clearPendingImage() {
@@ -969,24 +1152,24 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     final caption = _textController.text.trim();
     final clientTempId = _uuid.v4();
     final mimeType = _imageMimeType(file.name);
-    String? localImagePath;
-    if (_usesOfflineOutbound) {
-      final mediaStore = OutboxMediaStore.instance;
-      localImagePath = await mediaStore.saveBytes(
-        bytes: bytes,
-        extension: mediaStore.extensionFromName(file.name, fallback: 'jpg'),
-      );
-    }
+    final localPathFuture = OutboxMediaStore.instance.saveBytes(
+      bytes: bytes,
+      extension: OutboxMediaStore.instance.extensionFromName(
+        file.name,
+        fallback: 'jpg',
+      ),
+    );
 
     final optimistic = ChatMessage(
       id: 'pending_$clientTempId',
       senderId: currentUserId,
       body: caption,
       sentAt: DateTime.now(),
-      messageType: caption.isEmpty ? ChatMessageType.image : ChatMessageType.mixed,
+      messageType: caption.isEmpty
+          ? ChatMessageType.image
+          : ChatMessageType.mixed,
       clientTempId: clientTempId,
       localPreviewBytes: bytes,
-      localImagePath: localImagePath,
       isPending: true,
       deliveryStatus: ChatDeliveryStatus.sending,
     );
@@ -1005,11 +1188,21 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       _pendingImageBytes = null;
     });
     unawaited(_persistConversation(updatedConversation));
+    unawaited(
+      localPathFuture.then(
+        (path) => _replaceLocalImagePath(
+          clientTempId: clientTempId,
+          localImagePath: path,
+        ),
+        onError: (_) {},
+      ),
+    );
     _textController.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
-    if (_usesOfflineOutbound && localImagePath != null) {
+    if (_usesOfflineOutbound) {
       final size = await _readImageSize(bytes);
+      final localImagePath = await localPathFuture;
       await LocalChatCache.instance.saveConversation(updatedConversation);
       await _offlineSync?.enqueueChatImage(
         conversationId: conversation.id,
@@ -1034,6 +1227,10 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
 
     try {
       final size = await _readImageSize(bytes);
+      String? localImagePath;
+      try {
+        localImagePath = await localPathFuture;
+      } catch (_) {}
       final sent = await repository.sendImageMessage(
         conversationId: conversation.id,
         file: file,
@@ -1176,7 +1373,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
           messages: current.messages
               .map(
                 (message) => message.clientTempId == clientTempId
-                    ? _failedMessage(message.copyWith(localVoicePath: voicePath))
+                    ? _failedMessage(
+                        message.copyWith(localVoicePath: voicePath),
+                      )
                     : message,
               )
               .toList(),
@@ -1195,7 +1394,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     }
 
     final updated = conversation.copyWith(
-      messages: conversation.messages.where((item) => item.id != message.id).toList(),
+      messages: conversation.messages
+          .where((item) => item.id != message.id)
+          .toList(),
     );
     setState(() {
       _conversation = updated;
@@ -1254,7 +1455,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       final repository = _repository;
       final conversation = _conversation;
       final currentUserId = _currentUserId;
-      if (repository == null || conversation == null || currentUserId == null) return;
+      if (repository == null || conversation == null || currentUserId == null) {
+        return;
+      }
 
       final caption = message.body.trim();
       final clientTempId = _uuid.v4();
@@ -1263,7 +1466,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         senderId: currentUserId,
         body: caption,
         sentAt: DateTime.now(),
-        messageType: caption.isEmpty ? ChatMessageType.image : ChatMessageType.mixed,
+        messageType: caption.isEmpty
+            ? ChatMessageType.image
+            : ChatMessageType.mixed,
         clientTempId: clientTempId,
         localPreviewBytes: bytes,
         isPending: true,
@@ -1273,7 +1478,9 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       _pendingTempIds.add(clientTempId);
       _failedImageMimeTypes[clientTempId] = mimeType;
       setState(() {
-        _conversation = conversation.copyWith(messages: [...conversation.messages, optimistic]);
+        _conversation = conversation.copyWith(
+          messages: [...conversation.messages, optimistic],
+        );
       });
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
@@ -1391,6 +1598,7 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         builder: (_) => ChatImageViewerScreen(
           imageUrl: imageUrl,
           imageBytes: message.localPreviewBytes,
+          localImagePath: message.localImagePath,
         ),
       ),
     );
@@ -1418,59 +1626,67 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
                   statusText: conversation?.statusText ?? 'Online',
                   onBack: () => Navigator.pop(context),
                 ),
-                Expanded(
-                  child: _buildMessageArea(conversation, currentUserId),
-                ),
-                if (_pendingImageBytes != null && !_voiceComposerActive)
-                  _ImagePreviewComposer(
-                    imageBytes: _pendingImageBytes!,
-                    captionController: _textController,
-                    sending: _sendingImage,
-                    onRemove: _clearPendingImage,
-                    onSend: _sendPendingImage,
-                  ),
+                Expanded(child: _buildMessageArea(conversation, currentUserId)),
                 Padding(
                   padding: EdgeInsets.only(bottom: bottomInset),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      ChatVoiceComposer(
-                        key: _voiceComposerKey,
-                        recorder: _voiceRecorder,
-                        playback: _voicePlayback,
-                        onSend: _sendVoiceMessage,
-                        onCancel: () {},
-                        onPermissionDenied: () =>
-                            _showError('Microphone permission is required'),
-                        onModeChanged: (active) {
-                          if (!mounted) return;
-                          setState(() => _voiceComposerActive = active);
-                        },
-                      ),
-                      if (!_voiceComposerActive) ...[
-                        if (_replyTarget != null)
-                          _ComposerContextBanner(
-                            title: _senderNameForMessage(_replyTarget!, currentUserId),
-                            subtitle: previewTextForMessage(_replyTarget!, _l10n(context)),
-                            onClose: _clearComposerContext,
-                          ),
-                        if (_editingMessage != null)
-                          _ComposerContextBanner(
-                            title: 'Editing message',
-                            subtitle: _editingMessage!.body,
-                            onClose: () => _clearComposerContext(clearText: true),
-                            accentColor: PremiumColors.bannerOrange,
-                          ),
-                        _ChatInputBar(
-                          controller: _textController,
-                          hasText: _hasText,
-                          hasPendingImage: _pendingImageBytes != null,
-                          enabled: conversation != null && _repository != null,
-                          isEditing: _editingMessage != null,
-                          onAttachment: _pickAttachment,
-                          onMicrophone: _startVoiceRecording,
-                          onSend: _pendingImageBytes != null ? _sendPendingImage : _sendMessage,
+                      if (_pendingImageBytes != null && !_voiceComposerActive)
+                        _ImagePreviewComposer(
+                          imageBytes: _pendingImageBytes!,
+                          captionController: _textController,
+                          sending: _sendingImage,
+                          onRemove: _clearPendingImage,
+                          onSend: _sendPendingImage,
+                        )
+                      else ...[
+                        ChatVoiceComposer(
+                          key: _voiceComposerKey,
+                          recorder: _voiceRecorder,
+                          playback: _voicePlayback,
+                          onSend: _sendVoiceMessage,
+                          onCancel: () {},
+                          onPermissionDenied: () =>
+                              _showError('Microphone permission is required'),
+                          onModeChanged: (active) {
+                            if (!mounted) return;
+                            setState(() => _voiceComposerActive = active);
+                          },
                         ),
+                        if (!_voiceComposerActive) ...[
+                          if (_replyTarget != null)
+                            _ComposerContextBanner(
+                              title: _senderNameForMessage(
+                                _replyTarget!,
+                                currentUserId,
+                              ),
+                              subtitle: previewTextForMessage(
+                                _replyTarget!,
+                                _l10n(context),
+                              ),
+                              onClose: _clearComposerContext,
+                            ),
+                          if (_editingMessage != null)
+                            _ComposerContextBanner(
+                              title: _l10n(context).chatEditingMessage,
+                              subtitle: _editingMessage!.body,
+                              onClose: () =>
+                                  _clearComposerContext(clearText: true),
+                              accentColor: PremiumColors.bannerOrange,
+                            ),
+                          _ChatInputBar(
+                            controller: _textController,
+                            hasText: _hasText,
+                            hasPendingImage: false,
+                            enabled:
+                                conversation != null && _repository != null,
+                            isEditing: _editingMessage != null,
+                            onAttachment: _pickAttachment,
+                            onMicrophone: _startVoiceRecording,
+                            onSend: _sendMessage,
+                          ),
+                        ],
                       ],
                     ],
                   ),
@@ -1483,7 +1699,10 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     );
   }
 
-  Widget _buildMessageArea(ChatConversation? conversation, String currentUserId) {
+  Widget _buildMessageArea(
+    ChatConversation? conversation,
+    String currentUserId,
+  ) {
     if (conversation != null && conversation.messages.isNotEmpty) {
       return ListView.builder(
         controller: _scrollController,
@@ -1504,12 +1723,19 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
             participantName: conversation.participantName,
             currentUserId: currentUserId,
             onLongPress: () => _handleMessageLongPress(message, currentUserId),
-            onImageTap: message.hasImage && !message.hasFailed && !message.isDeleted
+            onImageTap:
+                message.hasImage && !message.hasFailed && !message.isDeleted
                 ? () => _openImageViewer(message)
                 : null,
-            onVoiceToggle: message.isVoice && !message.isDeleted ? () => _toggleVoicePlayback(message) : null,
-            onRetry: message.hasFailed && isMe ? () => _retryFailedMessage(message) : null,
-            onDelete: message.hasFailed && isMe ? () => _removeFailedMessage(message) : null,
+            onVoiceToggle: message.isVoice && !message.isDeleted
+                ? () => _toggleVoicePlayback(message)
+                : null,
+            onRetry: message.hasFailed && isMe
+                ? () => _retryFailedMessage(message)
+                : null,
+            onDelete: message.hasFailed && isMe
+                ? () => _removeFailedMessage(message)
+                : null,
           );
         },
       );
@@ -1522,28 +1748,29 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     }
 
     if (_loadFailed || conversation == null) {
+      final l10n = _l10n(context);
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Could not load conversation',
-              style: TextStyle(color: PremiumColors.textSecondary),
+            Text(
+              l10n.chatCouldNotLoadConversation,
+              style: const TextStyle(color: PremiumColors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.sm),
             TextButton(
               onPressed: _syncRemoteConversation,
-              child: const Text('Retry'),
+              child: Text(l10n.chatRetry),
             ),
           ],
         ),
       );
     }
 
-    return const Center(
+    return Center(
       child: Text(
-        'Start the conversation',
-        style: TextStyle(color: PremiumColors.textSecondary),
+        _l10n(context).chatStartConversation,
+        style: const TextStyle(color: PremiumColors.textSecondary),
       ),
     );
   }
@@ -1565,7 +1792,12 @@ class _ChatHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.xs, AppSpacing.xs, AppSpacing.md, AppSpacing.sm),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xs,
+        AppSpacing.xs,
+        AppSpacing.md,
+        AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
@@ -1575,7 +1807,11 @@ class _ChatHeader extends StatelessWidget {
         children: [
           IconButton(
             onPressed: onBack,
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
           SocialAvatar(name: name, imageUrl: avatarUrl, size: 40),
           const SizedBox(width: AppSpacing.sm),
@@ -1687,7 +1923,9 @@ class _MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Column(
-        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isMe
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           GestureDetector(
             onLongPress: onLongPress,
@@ -1697,12 +1935,17 @@ class _MessageBubble extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(PremiumRadii.lg),
                 border: isHighlighted
-                    ? Border.all(color: PremiumColors.accentBlue.withValues(alpha: 0.55), width: 1.5)
+                    ? Border.all(
+                        color: PremiumColors.accentBlue.withValues(alpha: 0.55),
+                        width: 1.5,
+                      )
                     : null,
                 boxShadow: isHighlighted
                     ? [
                         BoxShadow(
-                          color: PremiumColors.accentBlue.withValues(alpha: 0.18),
+                          color: PremiumColors.accentBlue.withValues(
+                            alpha: 0.18,
+                          ),
                           blurRadius: 12,
                         ),
                       ]
@@ -1747,7 +1990,10 @@ class _MessageBubble extends StatelessWidget {
                   if (message.isEdited) ...[
                     const Text(
                       ' · ',
-                      style: TextStyle(color: PremiumColors.textMuted, fontSize: 11),
+                      style: TextStyle(
+                        color: PremiumColors.textMuted,
+                        fontSize: 11,
+                      ),
                     ),
                     Text(
                       l10n.chatEdited,
@@ -1760,7 +2006,11 @@ class _MessageBubble extends StatelessWidget {
                   ],
                   if (isMe) ...[
                     const SizedBox(width: 4),
-                    ChatMessageStatusTick(message: message, isMe: isMe, size: 13),
+                    ChatMessageStatusTick(
+                      message: message,
+                      isMe: isMe,
+                      size: 13,
+                    ),
                   ],
                 ],
               ],
@@ -1787,7 +2037,9 @@ class _DeletedBubble extends StatelessWidget {
           topLeft: const Radius.circular(PremiumRadii.lg),
           topRight: const Radius.circular(PremiumRadii.lg),
           bottomLeft: Radius.circular(isMe ? PremiumRadii.lg : PremiumRadii.sm),
-          bottomRight: Radius.circular(isMe ? PremiumRadii.sm : PremiumRadii.lg),
+          bottomRight: Radius.circular(
+            isMe ? PremiumRadii.sm : PremiumRadii.lg,
+          ),
         ),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
@@ -1833,7 +2085,9 @@ class _ReplyPreviewChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final senderLabel = replyTo.isFromCurrentUser(currentUserId) ? 'You' : participantName;
+    final senderLabel = replyTo.isFromCurrentUser(currentUserId)
+        ? 'You'
+        : participantName;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
@@ -1842,7 +2096,9 @@ class _ReplyPreviewChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(PremiumRadii.md),
         border: Border(
           left: BorderSide(
-            color: isMe ? Colors.white.withValues(alpha: 0.55) : PremiumColors.accentBlue,
+            color: isMe
+                ? Colors.white.withValues(alpha: 0.55)
+                : PremiumColors.accentBlue,
             width: 3,
           ),
         ),
@@ -1855,7 +2111,9 @@ class _ReplyPreviewChip extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: isMe ? Colors.white.withValues(alpha: 0.92) : PremiumColors.accentBlue,
+              color: isMe
+                  ? Colors.white.withValues(alpha: 0.92)
+                  : PremiumColors.accentBlue,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -1866,7 +2124,9 @@ class _ReplyPreviewChip extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: isMe ? Colors.white.withValues(alpha: 0.78) : PremiumColors.textSecondary,
+              color: isMe
+                  ? Colors.white.withValues(alpha: 0.78)
+                  : PremiumColors.textSecondary,
               fontSize: 12,
               height: 1.25,
             ),
@@ -1892,9 +2152,20 @@ class _ComposerContextBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomSafe = MediaQuery.paddingOf(context).bottom;
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.xs),
-      padding: const EdgeInsets.fromLTRB(AppSpacing.sm, AppSpacing.sm, AppSpacing.xs, AppSpacing.sm),
+      margin: EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        0,
+        AppSpacing.md,
+        bottomSafe + AppSpacing.xs,
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.sm,
+        AppSpacing.sm,
+        AppSpacing.xs,
+        AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: PremiumColors.surface.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(PremiumRadii.lg),
@@ -1940,7 +2211,11 @@ class _ComposerContextBanner extends StatelessWidget {
           ),
           IconButton(
             onPressed: onClose,
-            icon: const Icon(Icons.close_rounded, color: PremiumColors.textMuted, size: 20),
+            icon: const Icon(
+              Icons.close_rounded,
+              color: PremiumColors.textMuted,
+              size: 20,
+            ),
           ),
         ],
       ),
@@ -1972,7 +2247,9 @@ class _FailedMediaBubble extends StatelessWidget {
       decoration: BoxDecoration(
         color: PremiumColors.surface.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(PremiumRadii.lg),
-        border: Border.all(color: PremiumColors.bannerOrange.withValues(alpha: 0.45)),
+        border: Border.all(
+          color: PremiumColors.bannerOrange.withValues(alpha: 0.45),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -1993,7 +2270,11 @@ class _FailedMediaBubble extends StatelessWidget {
                         width: 44,
                         height: 44,
                         color: PremiumColors.surfaceRaised,
-                        child: const Icon(Icons.image_outlined, color: PremiumColors.textMuted, size: 20),
+                        child: const Icon(
+                          Icons.image_outlined,
+                          color: PremiumColors.textMuted,
+                          size: 20,
+                        ),
                       ),
               )
             else if (message.isVoice)
@@ -2004,7 +2285,11 @@ class _FailedMediaBubble extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: PremiumColors.accentBlue.withValues(alpha: 0.14),
                 ),
-                child: const Icon(Icons.mic_rounded, color: PremiumColors.accentBlue, size: 20),
+                child: const Icon(
+                  Icons.mic_rounded,
+                  color: PremiumColors.accentBlue,
+                  size: 20,
+                ),
               )
             else
               Container(
@@ -2014,7 +2299,11 @@ class _FailedMediaBubble extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: PremiumColors.surfaceRaised,
                 ),
-                child: const Icon(Icons.error_outline_rounded, color: PremiumColors.bannerOrange, size: 20),
+                child: const Icon(
+                  Icons.error_outline_rounded,
+                  color: PremiumColors.bannerOrange,
+                  size: 20,
+                ),
               ),
             const SizedBox(width: 10),
             Expanded(
@@ -2032,14 +2321,20 @@ class _FailedMediaBubble extends StatelessWidget {
               iconSize: 20,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              icon: const Icon(Icons.refresh_rounded, color: PremiumColors.accentBlue),
+              icon: const Icon(
+                Icons.refresh_rounded,
+                color: PremiumColors.accentBlue,
+              ),
             ),
             IconButton(
               onPressed: onDelete,
               iconSize: 20,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              icon: const Icon(Icons.close_rounded, color: PremiumColors.textMuted),
+              icon: const Icon(
+                Icons.close_rounded,
+                color: PremiumColors.textMuted,
+              ),
             ),
           ],
         ),
@@ -2087,10 +2382,7 @@ class _VoiceBubble extends StatelessWidget {
 }
 
 class _TextBubble extends StatelessWidget {
-  const _TextBubble({
-    required this.message,
-    required this.isMe,
-  });
+  const _TextBubble({required this.message, required this.isMe});
 
   final ChatMessage message;
   final bool isMe;
@@ -2107,7 +2399,10 @@ class _TextBubble extends StatelessWidget {
             ? const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [PremiumColors.accentBlue, PremiumColors.accentBlueSoft],
+                colors: [
+                  PremiumColors.accentBlue,
+                  PremiumColors.accentBlueSoft,
+                ],
               )
             : null,
         color: isMe && !message.hasFailed ? null : bubbleColor,
@@ -2115,7 +2410,9 @@ class _TextBubble extends StatelessWidget {
           topLeft: const Radius.circular(PremiumRadii.lg),
           topRight: const Radius.circular(PremiumRadii.lg),
           bottomLeft: Radius.circular(isMe ? PremiumRadii.lg : PremiumRadii.sm),
-          bottomRight: Radius.circular(isMe ? PremiumRadii.sm : PremiumRadii.lg),
+          bottomRight: Radius.circular(
+            isMe ? PremiumRadii.sm : PremiumRadii.lg,
+          ),
         ),
         border: isMe && !message.hasFailed
             ? null
@@ -2147,11 +2444,7 @@ class _TextBubble extends StatelessWidget {
 }
 
 class _ImageBubble extends StatelessWidget {
-  const _ImageBubble({
-    required this.message,
-    required this.isMe,
-    this.onTap,
-  });
+  const _ImageBubble({required this.message, required this.isMe, this.onTap});
 
   final ChatMessage message;
   final bool isMe;
@@ -2171,10 +2464,14 @@ class _ImageBubble extends StatelessWidget {
           topLeft: const Radius.circular(PremiumRadii.lg),
           topRight: const Radius.circular(PremiumRadii.lg),
           bottomLeft: Radius.circular(isMe ? PremiumRadii.lg : PremiumRadii.sm),
-          bottomRight: Radius.circular(isMe ? PremiumRadii.sm : PremiumRadii.lg),
+          bottomRight: Radius.circular(
+            isMe ? PremiumRadii.sm : PremiumRadii.lg,
+          ),
         ),
         border: Border.all(
-          color: isMe ? PremiumColors.accentBlue.withValues(alpha: 0.28) : Colors.white.withValues(alpha: 0.08),
+          color: isMe
+              ? PremiumColors.accentBlue.withValues(alpha: 0.28)
+              : Colors.white.withValues(alpha: 0.08),
         ),
         boxShadow: isMe
             ? const [
@@ -2191,7 +2488,9 @@ class _ImageBubble extends StatelessWidget {
           topLeft: const Radius.circular(PremiumRadii.lg),
           topRight: const Radius.circular(PremiumRadii.lg),
           bottomLeft: Radius.circular(isMe ? PremiumRadii.lg : PremiumRadii.sm),
-          bottomRight: Radius.circular(isMe ? PremiumRadii.sm : PremiumRadii.lg),
+          bottomRight: Radius.circular(
+            isMe ? PremiumRadii.sm : PremiumRadii.lg,
+          ),
         ),
         child: Material(
           color: Colors.transparent,
@@ -2207,8 +2506,17 @@ class _ImageBubble extends StatelessWidget {
                     children: [
                       if (localBytes != null)
                         Image.memory(localBytes, fit: BoxFit.cover)
-                      else if (localImagePath != null && localImagePath.isNotEmpty)
-                        Image.file(File(localImagePath), fit: BoxFit.cover)
+                      else if (localImagePath != null &&
+                          localImagePath.isNotEmpty)
+                        Image.file(
+                          File(localImagePath),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _ImagePlaceholder(
+                                loading:
+                                    imageUrl != null && imageUrl.isNotEmpty,
+                              ),
+                        )
                       else if (imageUrl != null && imageUrl.isNotEmpty)
                         Image.network(
                           imageUrl,
@@ -2228,7 +2536,10 @@ class _ImageBubble extends StatelessWidget {
                             return Container(
                               color: PremiumColors.surfaceRaised,
                               alignment: Alignment.center,
-                              child: const Icon(Icons.broken_image_outlined, color: PremiumColors.textMuted),
+                              child: const Icon(
+                                Icons.broken_image_outlined,
+                                color: PremiumColors.textMuted,
+                              ),
                             );
                           },
                         )
@@ -2245,11 +2556,15 @@ class _ImageBubble extends StatelessWidget {
                         Container(
                           color: PremiumColors.surfaceRaised,
                           alignment: Alignment.center,
-                          child: const Icon(Icons.image_outlined, color: PremiumColors.textMuted),
+                          child: const Icon(
+                            Icons.image_outlined,
+                            color: PremiumColors.textMuted,
+                          ),
                         ),
                       if (message.isPending &&
                           (localBytes != null ||
-                              (localImagePath != null && localImagePath.isNotEmpty)))
+                              (localImagePath != null &&
+                                  localImagePath.isNotEmpty)))
                         Container(
                           color: Colors.black.withValues(alpha: 0.28),
                           alignment: Alignment.center,
@@ -2291,6 +2606,26 @@ class _ImageBubble extends StatelessWidget {
   }
 }
 
+class _ImagePlaceholder extends StatelessWidget {
+  const _ImagePlaceholder({this.loading = false});
+
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: PremiumColors.surfaceRaised,
+      alignment: Alignment.center,
+      child: loading
+          ? const CircularProgressIndicator(
+              strokeWidth: 2,
+              color: PremiumColors.accentBlue,
+            )
+          : const Icon(Icons.image_outlined, color: PremiumColors.textMuted),
+    );
+  }
+}
+
 class _ImagePreviewComposer extends StatelessWidget {
   const _ImagePreviewComposer({
     required this.imageBytes,
@@ -2308,19 +2643,32 @@ class _ImagePreviewComposer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.xs),
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        0,
+        AppSpacing.md,
+        AppSpacing.xs,
+      ),
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: PremiumColors.surface.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(PremiumRadii.lg),
-        border: Border.all(color: PremiumColors.accentBlue.withValues(alpha: 0.28)),
+        border: Border.all(
+          color: PremiumColors.accentBlue.withValues(alpha: 0.28),
+        ),
       ),
       child: Row(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(PremiumRadii.md),
-            child: Image.memory(imageBytes, width: 72, height: 72, fit: BoxFit.cover),
+            child: Image.memory(
+              imageBytes,
+              width: 72,
+              height: 72,
+              fit: BoxFit.cover,
+            ),
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
@@ -2329,29 +2677,38 @@ class _ImagePreviewComposer extends StatelessWidget {
               enabled: !sending,
               style: const TextStyle(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Add a caption...',
+                hintText: l10n.feedAddCaption,
                 hintStyle: const TextStyle(color: PremiumColors.textMuted),
                 isDense: true,
                 filled: true,
                 fillColor: PremiumColors.midnightMid.withValues(alpha: 0.65),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(PremiumRadii.md),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(PremiumRadii.md),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(PremiumRadii.md),
-                  borderSide: BorderSide(color: PremiumColors.accentBlue.withValues(alpha: 0.5)),
+                  borderSide: BorderSide(
+                    color: PremiumColors.accentBlue.withValues(alpha: 0.5),
+                  ),
                 ),
               ),
             ),
           ),
           IconButton(
             onPressed: sending ? null : onRemove,
-            icon: const Icon(Icons.close_rounded, color: PremiumColors.textMuted),
+            icon: const Icon(
+              Icons.close_rounded,
+              color: PremiumColors.textMuted,
+            ),
           ),
           Material(
             color: Colors.transparent,
@@ -2366,16 +2723,26 @@ class _ImagePreviewComposer extends StatelessWidget {
                   gradient: sending
                       ? null
                       : const LinearGradient(
-                          colors: [PremiumColors.accentBlue, PremiumColors.accentBlueSoft],
+                          colors: [
+                            PremiumColors.accentBlue,
+                            PremiumColors.accentBlueSoft,
+                          ],
                         ),
                   color: sending ? PremiumColors.surfaceRaised : null,
                 ),
                 child: sending
                     ? const Padding(
                         padding: EdgeInsets.all(10),
-                        child: CircularProgressIndicator(strokeWidth: 2, color: PremiumColors.accentBlue),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: PremiumColors.accentBlue,
+                        ),
                       )
-                    : const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 20),
+                    : const Icon(
+                        Icons.arrow_upward_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
               ),
             ),
           ),
@@ -2408,12 +2775,18 @@ class _ChatInputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
     final canSend = enabled && (hasText || hasPendingImage);
     final canRecord = enabled && !hasText && !hasPendingImage;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, bottomSafe + AppSpacing.sm),
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.md,
+        bottomSafe + AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: PremiumColors.midnightMid.withValues(alpha: 0.92),
         border: Border(
@@ -2434,7 +2807,9 @@ class _ChatInputBar extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: PremiumColors.surface.withValues(alpha: 0.95),
-                  border: Border.all(color: PremiumColors.accentBlue.withValues(alpha: 0.35)),
+                  border: Border.all(
+                    color: PremiumColors.accentBlue.withValues(alpha: 0.35),
+                  ),
                 ),
                 child: const Icon(
                   Icons.add_photo_alternate_outlined,
@@ -2454,22 +2829,31 @@ class _ChatInputBar extends StatelessWidget {
               textCapitalization: TextCapitalization.sentences,
               style: const TextStyle(color: Colors.white, fontSize: 15),
               decoration: InputDecoration(
-                hintText: 'Message...',
+                hintText: l10n.chatMessageHint,
                 hintStyle: const TextStyle(color: PremiumColors.textMuted),
                 filled: true,
                 fillColor: PremiumColors.surface.withValues(alpha: 0.9),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(PremiumRadii.pill),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(PremiumRadii.pill),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(PremiumRadii.pill),
-                  borderSide: BorderSide(color: PremiumColors.accentBlue.withValues(alpha: 0.55)),
+                  borderSide: BorderSide(
+                    color: PremiumColors.accentBlue.withValues(alpha: 0.55),
+                  ),
                 ),
               ),
               onSubmitted: canSend ? (_) => onSend() : null,
@@ -2498,7 +2882,9 @@ class _ChatInputBar extends StatelessWidget {
                   ),
                   child: Icon(
                     Icons.mic_rounded,
-                    color: canRecord ? PremiumColors.accentBlue : PremiumColors.textMuted,
+                    color: canRecord
+                        ? PremiumColors.accentBlue
+                        : PremiumColors.textMuted,
                     size: 20,
                   ),
                 ),
@@ -2523,21 +2909,23 @@ class _ChatInputBar extends StatelessWidget {
                         ? const LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [PremiumColors.accentBlue, PremiumColors.accentBlueSoft],
+                            colors: [
+                              PremiumColors.accentBlue,
+                              PremiumColors.accentBlueSoft,
+                            ],
                           )
                         : null,
                     color: canSend ? null : PremiumColors.surface,
                     boxShadow: canSend
                         ? const [
-                            BoxShadow(
-                              color: Color(0x406B8FC7),
-                              blurRadius: 10,
-                            ),
+                            BoxShadow(color: Color(0x406B8FC7), blurRadius: 10),
                           ]
                         : null,
                   ),
                   child: Icon(
-                    isEditing ? Icons.check_rounded : Icons.arrow_upward_rounded,
+                    isEditing
+                        ? Icons.check_rounded
+                        : Icons.arrow_upward_rounded,
                     color: canSend ? Colors.white : PremiumColors.textMuted,
                     size: 22,
                   ),

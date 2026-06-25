@@ -227,10 +227,11 @@ class _MainShellState extends State<MainShell> {
       profile: _t.profile,
     );
     if (!mounted || shared != true) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text('Workout shared'),
+        content: Text(l10n.feedWorkoutShared),
       ),
     );
   }

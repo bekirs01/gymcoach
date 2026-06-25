@@ -47,7 +47,7 @@ abstract final class WorkoutExerciseL10n {
     'Shoulder Press': 'Жим над головой',
     'Lateral Raise': 'Разведение в стороны',
     'Front Raise': 'Подъём перед собой',
-    'Face Pull': 'Face pull',
+    'Face Pull': 'Тяга к лицу',
     'Biceps Curl': 'Сгибание на бицепс',
     'Hammer Curl': 'Молотковые сгибания',
     'Dips': 'Отжимания на брусьях',

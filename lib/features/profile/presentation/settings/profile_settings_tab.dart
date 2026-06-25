@@ -9,6 +9,7 @@ import '../../data/settings_permission_service.dart';
 import '../../domain/profile_settings_options.dart';
 import '../../domain/user_profile.dart';
 import 'settings_flag_icon.dart';
+import 'settings_info_content_l10n.dart';
 import 'settings_info_pages.dart';
 import 'settings_sheets.dart';
 import 'settings_widgets.dart';
@@ -124,10 +125,11 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> with WidgetsBin
   Future<void> _openSystemSettings() async {
     final opened = await _permissionService.openSystemSettings();
     if (!opened && mounted) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not open Settings'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(l10n.settingsCouldNotOpenSettings),
+          duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -226,7 +228,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> with WidgetsBin
             ),
           ),
         SettingsSectionCard(
-          title: 'Preferences',
+          title: l10n.settingsPreferences,
           children: [
             SettingsRow(
               icon: Icons.language_rounded,
@@ -238,29 +240,29 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> with WidgetsBin
             ),
             SettingsRow(
               icon: Icons.straighten_rounded,
-              title: 'Units',
-              subtitle: _units.label,
+              title: l10n.settingsUnits,
+              subtitle: _units.localizedLabel(l10n),
               showChevron: true,
               onTap: _pickUnits,
             ),
-            const SettingsRow(
+            SettingsRow(
               icon: Icons.dark_mode_rounded,
-              title: 'Theme',
-              subtitle: 'Dark',
+              title: l10n.settingsTheme,
+              subtitle: l10n.settingsThemeDark,
             ),
           ],
         ),
         const SizedBox(height: 18),
         SettingsSectionCard(
-          title: 'Permissions',
-          footer: 'Statuses reflect your device settings and refresh when you return to the app.',
+          title: l10n.settingsPermissions,
+          footer: l10n.settingsPermissionsFooter,
           children: [
-            for (final kind in SettingsPermissionKind.values) _permissionRow(kind),
+            for (final kind in SettingsPermissionKind.values) _permissionRow(kind, l10n),
           ],
         ),
         const SizedBox(height: 18),
         SettingsSectionCard(
-          title: 'Notifications and reminders',
+          title: l10n.settingsNotificationsSection,
           children: [
             SettingsSwitchRow(
               icon: Icons.notifications_active_outlined,
@@ -271,16 +273,16 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> with WidgetsBin
             ),
             SettingsRow(
               icon: Icons.schedule_rounded,
-              title: 'Reminder time',
-              subtitle: ReminderTimeCodec.display(_profile.trainingReminderTime),
+              title: l10n.settingsReminderTime,
+              subtitle: ReminderTimeCodec.localizedDisplay(l10n, _profile.trainingReminderTime),
               showChevron: true,
               enabled: _profile.notificationsEnabled,
               onTap: _pickReminderTime,
             ),
             SettingsRow(
               icon: Icons.date_range_rounded,
-              title: 'Reminder days',
-              subtitle: ReminderDaysCodec.displayLabel(_profile.trainingReminderDays),
+              title: l10n.settingsReminderDays,
+              subtitle: ReminderDaysCodec.localizedDisplayLabel(l10n, _profile.trainingReminderDays),
               showChevron: true,
               enabled: _profile.notificationsEnabled,
               onTap: _pickReminderDays,
@@ -289,68 +291,68 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> with WidgetsBin
         ),
         const SizedBox(height: 18),
         SettingsSectionCard(
-          title: 'Privacy and support',
+          title: l10n.settingsPrivacySupport,
           children: [
             SettingsRow(
               icon: Icons.privacy_tip_outlined,
-              title: 'Privacy Policy',
+              title: l10n.settingsPrivacyPolicy,
               showChevron: true,
               onTap: () => SettingsInfoPage.open(
                 context,
-                title: 'Privacy Policy',
-                body: SettingsInfoContent.privacyPolicy,
+                title: l10n.settingsPrivacyPolicy,
+                body: SettingsInfoContentL10n.privacyPolicy(l10n),
               ),
             ),
             SettingsRow(
               icon: Icons.description_outlined,
-              title: 'Terms of Service',
+              title: l10n.settingsTermsOfService,
               showChevron: true,
               onTap: () => SettingsInfoPage.open(
                 context,
-                title: 'Terms of Service',
-                body: SettingsInfoContent.termsOfService,
+                title: l10n.settingsTermsOfService,
+                body: SettingsInfoContentL10n.termsOfService(l10n),
               ),
             ),
             SettingsRow(
               icon: Icons.support_agent_rounded,
-              title: 'Contact Support',
+              title: l10n.settingsContactSupport,
               showChevron: true,
               onTap: () => SettingsInfoPage.open(
                 context,
-                title: 'Contact Support',
-                body: SettingsInfoContent.contactSupport,
+                title: l10n.settingsContactSupport,
+                body: SettingsInfoContentL10n.contactSupport(l10n),
               ),
             ),
             SettingsRow(
               icon: Icons.info_outline_rounded,
-              title: 'About App',
+              title: l10n.settingsAboutApp,
               showChevron: true,
               onTap: () => SettingsInfoPage.open(
                 context,
-                title: 'About App',
-                body: SettingsInfoContent.aboutApp,
+                title: l10n.settingsAboutApp,
+                body: SettingsInfoContentL10n.aboutApp(l10n),
               ),
             ),
             SettingsRow(
               icon: Icons.shield_outlined,
-              title: 'Data and permissions',
+              title: l10n.settingsDataPermissions,
               showChevron: true,
               onTap: () => SettingsInfoPage.open(
                 context,
-                title: 'Data and permissions',
-                body: SettingsInfoContent.dataAndPermissions,
+                title: l10n.settingsDataPermissions,
+                body: SettingsInfoContentL10n.dataAndPermissions(l10n),
               ),
             ),
           ],
         ),
         const SizedBox(height: 18),
         SettingsSectionCard(
-          title: 'Account',
+          title: l10n.settingsAccountSection,
           children: [
             SettingsRow(
               icon: Icons.logout_rounded,
               title: l10n.profileLogOut,
-              subtitle: 'Sign out of this device',
+              subtitle: l10n.settingsSignOutSubtitle,
               destructiveTitle: true,
               onTap: _confirmLogout,
               trailing: const Icon(Icons.chevron_right_rounded, color: PremiumColors.errorRed, size: 22),
@@ -361,15 +363,15 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> with WidgetsBin
     );
   }
 
-  Widget _permissionRow(SettingsPermissionKind kind) {
+  Widget _permissionRow(SettingsPermissionKind kind, AppLocalizations l10n) {
     final snapshot = _permissionSnapshots[kind];
     final granted = snapshot?.isGranted ?? false;
-    final statusText = snapshot?.labelText ?? 'Checking…';
+    final statusText = snapshot?.localizedLabelText(l10n) ?? l10n.settingsChecking;
 
     return SettingsSwitchRow(
       icon: _permissionIcon(kind),
-      title: _permissionTitle(kind),
-      subtitle: _permissionSubtitle(kind),
+      title: _permissionTitle(kind, l10n),
+      subtitle: _permissionSubtitle(kind, l10n),
       statusText: statusText,
       value: granted,
       onChanged: (value) => unawaited(_handlePermissionToggle(kind, value)),
@@ -386,23 +388,23 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> with WidgetsBin
     };
   }
 
-  String _permissionTitle(SettingsPermissionKind kind) {
+  String _permissionTitle(SettingsPermissionKind kind, AppLocalizations l10n) {
     return switch (kind) {
-      SettingsPermissionKind.notifications => 'Notifications',
-      SettingsPermissionKind.camera => 'Camera',
-      SettingsPermissionKind.microphone => 'Microphone',
-      SettingsPermissionKind.photos => 'Photos',
-      SettingsPermissionKind.location => 'Location',
+      SettingsPermissionKind.notifications => l10n.settingsPermissionNotifications,
+      SettingsPermissionKind.camera => l10n.settingsPermissionCamera,
+      SettingsPermissionKind.microphone => l10n.settingsPermissionMicrophone,
+      SettingsPermissionKind.photos => l10n.settingsPermissionPhotos,
+      SettingsPermissionKind.location => l10n.settingsPermissionLocation,
     };
   }
 
-  String _permissionSubtitle(SettingsPermissionKind kind) {
+  String _permissionSubtitle(SettingsPermissionKind kind, AppLocalizations l10n) {
     return switch (kind) {
-      SettingsPermissionKind.notifications => 'Workout reminders and important updates',
-      SettingsPermissionKind.camera => 'Stories, posts, and exercise capture',
-      SettingsPermissionKind.microphone => 'Voice messages in chat',
-      SettingsPermissionKind.photos => 'Upload posts, stories, and profile media',
-      SettingsPermissionKind.location => 'Map and live territory capture',
+      SettingsPermissionKind.notifications => l10n.settingsPermissionNotificationsDesc,
+      SettingsPermissionKind.camera => l10n.settingsPermissionCameraDesc,
+      SettingsPermissionKind.microphone => l10n.settingsPermissionMicrophoneDesc,
+      SettingsPermissionKind.photos => l10n.settingsPermissionPhotosDesc,
+      SettingsPermissionKind.location => l10n.settingsPermissionLocationDesc,
     };
   }
 }

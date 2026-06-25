@@ -1529,13 +1529,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get calendarDow7 => 'S';
 
   @override
-  String get mapTitle => 'Territory Map';
+  String get mapTitle => 'Bölge Haritası';
 
   @override
-  String get mapLocateMe => 'My location';
+  String get mapLocateMe => 'Konumum';
 
   @override
-  String get mapLocating => 'Finding your location...';
+  String get mapLocating => 'Konumun bulunuyor...';
 
   @override
   String get mapLocationUnavailable =>
@@ -1574,28 +1574,28 @@ class AppLocalizationsTr extends AppLocalizations {
   String get mapModeSatellite => 'Satellite view';
 
   @override
-  String get mapLeaderboard => 'Leaderboard';
+  String get mapLeaderboard => 'Liderlik tablosu';
 
   @override
-  String get mapStartCapture => 'Start Capture';
+  String get mapStartCapture => 'Takibe Başla';
 
   @override
-  String get mapCaptureActive => 'Capturing route';
+  String get mapCaptureActive => 'Rota kaydediliyor';
 
   @override
   String get mapElapsed => 'Elapsed';
 
   @override
-  String get mapDistance => 'Distance';
+  String get mapDistance => 'Mesafe';
 
   @override
-  String get mapEstimatedArea => 'Est. area';
+  String get mapEstimatedArea => 'Tahmini alan';
 
   @override
   String get mapGpsAccuracy => 'GPS accuracy';
 
   @override
-  String get mapFinishCapture => 'Finish';
+  String get mapFinishCapture => 'Bitir';
 
   @override
   String get mapPermissionTitle => 'Location access needed';
@@ -1634,7 +1634,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get mapGpsAccuracyWarning =>
-      'GPS accuracy is lower than ideal. You can continue, but try moving to open sky for a cleaner capture.';
+      'GPS doğruluğu düşük. Açık alanda devam etmeyi dene.';
 
   @override
   String get mapNameTerritoryTitle => 'Name your territory';
@@ -1683,18 +1683,17 @@ class AppLocalizationsTr extends AppLocalizations {
   String get mapViewOwnerProfile => 'View owner profile';
 
   @override
-  String get mapLoopClosed =>
-      'Loop closed — finish capture to claim this area.';
+  String get mapLoopClosed => 'Döngü kapandı — alanı kaydetmek için bitir.';
 
   @override
   String get mapLeaderboardTitle => 'Territory leaderboard';
 
   @override
-  String get mapLeaderboardEmpty => 'No leaderboard data yet.';
+  String get mapLeaderboardEmpty => 'Henüz liderlik verisi yok.';
 
   @override
   String mapLeaderboardMeta(String area, int count) {
-    return '$area · $count territories';
+    return '$area · $count bölge';
   }
 
   @override
@@ -1813,4 +1812,399 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get chatMicrophoneRequired => 'Sesli mesaj için mikrofon izni gerekli';
+
+  @override
+  String get settingsDone => 'Done';
+
+  @override
+  String get settingsClear => 'Clear';
+
+  @override
+  String get settingsPreferences => 'Preferences';
+
+  @override
+  String get settingsUnits => 'Units';
+
+  @override
+  String get settingsTheme => 'Theme';
+
+  @override
+  String get settingsThemeDark => 'Dark';
+
+  @override
+  String get settingsPermissions => 'Permissions';
+
+  @override
+  String get settingsPermissionsFooter =>
+      'Statuses reflect your device settings and refresh when you return to the app.';
+
+  @override
+  String get settingsNotificationsSection => 'Notifications and reminders';
+
+  @override
+  String get settingsReminderTime => 'Reminder time';
+
+  @override
+  String get settingsReminderDays => 'Reminder days';
+
+  @override
+  String get settingsPrivacySupport => 'Privacy and support';
+
+  @override
+  String get settingsPrivacyPolicy => 'Privacy Policy';
+
+  @override
+  String get settingsTermsOfService => 'Terms of Service';
+
+  @override
+  String get settingsContactSupport => 'Contact Support';
+
+  @override
+  String get settingsAboutApp => 'About App';
+
+  @override
+  String get settingsDataPermissions => 'Data and permissions';
+
+  @override
+  String get settingsAccountSection => 'Account';
+
+  @override
+  String get settingsSignOutSubtitle => 'Sign out of this device';
+
+  @override
+  String get settingsCouldNotOpenSettings => 'Could not open Settings';
+
+  @override
+  String get settingsMeasurementUnits => 'Measurement units';
+
+  @override
+  String get settingsSelectDays => 'Select days';
+
+  @override
+  String get settingsRecommendedSchedule => 'Recommended schedule';
+
+  @override
+  String get settingsPickSpecificDays => 'Pick specific days';
+
+  @override
+  String get settingsPermissionNotifications => 'Notifications';
+
+  @override
+  String get settingsPermissionNotificationsDesc =>
+      'Workout reminders and important updates';
+
+  @override
+  String get settingsPermissionCamera => 'Camera';
+
+  @override
+  String get settingsPermissionCameraDesc =>
+      'Stories, posts, and exercise capture';
+
+  @override
+  String get settingsPermissionMicrophone => 'Microphone';
+
+  @override
+  String get settingsPermissionMicrophoneDesc => 'Voice messages in chat';
+
+  @override
+  String get settingsPermissionPhotos => 'Photos';
+
+  @override
+  String get settingsPermissionPhotosDesc =>
+      'Upload posts, stories, and profile media';
+
+  @override
+  String get settingsPermissionLocation => 'Location';
+
+  @override
+  String get settingsPermissionLocationDesc => 'Map and live territory capture';
+
+  @override
+  String get settingsPermissionAllowed => 'Allowed';
+
+  @override
+  String get settingsPermissionNotAllowed => 'Not allowed';
+
+  @override
+  String get settingsPermissionLimited => 'Limited';
+
+  @override
+  String get settingsPermissionRestricted => 'Restricted';
+
+  @override
+  String get settingsChecking => 'Checking…';
+
+  @override
+  String get unitsMetric => 'Metric';
+
+  @override
+  String get unitsImperial => 'Imperial';
+
+  @override
+  String get unitsMetricSubtitle => 'Kilograms, centimeters';
+
+  @override
+  String get unitsImperialSubtitle => 'Pounds, feet and inches';
+
+  @override
+  String get reminderEveryDay => 'Every day';
+
+  @override
+  String get reminderWeekdays => 'Weekdays';
+
+  @override
+  String get reminderCustom => 'Custom';
+
+  @override
+  String get profileBasicInfo => 'Basic info';
+
+  @override
+  String get profileBodyMetrics => 'Body metrics';
+
+  @override
+  String get profileGoalsSection => 'Goals';
+
+  @override
+  String get profileTargetWeight => 'Target weight';
+
+  @override
+  String get profileTrainingFocus => 'Training focus';
+
+  @override
+  String get profileExperienceLevel => 'Experience level';
+
+  @override
+  String get profileActivityLevel => 'Activity level';
+
+  @override
+  String get profileWeeklyTarget => 'Weekly target';
+
+  @override
+  String get profileWeeklyWorkoutTarget => 'Weekly workout target';
+
+  @override
+  String get profileVisibilitySection => 'Profile visibility';
+
+  @override
+  String get profileLocation => 'Location';
+
+  @override
+  String get profileUpdatedSnack => 'Profile updated';
+
+  @override
+  String get profileCouldNotSave => 'Could not save profile';
+
+  @override
+  String get profileAvatarUploadSoon => 'Avatar upload coming soon';
+
+  @override
+  String get profileCoverUploadSoon => 'Cover upload coming soon';
+
+  @override
+  String get profilePrivateNotesHelper => 'Only you can see this.';
+
+  @override
+  String get profileAge => 'Age';
+
+  @override
+  String get profileJoined => 'Joined';
+
+  @override
+  String get profileExperience => 'Experience';
+
+  @override
+  String get profileFavoriteTraining => 'Favorite training';
+
+  @override
+  String get profileFocus => 'Focus';
+
+  @override
+  String get profileGoal => 'Goal';
+
+  @override
+  String get goalBuildMuscle => 'Build muscle';
+
+  @override
+  String get goalLoseFat => 'Lose fat';
+
+  @override
+  String get goalImproveStrength => 'Improve strength';
+
+  @override
+  String get goalImproveEndurance => 'Improve endurance';
+
+  @override
+  String get goalStayConsistent => 'Stay consistent';
+
+  @override
+  String get goalMobilityRecovery => 'Mobility and recovery';
+
+  @override
+  String get activityLow => 'Low';
+
+  @override
+  String get activityModerate => 'Moderate';
+
+  @override
+  String get activityHigh => 'High';
+
+  @override
+  String get activityAthlete => 'Athlete';
+
+  @override
+  String weeklyTargetN(int count) {
+    return '$count workouts / week';
+  }
+
+  @override
+  String get feedWorkoutShared => 'Workout shared';
+
+  @override
+  String get feedWorkoutAdded => 'Workout added to your workouts';
+
+  @override
+  String get feedWorkoutAlreadyAdded =>
+      'This workout is already in your workouts';
+
+  @override
+  String get feedNoPostsTitle => 'No posts yet';
+
+  @override
+  String get feedPostOptions => 'Post options';
+
+  @override
+  String get feedNewPost => 'New post';
+
+  @override
+  String get feedNewPostSubtitle => 'Share a photo or update to the feed';
+
+  @override
+  String get feedNewStory => 'New story';
+
+  @override
+  String get feedNewStorySubtitle => 'Share a quick story for 24 hours';
+
+  @override
+  String get feedStoryTitle => 'New story';
+
+  @override
+  String get feedStoryHint => 'Pick one photo to share as your story.';
+
+  @override
+  String get feedGallery => 'Gallery';
+
+  @override
+  String get feedCamera => 'Camera';
+
+  @override
+  String get feedShareStory => 'Share story';
+
+  @override
+  String get feedOpeningGallery => 'Opening gallery...';
+
+  @override
+  String get feedTapAddPhoto => 'Tap to add photo';
+
+  @override
+  String get feedShareHint => 'Share your workout, progress or thoughts...';
+
+  @override
+  String get feedAddComment => 'Add a comment...';
+
+  @override
+  String get feedAddCaption => 'Add a caption...';
+
+  @override
+  String get feedReportSent => 'Report sent';
+
+  @override
+  String get feedReportProfile => 'Report profile';
+
+  @override
+  String get feedYourStory => 'Your story';
+
+  @override
+  String get chatMessageHint => 'Message...';
+
+  @override
+  String get chatCouldNotDelete => 'Could not delete message';
+
+  @override
+  String get chatCouldNotUpdate => 'Could not update message';
+
+  @override
+  String get chatMessageDeletedFallback => 'This message was deleted';
+
+  @override
+  String get chatImageWithCaption => 'Image with caption';
+
+  @override
+  String get chatDetailFileType => 'File type';
+
+  @override
+  String get chatDetailSize => 'Size';
+
+  @override
+  String get chatDetailDuration => 'Duration';
+
+  @override
+  String get chatDetailDimensions => 'Dimensions';
+
+  @override
+  String get chatChooseGallery => 'Choose from gallery';
+
+  @override
+  String get chatTakePhoto => 'Take photo';
+
+  @override
+  String get chatOnline => 'Online';
+
+  @override
+  String get mapLabelGps => 'GPS';
+
+  @override
+  String get mapLabelPoints => 'Points';
+
+  @override
+  String shareExercisesCount(int count) {
+    return '$count exercises';
+  }
+
+  @override
+  String shareMinutesCount(int count) {
+    return '$count min';
+  }
+
+  @override
+  String get feedCreateTitle => 'Create';
+
+  @override
+  String get feedCreateSubtitle => 'Choose what you want to share';
+
+  @override
+  String get profileOptional => 'Optional';
+
+  @override
+  String get profileAvatarSection => 'Avatar';
+
+  @override
+  String get feedNoPostsBody => 'Check back soon for new workouts and updates.';
+
+  @override
+  String get feedRefresh => 'Refresh';
+
+  @override
+  String get chatTypeText => 'Text';
+
+  @override
+  String get chatStatusSending => 'Sending';
+
+  @override
+  String get shareWorkoutTitle => 'Share workout';
+
+  @override
+  String get shareWorkoutPublish => 'Share';
+
+  @override
+  String get shareWorkoutPublishFeed => 'Share to Feed';
 }

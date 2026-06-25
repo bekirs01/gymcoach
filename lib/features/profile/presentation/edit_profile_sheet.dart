@@ -6,6 +6,7 @@ import '../../../app/theme/premium_tokens.dart';
 import '../../feed/presentation/social_avatar.dart';
 import '../../social/data/social_api_client.dart';
 import '../data/profile_repository.dart';
+import '../domain/profile_field_l10n.dart';
 import '../domain/profile_defaults.dart';
 import '../domain/profile_image_assets.dart';
 import '../domain/user_profile.dart';
@@ -240,7 +241,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   Future<void> _pickAvatar() async {
     final client = widget.socialClient;
     if (client == null) {
-      _showComingSoon('Avatar upload coming soon');
+      _showComingSoon(widget.l10n.profileAvatarUploadSoon);
       return;
     }
     final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 86, maxWidth: 1200);
@@ -262,7 +263,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   Future<void> _pickCover() async {
     final client = widget.socialClient;
     if (client == null) {
-      _showComingSoon('Cover upload coming soon');
+      _showComingSoon(widget.l10n.profileCoverUploadSoon);
       return;
     }
     final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 86, maxWidth: 1600);
@@ -288,9 +289,10 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   }
 
   Future<void> _pickWeight({required bool target}) async {
+    final l10n = widget.l10n;
     final result = await ProfileNumberPickerSheet.showWeight(
       context,
-      title: target ? 'Target weight' : 'Weight',
+      title: target ? l10n.profileTargetWeight : l10n.profileWeight,
       initialValue: target ? (_targetWeightKg ?? _weightKg) : _weightKg,
       allowClear: target,
       initialNullable: target ? _targetWeightKg : null,
@@ -312,7 +314,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   Future<void> _pickHeight() async {
     final result = await ProfileNumberPickerSheet.showHeight(
       context,
-      title: 'Height',
+      title: widget.l10n.profileHeight,
       initialValue: _heightCm,
     );
     if (!mounted || result == null) return;
@@ -320,43 +322,49 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   }
 
   Future<void> _pickFitnessGoal() async {
+    final l10n = widget.l10n;
     final result = await ProfileOptionPickerSheet.show(
       context,
-      title: widget.l10n.labelFitnessGoal,
-      options: ProfileFieldOptions.fitnessGoals,
-      selected: _fitnessGoal,
+      title: l10n.labelFitnessGoal,
+      options: ProfileFieldL10n.fitnessGoalOptions(l10n),
+      selected: ProfileFieldL10n.fitnessGoalLabel(l10n, _fitnessGoal),
     );
-    if (result != null) setState(() => _fitnessGoal = result);
+    if (result != null) {
+      setState(() => _fitnessGoal = ProfileFieldL10n.fitnessGoalCanonical(l10n, result));
+    }
   }
 
   Future<void> _pickExperience() async {
+    final l10n = widget.l10n;
     final result = await ProfileOptionPickerSheet.show(
       context,
-      title: 'Experience level',
-      options: ProfileFieldOptions.experienceLevels,
-      selected: ProfileFieldOptions.experienceLabel(_experienceLevel),
+      title: l10n.profileExperienceLevel,
+      options: ProfileFieldL10n.experienceOptions(l10n),
+      selected: ProfileFieldL10n.experienceLabel(l10n, _experienceLevel),
     );
-    if (result != null) setState(() => _experienceLevel = ProfileFieldOptions.experienceValue(result));
+    if (result != null) setState(() => _experienceLevel = ProfileFieldL10n.experienceValue(l10n, result));
   }
 
   Future<void> _pickActivity() async {
+    final l10n = widget.l10n;
     final result = await ProfileOptionPickerSheet.show(
       context,
-      title: 'Activity level',
-      options: ProfileFieldOptions.activityLevels,
-      selected: ProfileFieldOptions.activityLabel(_activityLevel),
+      title: l10n.profileActivityLevel,
+      options: ProfileFieldL10n.activityOptions(l10n),
+      selected: ProfileFieldL10n.activityLabel(l10n, _activityLevel),
     );
-    if (result != null) setState(() => _activityLevel = ProfileFieldOptions.activityValue(result));
+    if (result != null) setState(() => _activityLevel = ProfileFieldL10n.activityValue(l10n, result));
   }
 
   Future<void> _pickWeeklyTarget() async {
+    final l10n = widget.l10n;
     final result = await ProfileOptionPickerSheet.show(
       context,
-      title: 'Weekly target',
-      options: ProfileFieldOptions.weeklyTargets,
-      selected: ProfileFieldOptions.weeklyTargetLabel(_weeklyTarget),
+      title: l10n.profileWeeklyTarget,
+      options: ProfileFieldL10n.weeklyTargetOptions(l10n),
+      selected: ProfileFieldL10n.weeklyTargetLabel(l10n, _weeklyTarget),
     );
-    if (result != null) setState(() => _weeklyTarget = ProfileFieldOptions.weeklyTargetValue(result));
+    if (result != null) setState(() => _weeklyTarget = ProfileFieldL10n.weeklyTargetValue(l10n, result));
   }
 
   Future<void> _save() async {
@@ -379,7 +387,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
         if (!mounted) return;
         setState(() {
           _saving = false;
-          _error = 'Could not save profile';
+          _error = l10n.profileCouldNotSave;
         });
         return;
       }
@@ -387,7 +395,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
     if (!mounted) return;
     setState(() => _saving = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Profile updated')),
+      SnackBar(behavior: SnackBarBehavior.floating, content: Text(l10n.profileUpdatedSnack)),
     );
     Navigator.pop(context, profile);
   }
@@ -450,7 +458,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       ProfileSectionCard(
-                        title: 'Avatar',
+                        title: l10n.profileAvatarSection,
                         children: [
                           Padding(
                             padding: const EdgeInsets.all(16),
@@ -485,15 +493,15 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                       ),
                       const SizedBox(height: 18),
                       ProfileSectionCard(
-                        title: 'Basic info',
+                        title: l10n.profileBasicInfo,
                         children: [
                           ProfileTextField(controller: _name, label: l10n.labelName, onChanged: (_) => setState(() => _error = null)),
-                          ProfileTextField(controller: _location, label: 'Location'),
+                          ProfileTextField(controller: _location, label: l10n.profileLocation),
                         ],
                       ),
                       const SizedBox(height: 18),
                       ProfileSectionCard(
-                        title: 'Body metrics',
+                        title: l10n.profileBodyMetrics,
                         children: [
                           ProfileMetricTile(
                             label: l10n.labelWeightKg,
@@ -506,50 +514,50 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                             onTap: _saving ? null : _pickHeight,
                           ),
                           ProfileMetricTile(
-                            label: 'Target weight',
+                            label: l10n.profileTargetWeight,
                             value: _targetWeightKg == null ? '' : _weightLabel(_targetWeightKg!),
-                            placeholder: 'Optional',
+                            placeholder: l10n.profileOptional,
                             onTap: _saving ? null : () => _pickWeight(target: true),
                           ),
                         ],
                       ),
                       const SizedBox(height: 18),
                       ProfileSectionCard(
-                        title: 'Goals',
+                        title: l10n.profileGoalsSection,
                         children: [
                           ProfileMetricTile(
                             label: l10n.labelFitnessGoal,
-                            value: _fitnessGoal,
+                            value: ProfileFieldL10n.fitnessGoalLabel(l10n, _fitnessGoal),
                             onTap: _saving ? null : _pickFitnessGoal,
                           ),
-                          ProfileTextField(controller: _trainingFocus, label: 'Training focus', maxLines: 2),
+                          ProfileTextField(controller: _trainingFocus, label: l10n.profileTrainingFocus, maxLines: 2),
                           ProfileMetricTile(
-                            label: 'Experience level',
-                            value: ProfileFieldOptions.experienceLabel(_experienceLevel),
+                            label: l10n.profileExperienceLevel,
+                            value: ProfileFieldL10n.experienceLabel(l10n, _experienceLevel),
                             onTap: _saving ? null : _pickExperience,
                           ),
                           ProfileMetricTile(
-                            label: 'Activity level',
-                            value: ProfileFieldOptions.activityLabel(_activityLevel),
+                            label: l10n.profileActivityLevel,
+                            value: ProfileFieldL10n.activityLabel(l10n, _activityLevel),
                             onTap: _saving ? null : _pickActivity,
                           ),
                           ProfileMetricTile(
-                            label: 'Weekly workout target',
-                            value: ProfileFieldOptions.weeklyTargetLabel(_weeklyTarget),
+                            label: l10n.profileWeeklyWorkoutTarget,
+                            value: ProfileFieldL10n.weeklyTargetLabel(l10n, _weeklyTarget),
                             onTap: _saving ? null : _pickWeeklyTarget,
                           ),
                         ],
                       ),
                       const SizedBox(height: 18),
                       ProfileSectionCard(
-                        title: 'Profile visibility',
+                        title: l10n.profileVisibilitySection,
                         children: [
                           ProfileTextField(controller: _bio, label: l10n.profilePublicBioLabel, maxLines: 3),
                           ProfileTextField(
                             controller: _notes,
                             label: l10n.profilePrivateNotes,
                             maxLines: 4,
-                            helperText: 'Only you can see this.',
+                            helperText: l10n.profilePrivateNotesHelper,
                           ),
                           SwitchListTile(
                             value: _isPublic,

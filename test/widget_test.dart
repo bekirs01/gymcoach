@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym/app/gymcoach_app.dart';
+import 'package:gym/data/local/local_first_training_persistence.dart';
 import 'package:gym/features/profile/domain/profile_defaults.dart';
 import 'package:gym/features/profile/domain/user_profile.dart';
 import 'package:gym/features/profile/presentation/profile_page.dart';
 import 'package:gym/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+Future<void> _pumpGymCoachApp(WidgetTester tester, {Map<String, Object> prefs = const {}}) async {
+  SharedPreferences.setMockInitialValues(prefs);
+  final sharedPrefs = await SharedPreferences.getInstance();
+  await tester.pumpWidget(GymCoachApp(
+    prefs: sharedPrefs,
+    trainingPersistence: LocalFirstTrainingPersistence(prefs: sharedPrefs),
+  ));
+}
+
 void main() {
   testWidgets('Home dashboard renders welcome section', (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({});
-    await tester.pumpWidget(const GymCoachApp());
+    await _pumpGymCoachApp(tester);
     await tester.pumpAndSettle();
     expect(find.text('Welcome back'), findsOneWidget);
     expect(find.text(ProfileDefaults.displayName), findsOneWidget);
@@ -18,8 +27,7 @@ void main() {
   });
 
   testWidgets('Home dashboard renders Russian locale from preferences', (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({'app_locale_code': 'ru'});
-    await tester.pumpWidget(const GymCoachApp());
+    await _pumpGymCoachApp(tester, prefs: {'app_locale_code': 'ru'});
     await tester.pumpAndSettle();
     expect(find.text('С возвращением'), findsOneWidget);
     expect(find.text('Фокус на сегодня'), findsOneWidget);

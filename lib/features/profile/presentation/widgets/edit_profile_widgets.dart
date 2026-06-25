@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
 
@@ -332,6 +333,7 @@ class _ProfileNumberPickerSheetState extends State<ProfileNumberPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Material(
       color: PremiumColors.surface,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(PremiumRadii.xl)),
@@ -347,7 +349,7 @@ class _ProfileNumberPickerSheetState extends State<ProfileNumberPickerSheet> {
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel', style: TextStyle(color: PremiumColors.textSecondary)),
+                      child: Text(l10n.cancel, style: const TextStyle(color: PremiumColors.textSecondary)),
                     ),
                     Expanded(
                       child: Text(
@@ -359,11 +361,11 @@ class _ProfileNumberPickerSheetState extends State<ProfileNumberPickerSheet> {
                     if (widget.allowClear)
                       TextButton(
                         onPressed: () => Navigator.pop(context, -1.0),
-                        child: const Text('Clear', style: TextStyle(color: PremiumColors.textMuted)),
+                        child: Text(l10n.settingsClear, style: const TextStyle(color: PremiumColors.textMuted)),
                       ),
                     TextButton(
                       onPressed: () => Navigator.pop(context, _values[_index]),
-                      child: const Text('Done', style: TextStyle(color: PremiumColors.accentBlue, fontWeight: FontWeight.w700)),
+                      child: Text(l10n.settingsDone, style: const TextStyle(color: PremiumColors.accentBlue, fontWeight: FontWeight.w700)),
                     ),
                   ],
                 ),

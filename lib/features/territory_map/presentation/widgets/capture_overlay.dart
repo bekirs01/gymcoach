@@ -77,14 +77,7 @@ class CaptureOverlay extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        color: PremiumColors.accentBlue,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
+                    _RecordingDot(isActive: true),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -124,12 +117,12 @@ class CaptureOverlay extends StatelessWidget {
                 Row(
                   children: [
                     _StatTile(
-                      label: 'GPS',
+                      label: l10n.mapLabelGps,
                       value: '${controller.latestAccuracyMeters.round()} m',
                     ),
                     const SizedBox(width: 8),
                     _StatTile(
-                      label: 'Points',
+                      label: l10n.mapLabelPoints,
                       value: '$points / $minPoints',
                     ),
                   ],
@@ -234,6 +227,58 @@ class _StatTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _RecordingDot extends StatefulWidget {
+  const _RecordingDot({required this.isActive});
+
+  final bool isActive;
+
+  @override
+  State<_RecordingDot> createState() => _RecordingDotState();
+}
+
+class _RecordingDotState extends State<_RecordingDot> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.isActive) {
+      return const SizedBox(width: 12, height: 12);
+    }
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: PremiumColors.accentBlue.withValues(alpha: 0.55 + (_controller.value * 0.45)),
+            boxShadow: [
+              BoxShadow(
+                color: PremiumColors.accentBlue.withValues(alpha: 0.25 + (_controller.value * 0.35)),
+                blurRadius: 8 + (_controller.value * 6),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

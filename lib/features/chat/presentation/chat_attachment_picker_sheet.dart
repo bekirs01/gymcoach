@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../app/theme/premium_tokens.dart';
@@ -13,6 +14,7 @@ Future<ChatAttachmentSource?> showChatAttachmentPickerSheet(BuildContext context
     context: context,
     backgroundColor: Colors.transparent,
     builder: (context) {
+      final l10n = AppLocalizations.of(context)!;
       return SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
@@ -35,18 +37,18 @@ Future<ChatAttachmentSource?> showChatAttachmentPickerSheet(BuildContext context
                   ),
                   _AttachmentActionTile(
                     icon: Icons.photo_library_rounded,
-                    label: 'Choose from gallery',
+                    label: l10n.chatChooseGallery,
                     onTap: () => Navigator.pop(context, ChatAttachmentSource.gallery),
                   ),
                   _AttachmentActionTile(
                     icon: Icons.photo_camera_rounded,
-                    label: 'Take photo',
+                    label: l10n.chatTakePhoto,
                     onTap: () => Navigator.pop(context, ChatAttachmentSource.camera),
                   ),
                   const Divider(height: 1, color: Color(0x14FFFFFF)),
                   _AttachmentActionTile(
                     icon: Icons.close_rounded,
-                    label: 'Cancel',
+                    label: l10n.cancel,
                     muted: true,
                     onTap: () => Navigator.pop(context),
                   ),

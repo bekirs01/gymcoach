@@ -6,26 +6,25 @@ import '../core/plan_factory.dart';
 import '../core/progress_demo_seed.dart';
 import '../features/plans/domain/workout_plan.dart';
 import '../features/plans/domain/workout_template.dart';
-import '../features/profile/domain/profile_defaults.dart';
+import '../features/profile/domain/profile_field_l10n.dart';
 import '../features/profile/domain/user_profile.dart';
 import '../features/workout/domain/workout_completion.dart';
 import '../shared/repositories/training_persistence_repository.dart';
 
 final class TrainingAppState extends ChangeNotifier {
-  TrainingAppState({required TrainingPersistenceRepository persistence}) : _persistence = persistence;
+  TrainingAppState({required TrainingPersistenceRepository persistence})
+      : _persistence = persistence,
+        _profile = UserProfile.withDefaults(membershipLevel: 'Premium');
 
   final TrainingPersistenceRepository _persistence;
 
   var _bootstrapped = false;
-  var _ready = false;
   String? _localeName;
-
-  bool get isReady => _ready;
 
   List<WorkoutPlan> _plans = [];
   List<WorkoutCompletion> _completions = [];
   List<WorkoutTemplate> _templates = [];
-  late UserProfile _profile;
+  UserProfile _profile;
 
   List<WorkoutPlan> get plans => List.unmodifiable(_plans);
   List<WorkoutCompletion> get completions => List.unmodifiable(_completions);
@@ -82,7 +81,6 @@ final class TrainingAppState extends ChangeNotifier {
       await _persist();
     }
 
-    _ready = true;
     notifyListeners();
   }
 
@@ -93,7 +91,6 @@ final class TrainingAppState extends ChangeNotifier {
   }
 
   UserProfile _localizedProfile(UserProfile profile, AppLocalizations l10n) {
-    final knownGoals = {'Strength and conditioning', 'Сила и общая подготовка'};
     final knownMemberships = {
       'Free': l10n.membershipFree,
       'Basic': l10n.membershipFree,
@@ -104,7 +101,7 @@ final class TrainingAppState extends ChangeNotifier {
       'Премиум': l10n.membershipPremium,
     };
     return profile.copyWith(
-      fitnessGoal: knownGoals.contains(profile.fitnessGoal) ? l10n.profileDefaultGoal : profile.fitnessGoal,
+      fitnessGoal: ProfileFieldL10n.fitnessGoalLabel(l10n, profile.fitnessGoal),
       membershipLevel: knownMemberships[profile.membershipLevel] ?? profile.membershipLevel,
     );
   }

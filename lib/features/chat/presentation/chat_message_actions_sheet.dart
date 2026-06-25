@@ -523,8 +523,8 @@ class _ChatMessageDetailsSheet extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final sentLabel = ChatRepository.formatMessageTime(message.sentAt);
-    final typeLabel = _typeLabel(message);
-    final statusLabel = _statusLabel(message);
+    final typeLabel = _typeLabel(l10n, message);
+    final statusLabel = _statusLabel(l10n, message);
     final voiceAttachment = message.voiceAttachment;
     ChatAttachment? imageAttachment;
     for (final attachment in message.attachments) {
@@ -565,25 +565,25 @@ class _ChatMessageDetailsSheet extends StatelessWidget {
               _DetailRow(label: l10n.chatDetailStatus, value: statusLabel),
               if (message.attachments.isNotEmpty) ...[
                 _DetailRow(
-                  label: 'File type',
+                  label: l10n.chatDetailFileType,
                   value: message.attachments.first.mimeType,
                 ),
                 if (message.attachments.first.sizeBytes > 0)
                   _DetailRow(
-                    label: 'Size',
+                    label: l10n.chatDetailSize,
                     value: _formatBytes(message.attachments.first.sizeBytes),
                   ),
               ],
               if (voiceAttachment != null && (voiceAttachment.durationMs ?? 0) > 0)
                 _DetailRow(
-                  label: 'Duration',
+                  label: l10n.chatDetailDuration,
                   value: _formatDuration(voiceAttachment.durationMs ?? 0),
                 ),
               if (imageAttachment != null &&
                   imageAttachment.width != null &&
                   imageAttachment.height != null)
                 _DetailRow(
-                  label: 'Dimensions',
+                  label: l10n.chatDetailDimensions,
                   value: '${imageAttachment.width} × ${imageAttachment.height}',
                 ),
               const SizedBox(height: AppSpacing.sm),
@@ -598,19 +598,19 @@ class _ChatMessageDetailsSheet extends StatelessWidget {
     );
   }
 
-  String _typeLabel(ChatMessage message) {
-    if (message.isVoice) return 'Voice';
-    if (message.hasImage && message.body.trim().isNotEmpty) return 'Image with caption';
-    if (message.hasImage) return 'Image';
-    return 'Text';
+  String _typeLabel(AppLocalizations l10n, ChatMessage message) {
+    if (message.isVoice) return l10n.chatVoiceMessage;
+    if (message.hasImage && message.body.trim().isNotEmpty) return l10n.chatImageWithCaption;
+    if (message.hasImage) return l10n.chatPhoto;
+    return l10n.chatTypeText;
   }
 
-  String _statusLabel(ChatMessage message) {
-    if (message.isDeleted) return 'Deleted';
-    if (message.isFailed) return 'Failed';
-    if (message.isEdited) return 'Edited';
-    if (message.isPending) return 'Sending';
-    return 'Sent';
+  String _statusLabel(AppLocalizations l10n, ChatMessage message) {
+    if (message.isDeleted) return l10n.chatMessageDeleted;
+    if (message.isFailed) return l10n.chatFailedToSend;
+    if (message.isEdited) return l10n.chatEdited;
+    if (message.isPending) return l10n.chatStatusSending;
+    return l10n.chatDetailSent;
   }
 
   String _formatBytes(int bytes) {

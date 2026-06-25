@@ -32,5 +32,24 @@
   "chatDetailType": "Tür",
   "chatDetailStatus": "Durum",
   "chatEditMessage": "Mesajı düzenle",
-  "chatMicrophoneRequired": "Sesli mesaj için mikrofon izni gerekli"
+  "chatMicrophoneRequired": "Sesli mesaj için mikrofon izni gerekli",
+  "mapTitle": "Bölge Haritası",
+  "mapLocateMe": "Konumum",
+  "mapLocating": "Konumun bulunuyor...",
+  "mapLeaderboard": "Liderlik tablosu",
+  "mapStartCapture": "Takibe Başla",
+  "mapCaptureActive": "Rota kaydediliyor",
+  "mapDistance": "Mesafe",
+  "mapEstimatedArea": "Tahmini alan",
+  "mapFinishCapture": "Bitir",
+  "mapGpsAccuracyWarning": "GPS doğruluğu düşük. Açık alanda devam etmeyi dene.",
+  "mapLoopClosed": "Döngü kapandı — alanı kaydetmek için bitir.",
+  "mapLeaderboardEmpty": "Henüz liderlik verisi yok.",
+  "mapLeaderboardMeta": "{area} · {count} bölge",
+  "@mapLeaderboardMeta": {
+    "placeholders": {
+      "area": {"type": "String"},
+      "count": {"type": "int"}
+    }
+  }
 }

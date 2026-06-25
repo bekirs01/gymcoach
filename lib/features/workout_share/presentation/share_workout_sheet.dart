@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/premium_tokens.dart';
@@ -150,6 +151,7 @@ class _ShareWorkoutSheetState extends State<_ShareWorkoutSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
 
     return Padding(
@@ -167,10 +169,10 @@ class _ShareWorkoutSheetState extends State<_ShareWorkoutSheet> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Share workout',
-                        style: TextStyle(
+                        l10n.shareWorkoutTitle,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
@@ -204,7 +206,7 @@ class _ShareWorkoutSheetState extends State<_ShareWorkoutSheet> {
                     enabled: !_sharing,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      hintText: 'Add a caption...',
+                      hintText: l10n.feedAddCaption,
                       hintStyle: const TextStyle(color: PremiumColors.textMuted),
                       filled: true,
                       fillColor: PremiumColors.midnightBottom,
@@ -235,9 +237,9 @@ class _ShareWorkoutSheetState extends State<_ShareWorkoutSheet> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                        : const Text(
-                            'Share to Feed',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                        : Text(
+                            l10n.shareWorkoutPublishFeed,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                   ),
                 ],

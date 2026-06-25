@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
 import '../../../../app/widgets/workout_image.dart';
@@ -16,6 +17,7 @@ class SharedWorkoutPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final previewExercises = snapshot.exercises.take(compact ? 2 : 3).toList();
 
     return Container(
@@ -59,12 +61,12 @@ class SharedWorkoutPreviewCard extends StatelessWidget {
                   children: [
                     _MetaChip(
                       icon: Icons.fitness_center_rounded,
-                      label: '${snapshot.exerciseCount} exercises',
+                      label: l10n.shareExercisesCount(snapshot.exerciseCount),
                     ),
                     if (snapshot.estimatedDuration > 0)
                       _MetaChip(
                         icon: Icons.timer_outlined,
-                        label: '${snapshot.estimatedDuration} min',
+                        label: l10n.shareMinutesCount(snapshot.estimatedDuration),
                       ),
                     if (snapshot.scheduledTime.isNotEmpty)
                       _MetaChip(

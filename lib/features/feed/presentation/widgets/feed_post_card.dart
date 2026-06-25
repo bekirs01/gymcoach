@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
 import '../../../../app/widgets/premium_image_viewer.dart';
@@ -122,9 +123,10 @@ class _SeededFeedPostCardState extends State<SeededFeedPostCard> {
       onSave: _toggleSave,
       onComment: () => _openComments(),
       onMenu: () {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Post options'),
+          SnackBar(
+            content: Text(l10n.feedPostOptions),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -287,6 +289,7 @@ class _ApiFeedPostCardState extends State<ApiFeedPostCard> {
   Future<void> _menu() async {
     final current = await widget.client.currentUserId();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     final isMine = current == widget.post.userId;
     final action = await showModalBottomSheet<String>(
       context: context,
@@ -299,18 +302,18 @@ class _ApiFeedPostCardState extends State<ApiFeedPostCard> {
             if (isMine)
               ListTile(
                 leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                title: const Text('Delete post', style: TextStyle(color: Colors.white)),
+                title: Text(l10n.feedDeletePost, style: const TextStyle(color: Colors.white)),
                 onTap: () => Navigator.pop(context, 'delete'),
               )
             else ...[
               ListTile(
                 leading: const Icon(Icons.block_rounded, color: Colors.redAccent),
-                title: const Text('Block user', style: TextStyle(color: Colors.white)),
+                title: Text(l10n.feedBlockUser, style: const TextStyle(color: Colors.white)),
                 onTap: () => Navigator.pop(context, 'block'),
               ),
               ListTile(
                 leading: const Icon(Icons.flag_outlined, color: PremiumColors.textSecondary),
-                title: const Text('Report post', style: TextStyle(color: Colors.white)),
+                title: Text(l10n.feedReportPost, style: const TextStyle(color: Colors.white)),
                 onTap: () => Navigator.pop(context, 'report'),
               ),
             ],
@@ -738,9 +741,9 @@ class FeedCommentField extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
-                'Add a comment...',
+                AppLocalizations.of(context)!.feedAddComment,
                 style: TextStyle(
                   color: PremiumColors.textMuted,
                   fontSize: 13,
@@ -967,7 +970,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                             controller: _controller,
                             style: const TextStyle(color: Colors.white, fontSize: 14),
                             decoration: InputDecoration(
-                              hintText: 'Add a comment...',
+                              hintText: AppLocalizations.of(context)!.feedAddComment,
                               hintStyle: const TextStyle(color: PremiumColors.textMuted),
                               filled: true,
                               fillColor: PremiumColors.surface.withValues(alpha: 0.65),

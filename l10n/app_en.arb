@@ -19,14 +19,41 @@
   "today": "Today",
   "tomorrow": "Tomorrow",
   "scheduleToday": "Today · {time}",
-  "@scheduleToday": {"placeholders": {"time": {"type": "String"}}},
+  "@scheduleToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "scheduleTomorrow": "Tomorrow · {time}",
-  "@scheduleTomorrow": {"placeholders": {"time": {"type": "String"}}},
+  "@scheduleTomorrow": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "scheduleDateTime": "{date} · {time}",
-  "@scheduleDateTime": {"placeholders": {"date": {"type": "String"}, "time": {"type": "String"}}},
+  "@scheduleDateTime": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "activityYesterday": "Yesterday",
   "activityDaysAgo": "{count} days ago",
-  "@activityDaysAgo": {"placeholders": {"count": {"type": "int"}}},
+  "@activityDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "activityToday": "Today",
   "homeWelcomeBack": "Welcome back",
   "homeStayConsistent": "Stay consistent and keep moving.",
@@ -35,7 +62,13 @@
   "homeSchedulePlanPrompt": "Schedule a plan to stay consistent.",
   "homeOneWorkoutToday": "1 workout planned for today",
   "homeNWorkoutsToday": "{count} workouts planned for today",
-  "@homeNWorkoutsToday": {"placeholders": {"count": {"type": "int"}}},
+  "@homeNWorkoutsToday": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeMetricPlanned": "Planned workouts",
   "homeMetricCompleted": "Completed workouts",
   "homeMetricThisWeek": "This week",
@@ -66,7 +99,13 @@
   "homeBannerStartHint": "Start by adding a new training day",
   "homeMyTraining": "My Training",
   "homeCompletedSessions": "{count} sessions completed",
-  "@homeCompletedSessions": {"placeholders": {"count": {"type": "int"}}},
+  "@homeCompletedSessions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeTrainingSchedule": "Training Schedule",
   "homeMore": "More",
   "homeArticles": "Articles",
@@ -79,17 +118,41 @@
   "plansCreate": "Create Plan",
   "plansSectionYourPlans": "Your plans",
   "plansTotalCount": "{count} total",
-  "@plansTotalCount": {"placeholders": {"count": {"type": "int"}}},
+  "@plansTotalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "plansEmptyTitle": "No workout plans yet",
   "plansEmptyBody": "Create your first plan and start building consistency.",
   "plansSnackbarCreated": "Workout plan created",
   "plansSnackbarOnlyPlanned": "Only planned workouts can start a live session.",
   "minutesShort": "{count} min",
-  "@minutesShort": {"placeholders": {"count": {"type": "int"}}},
+  "@minutesShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "minutesPlanShort": "{count} min plan",
-  "@minutesPlanShort": {"placeholders": {"count": {"type": "int"}}},
+  "@minutesPlanShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "durationMinutesLabel": "{count} minutes",
-  "@durationMinutesLabel": {"placeholders": {"count": {"type": "int"}}},
+  "@durationMinutesLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeAddWorkout": "Add workout",
   "workoutListEmptyTitle": "Your workout list is empty",
   "workoutListEmptyBody": "Start by adding exercises to a new training day.",
@@ -102,22 +165,46 @@
   "workoutMuscleGroupHint": "Select one or more areas you want to train.",
   "workoutContinue": "Continue",
   "workoutContinueGroups": "Continue ({count} groups)",
-  "@workoutContinueGroups": {"placeholders": {"count": {"type": "int"}}},
+  "@workoutContinueGroups": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "workoutSelectExercises": "Select exercises",
   "workoutContinueExercises": "Continue ({count})",
-  "@workoutContinueExercises": {"placeholders": {"count": {"type": "int"}}},
+  "@workoutContinueExercises": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "workoutSaveWorkout": "Save workout",
   "workoutExerciseHintSingle": "Choose {category} exercises. Tap a row to select and read the details.",
-  "@workoutExerciseHintSingle": {"placeholders": {"category": {"type": "String"}}},
+  "@workoutExerciseHintSingle": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
   "workoutExerciseHintMulti": "Choose exercises from your selected muscle groups.",
-  "workoutNameHint": "Enter workout name...",
+  "workoutNameHint": "e.g. Upper Body Power",
   "workoutSelected": "Selected",
   "workoutBack": "Back",
   "planRepeatWorkout": "Repeat workout",
   "planCustomizeRepeat": "Customize and schedule",
   "planCompletedHint": "This workout is finished. Repeat it on another day or adjust exercises first.",
   "exercisesCount": "{count} exercises",
-  "@exercisesCount": {"placeholders": {"count": {"type": "int"}}},
+  "@exercisesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "difficultyBeginner": "Beginner",
   "difficultyIntermediate": "Intermediate",
   "difficultyAdvanced": "Advanced",
@@ -137,10 +224,22 @@
   "planSessionOnlyPlanned": "Only planned workouts can begin a new session.",
   "deletePlanTitle": "Delete plan",
   "deletePlanConfirm": "Delete \"{name}\" permanently?",
-  "@deletePlanConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@deletePlanConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "deleteWorkoutTitle": "Delete workout?",
   "deleteWorkoutSubtitle": "This will permanently delete \"{name}\" and its exercises.",
-  "@deleteWorkoutSubtitle": {"placeholders": {"name": {"type": "String"}}},
+  "@deleteWorkoutSubtitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "deleteWorkoutWarning": "This action cannot be undone.",
   "deleteWorkoutConfirm": "Delete workout",
   "createPlanTitle": "Create Plan",
@@ -148,28 +247,54 @@
   "savePlan": "Save Plan",
   "updatePlan": "Update Plan",
   "workoutNameLabel": "Workout name",
-  "workoutNameHint": "e.g. Upper Body Power",
   "dateLabel": "Date",
   "timeLabel": "Time",
   "durationLabel": "Duration",
   "difficultyLabel": "Difficulty",
   "exercisesLabel": "Exercises",
   "exercisesSelected": "{count} selected",
-  "@exercisesSelected": {"placeholders": {"count": {"type": "int"}}},
+  "@exercisesSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "validationWorkoutName": "Please enter a workout name.",
   "validationPickExercise": "Select at least one exercise.",
   "chipMinutes": "{count} min",
-  "@chipMinutes": {"placeholders": {"count": {"type": "int"}}},
+  "@chipMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "calendarTitle": "Calendar",
   "calendarWorkoutsOn": "Workouts on {date}",
-  "@calendarWorkoutsOn": {"placeholders": {"date": {"type": "String"}}},
+  "@calendarWorkoutsOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "calendarEmptyDay": "No workouts on this day. Add a session to stay on schedule.",
   "progressTitle": "Progress",
   "progressSubtitle": "Performance overview and training insights",
   "progressStatusStrong": "Strong",
   "progressStatusHot": "Hot",
   "progressCompletedVsPlanned": "{completed}/{planned} Completed vs planned",
-  "@progressCompletedVsPlanned": {"placeholders": {"completed": {"type": "int"}, "planned": {"type": "int"}}},
+  "@progressCompletedVsPlanned": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "planned": {
+        "type": "int"
+      }
+    }
+  },
   "progressSessionsByDay": "Sessions by day",
   "progressSessionsByDayHint": "Training sessions completed each day this week",
   "progressPerformanceInsights": "Performance insights",
@@ -186,11 +311,23 @@
   "progressMuscleDistributionHint": "Share of completed sessions by focus area",
   "progressCompleted": "Completed",
   "progressVolumeK": "{value}k",
-  "@progressVolumeK": {"placeholders": {"value": {"type": "String"}}},
+  "@progressVolumeK": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "progressWeeklySessions": "Weekly sessions",
   "progressActiveStreak": "Active streak",
   "progressStreakDays": "{count} days",
-  "@progressStreakDays": {"placeholders": {"count": {"type": "int"}}},
+  "@progressStreakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "progressMonthlyConsistency": "Monthly consistency",
   "progressMonthlyHint": "Completed sessions vs plans scheduled this month",
   "progressWeeklyVolume": "Weekly volume",
@@ -213,7 +350,13 @@
   "streakDetailsTitle": "Streak details",
   "streakDetailsSubtitle": "Track your training consistency",
   "streakDayStreak": "{count} day streak",
-  "@streakDayStreak": {"placeholders": {"count": {"type": "int"}}},
+  "@streakDayStreak": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "streakMomentum": "Train today to keep momentum.",
   "streakTrainTodayStart": "Train today to start your streak",
   "streakBuildingMomentum": "You are building momentum",
@@ -224,19 +367,47 @@
   "streakWeeklyCompletion": "Weekly completion",
   "streakNextMilestone": "Next milestone",
   "streakDaysShort": "{count} days",
-  "@streakDaysShort": {"placeholders": {"count": {"type": "int"}}},
+  "@streakDaysShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "streakMilestoneDays": "{count}-day streak",
-  "@streakMilestoneDays": {"placeholders": {"count": {"type": "int"}}},
+  "@streakMilestoneDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "streakThisWeekSection": "This week",
   "streakWorkoutsThisWeek": "{count} workout",
   "@streakWorkoutsThisWeek": {
-    "placeholders": {"count": {"type": "int"}},
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
     "description": "Singular workout count label"
   },
   "streakWorkoutsThisWeekPlural": "{count} workouts",
-  "@streakWorkoutsThisWeekPlural": {"placeholders": {"count": {"type": "int"}}},
+  "@streakWorkoutsThisWeekPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "streakCompletionPercent": "{percent}%",
-  "@streakCompletionPercent": {"placeholders": {"percent": {"type": "int"}}},
+  "@streakCompletionPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "streakNoLastWorkout": "No workouts yet",
   "streakRecentDays": "Recent training days",
   "streakEmpty": "Complete a workout to start your streak.",
@@ -314,8 +485,12 @@
   "sessionExerciseOf": "Exercise {current} of {total}",
   "@sessionExerciseOf": {
     "placeholders": {
-      "current": {"type": "int"},
-      "total": {"type": "int"}
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "sessionCompleteExercise": "Complete exercise",
@@ -341,23 +516,49 @@
   "sessionSummaryVolumeLine": "Exercise volume: {logKcal} kcal · Session total: {totalKcal} kcal",
   "@sessionSummaryVolumeLine": {
     "placeholders": {
-      "logKcal": {"type": "int"},
-      "totalKcal": {"type": "int"}
+      "logKcal": {
+        "type": "int"
+      },
+      "totalKcal": {
+        "type": "int"
+      }
     }
   },
   "sessionDurationSecondsOnly": "{count}s",
-  "@sessionDurationSecondsOnly": {"placeholders": {"count": {"type": "int"}}},
+  "@sessionDurationSecondsOnly": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sessionDurationMinutesOnly": "{count} min",
-  "@sessionDurationMinutesOnly": {"placeholders": {"count": {"type": "int"}}},
+  "@sessionDurationMinutesOnly": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sessionDurationMinutesSeconds": "{minutes}m {seconds}s",
   "@sessionDurationMinutesSeconds": {
     "placeholders": {
-      "minutes": {"type": "int"},
-      "seconds": {"type": "int"}
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "sessionCaloriesUnit": "{count} kcal",
-  "@sessionCaloriesUnit": {"placeholders": {"count": {"type": "int"}}},
+  "@sessionCaloriesUnit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sessionCaloriesEstimateNote": "Calorie values are approximate only, not exact. They are estimated from your weight, height, each exercise, sets, reps, and session duration.",
   "sessionValidationSetsReps": "Enter a positive number of sets and reps to log this exercise.",
   "sessionExerciseAlreadyLogged": "This exercise is already logged. Select another from the list.",
@@ -388,9 +589,21 @@
   "cameraFeedbackHipsSagging": "Lift hips — keep body straight",
   "cameraFeedbackAdjustForm": "Adjust form and try again",
   "cameraAppliedReps": "Applied {count} reps from camera",
-  "@cameraAppliedReps": {"placeholders": {"count": {"type": "int"}}},
+  "@cameraAppliedReps": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "cameraAppliedHold": "Applied {count}s hold from camera",
-  "@cameraAppliedHold": {"placeholders": {"count": {"type": "int"}}},
+  "@cameraAppliedHold": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sessionCompletedExercises": "Completed exercises",
   "sessionDone": "Done",
   "workoutTypePlannedSession": "Planned session",
@@ -418,7 +631,16 @@
   "historyCompletedOn": "Completed on",
   "historyExercisesCompleted": "Exercises completed",
   "historySetsRepsDetail": "{sets} sets · {reps} reps",
-  "@historySetsRepsDetail": {"placeholders": {"sets": {"type": "int"}, "reps": {"type": "int"}}},
+  "@historySetsRepsDetail": {
+    "placeholders": {
+      "sets": {
+        "type": "int"
+      },
+      "reps": {
+        "type": "int"
+      }
+    }
+  },
   "historyCaloriesEstimateNote": "Calorie values are approximate only, not an exact measurement.",
   "snackbarWorkoutSavedHistory": "Workout saved to your history",
   "snackbarPlanUpdated": "Plan updated",
@@ -428,7 +650,13 @@
   "snackbarWorkoutLogged": "Workout logged",
   "snackbarCalendarAdded": "Workout added to your calendar",
   "categorySubtitle": "{count} exercises",
-  "@categorySubtitle": {"placeholders": {"count": {"type": "int"}}},
+  "@categorySubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "catStrengthTitle": "Strength",
   "catStrengthDesc": "Heavy compound lifts and accessory work to build power.",
   "catCardioTitle": "Cardio",
@@ -559,7 +787,16 @@
   "mapTerritoryNameLabel": "Territory name",
   "mapCaptureSuccessTitle": "Territory captured",
   "mapCaptureSuccessBody": "{name} is now yours at {area}.",
-  "@mapCaptureSuccessBody": {"placeholders": {"name": {"type": "String"}, "area": {"type": "String"}}},
+  "@mapCaptureSuccessBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "area": {
+        "type": "String"
+      }
+    }
+  },
   "mapDone": "Done",
   "mapValidationMinPoints": "Capture at least 4 valid GPS points before finishing.",
   "mapValidationMinArea": "The captured area is too small. Walk a larger loop and try again.",
@@ -574,7 +811,16 @@
   "mapLeaderboardTitle": "Territory leaderboard",
   "mapLeaderboardEmpty": "No leaderboard data yet.",
   "mapLeaderboardMeta": "{area} · {count} territories",
-  "@mapLeaderboardMeta": {"placeholders": {"area": {"type": "String"}, "count": {"type": "int"}}},
+  "@mapLeaderboardMeta": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "feedSubtitle": "Progress photos and training updates",
   "feedPost": "Post",
   "feedPublish": "Publish",
@@ -613,5 +859,154 @@
   "chatDetailType": "Type",
   "chatDetailStatus": "Status",
   "chatEditMessage": "Edit message",
-  "chatMicrophoneRequired": "Microphone permission is required"
+  "chatMicrophoneRequired": "Microphone permission is required",
+  "settingsDone": "Done",
+  "settingsClear": "Clear",
+  "settingsPreferences": "Preferences",
+  "settingsUnits": "Units",
+  "settingsTheme": "Theme",
+  "settingsThemeDark": "Dark",
+  "settingsPermissions": "Permissions",
+  "settingsPermissionsFooter": "Statuses reflect your device settings and refresh when you return to the app.",
+  "settingsNotificationsSection": "Notifications and reminders",
+  "settingsReminderTime": "Reminder time",
+  "settingsReminderDays": "Reminder days",
+  "settingsPrivacySupport": "Privacy and support",
+  "settingsPrivacyPolicy": "Privacy Policy",
+  "settingsTermsOfService": "Terms of Service",
+  "settingsContactSupport": "Contact Support",
+  "settingsAboutApp": "About App",
+  "settingsDataPermissions": "Data and permissions",
+  "settingsAccountSection": "Account",
+  "settingsSignOutSubtitle": "Sign out of this device",
+  "settingsCouldNotOpenSettings": "Could not open Settings",
+  "settingsMeasurementUnits": "Measurement units",
+  "settingsSelectDays": "Select days",
+  "settingsRecommendedSchedule": "Recommended schedule",
+  "settingsPickSpecificDays": "Pick specific days",
+  "settingsPermissionNotifications": "Notifications",
+  "settingsPermissionNotificationsDesc": "Workout reminders and important updates",
+  "settingsPermissionCamera": "Camera",
+  "settingsPermissionCameraDesc": "Stories, posts, and exercise capture",
+  "settingsPermissionMicrophone": "Microphone",
+  "settingsPermissionMicrophoneDesc": "Voice messages in chat",
+  "settingsPermissionPhotos": "Photos",
+  "settingsPermissionPhotosDesc": "Upload posts, stories, and profile media",
+  "settingsPermissionLocation": "Location",
+  "settingsPermissionLocationDesc": "Map and live territory capture",
+  "settingsPermissionAllowed": "Allowed",
+  "settingsPermissionNotAllowed": "Not allowed",
+  "settingsPermissionLimited": "Limited",
+  "settingsPermissionRestricted": "Restricted",
+  "settingsChecking": "Checking…",
+  "unitsMetric": "Metric",
+  "unitsImperial": "Imperial",
+  "unitsMetricSubtitle": "Kilograms, centimeters",
+  "unitsImperialSubtitle": "Pounds, feet and inches",
+  "reminderEveryDay": "Every day",
+  "reminderWeekdays": "Weekdays",
+  "reminderCustom": "Custom",
+  "profileBasicInfo": "Basic info",
+  "profileBodyMetrics": "Body metrics",
+  "profileGoalsSection": "Goals",
+  "profileTargetWeight": "Target weight",
+  "profileTrainingFocus": "Training focus",
+  "profileExperienceLevel": "Experience level",
+  "profileActivityLevel": "Activity level",
+  "profileWeeklyTarget": "Weekly target",
+  "profileWeeklyWorkoutTarget": "Weekly workout target",
+  "profileVisibilitySection": "Profile visibility",
+  "profileLocation": "Location",
+  "profileUpdatedSnack": "Profile updated",
+  "profileCouldNotSave": "Could not save profile",
+  "profileAvatarUploadSoon": "Avatar upload coming soon",
+  "profileCoverUploadSoon": "Cover upload coming soon",
+  "profilePrivateNotesHelper": "Only you can see this.",
+  "profileAge": "Age",
+  "profileJoined": "Joined",
+  "profileExperience": "Experience",
+  "profileFavoriteTraining": "Favorite training",
+  "profileFocus": "Focus",
+  "profileGoal": "Goal",
+  "goalBuildMuscle": "Build muscle",
+  "goalLoseFat": "Lose fat",
+  "goalImproveStrength": "Improve strength",
+  "goalImproveEndurance": "Improve endurance",
+  "goalStayConsistent": "Stay consistent",
+  "goalMobilityRecovery": "Mobility and recovery",
+  "activityLow": "Low",
+  "activityModerate": "Moderate",
+  "activityHigh": "High",
+  "activityAthlete": "Athlete",
+  "weeklyTargetN": "{count} workouts / week",
+  "@weeklyTargetN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "feedWorkoutShared": "Workout shared",
+  "feedWorkoutAdded": "Workout added to your workouts",
+  "feedWorkoutAlreadyAdded": "This workout is already in your workouts",
+  "feedNoPostsTitle": "No posts yet",
+  "feedPostOptions": "Post options",
+  "feedNewPost": "New post",
+  "feedNewPostSubtitle": "Share a photo or update to the feed",
+  "feedNewStory": "New story",
+  "feedNewStorySubtitle": "Share a quick story for 24 hours",
+  "feedStoryTitle": "New story",
+  "feedStoryHint": "Pick one photo to share as your story.",
+  "feedGallery": "Gallery",
+  "feedCamera": "Camera",
+  "feedShareStory": "Share story",
+  "feedOpeningGallery": "Opening gallery...",
+  "feedTapAddPhoto": "Tap to add photo",
+  "feedShareHint": "Share your workout, progress or thoughts...",
+  "feedAddComment": "Add a comment...",
+  "feedAddCaption": "Add a caption...",
+  "feedReportSent": "Report sent",
+  "feedReportProfile": "Report profile",
+  "feedYourStory": "Your story",
+  "chatMessageHint": "Message...",
+  "chatCouldNotDelete": "Could not delete message",
+  "chatCouldNotUpdate": "Could not update message",
+  "chatMessageDeletedFallback": "This message was deleted",
+  "chatImageWithCaption": "Image with caption",
+  "chatDetailFileType": "File type",
+  "chatDetailSize": "Size",
+  "chatDetailDuration": "Duration",
+  "chatDetailDimensions": "Dimensions",
+  "chatChooseGallery": "Choose from gallery",
+  "chatTakePhoto": "Take photo",
+  "chatOnline": "Online",
+  "mapLabelGps": "GPS",
+  "mapLabelPoints": "Points",
+  "shareExercisesCount": "{count} exercises",
+  "@shareExercisesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareMinutesCount": "{count} min",
+  "@shareMinutesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "feedCreateTitle": "Create",
+  "feedCreateSubtitle": "Choose what you want to share",
+  "profileOptional": "Optional",
+  "profileAvatarSection": "Avatar",
+  "feedNoPostsBody": "Check back soon for new workouts and updates.",
+  "feedRefresh": "Refresh",
+  "chatTypeText": "Text",
+  "chatStatusSending": "Sending",
+  "shareWorkoutTitle": "Share workout",
+  "shareWorkoutPublish": "Share",
+  "shareWorkoutPublishFeed": "Share to Feed"
 }

@@ -3429,6 +3429,774 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Microphone permission is required'**
   String get chatMicrophoneRequired;
+
+  /// No description provided for @settingsDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get settingsDone;
+
+  /// No description provided for @settingsClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get settingsClear;
+
+  /// No description provided for @settingsPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences'**
+  String get settingsPreferences;
+
+  /// No description provided for @settingsUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'Units'**
+  String get settingsUnits;
+
+  /// No description provided for @settingsTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsTheme;
+
+  /// No description provided for @settingsThemeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get settingsThemeDark;
+
+  /// No description provided for @settingsPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Permissions'**
+  String get settingsPermissions;
+
+  /// No description provided for @settingsPermissionsFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Statuses reflect your device settings and refresh when you return to the app.'**
+  String get settingsPermissionsFooter;
+
+  /// No description provided for @settingsNotificationsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications and reminders'**
+  String get settingsNotificationsSection;
+
+  /// No description provided for @settingsReminderTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder time'**
+  String get settingsReminderTime;
+
+  /// No description provided for @settingsReminderDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder days'**
+  String get settingsReminderDays;
+
+  /// No description provided for @settingsPrivacySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy and support'**
+  String get settingsPrivacySupport;
+
+  /// No description provided for @settingsPrivacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get settingsPrivacyPolicy;
+
+  /// No description provided for @settingsTermsOfService.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get settingsTermsOfService;
+
+  /// No description provided for @settingsContactSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Support'**
+  String get settingsContactSupport;
+
+  /// No description provided for @settingsAboutApp.
+  ///
+  /// In en, this message translates to:
+  /// **'About App'**
+  String get settingsAboutApp;
+
+  /// No description provided for @settingsDataPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Data and permissions'**
+  String get settingsDataPermissions;
+
+  /// No description provided for @settingsAccountSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get settingsAccountSection;
+
+  /// No description provided for @settingsSignOutSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out of this device'**
+  String get settingsSignOutSubtitle;
+
+  /// No description provided for @settingsCouldNotOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open Settings'**
+  String get settingsCouldNotOpenSettings;
+
+  /// No description provided for @settingsMeasurementUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'Measurement units'**
+  String get settingsMeasurementUnits;
+
+  /// No description provided for @settingsSelectDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Select days'**
+  String get settingsSelectDays;
+
+  /// No description provided for @settingsRecommendedSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended schedule'**
+  String get settingsRecommendedSchedule;
+
+  /// No description provided for @settingsPickSpecificDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick specific days'**
+  String get settingsPickSpecificDays;
+
+  /// No description provided for @settingsPermissionNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get settingsPermissionNotifications;
+
+  /// No description provided for @settingsPermissionNotificationsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout reminders and important updates'**
+  String get settingsPermissionNotificationsDesc;
+
+  /// No description provided for @settingsPermissionCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get settingsPermissionCamera;
+
+  /// No description provided for @settingsPermissionCameraDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Stories, posts, and exercise capture'**
+  String get settingsPermissionCameraDesc;
+
+  /// No description provided for @settingsPermissionMicrophone.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone'**
+  String get settingsPermissionMicrophone;
+
+  /// No description provided for @settingsPermissionMicrophoneDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice messages in chat'**
+  String get settingsPermissionMicrophoneDesc;
+
+  /// No description provided for @settingsPermissionPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get settingsPermissionPhotos;
+
+  /// No description provided for @settingsPermissionPhotosDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload posts, stories, and profile media'**
+  String get settingsPermissionPhotosDesc;
+
+  /// No description provided for @settingsPermissionLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get settingsPermissionLocation;
+
+  /// No description provided for @settingsPermissionLocationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Map and live territory capture'**
+  String get settingsPermissionLocationDesc;
+
+  /// No description provided for @settingsPermissionAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed'**
+  String get settingsPermissionAllowed;
+
+  /// No description provided for @settingsPermissionNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not allowed'**
+  String get settingsPermissionNotAllowed;
+
+  /// No description provided for @settingsPermissionLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Limited'**
+  String get settingsPermissionLimited;
+
+  /// No description provided for @settingsPermissionRestricted.
+  ///
+  /// In en, this message translates to:
+  /// **'Restricted'**
+  String get settingsPermissionRestricted;
+
+  /// No description provided for @settingsChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get settingsChecking;
+
+  /// No description provided for @unitsMetric.
+  ///
+  /// In en, this message translates to:
+  /// **'Metric'**
+  String get unitsMetric;
+
+  /// No description provided for @unitsImperial.
+  ///
+  /// In en, this message translates to:
+  /// **'Imperial'**
+  String get unitsImperial;
+
+  /// No description provided for @unitsMetricSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Kilograms, centimeters'**
+  String get unitsMetricSubtitle;
+
+  /// No description provided for @unitsImperialSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pounds, feet and inches'**
+  String get unitsImperialSubtitle;
+
+  /// No description provided for @reminderEveryDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day'**
+  String get reminderEveryDay;
+
+  /// No description provided for @reminderWeekdays.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekdays'**
+  String get reminderWeekdays;
+
+  /// No description provided for @reminderCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get reminderCustom;
+
+  /// No description provided for @profileBasicInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic info'**
+  String get profileBasicInfo;
+
+  /// No description provided for @profileBodyMetrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Body metrics'**
+  String get profileBodyMetrics;
+
+  /// No description provided for @profileGoalsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Goals'**
+  String get profileGoalsSection;
+
+  /// No description provided for @profileTargetWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Target weight'**
+  String get profileTargetWeight;
+
+  /// No description provided for @profileTrainingFocus.
+  ///
+  /// In en, this message translates to:
+  /// **'Training focus'**
+  String get profileTrainingFocus;
+
+  /// No description provided for @profileExperienceLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Experience level'**
+  String get profileExperienceLevel;
+
+  /// No description provided for @profileActivityLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity level'**
+  String get profileActivityLevel;
+
+  /// No description provided for @profileWeeklyTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly target'**
+  String get profileWeeklyTarget;
+
+  /// No description provided for @profileWeeklyWorkoutTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly workout target'**
+  String get profileWeeklyWorkoutTarget;
+
+  /// No description provided for @profileVisibilitySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile visibility'**
+  String get profileVisibilitySection;
+
+  /// No description provided for @profileLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get profileLocation;
+
+  /// No description provided for @profileUpdatedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile updated'**
+  String get profileUpdatedSnack;
+
+  /// No description provided for @profileCouldNotSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save profile'**
+  String get profileCouldNotSave;
+
+  /// No description provided for @profileAvatarUploadSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Avatar upload coming soon'**
+  String get profileAvatarUploadSoon;
+
+  /// No description provided for @profileCoverUploadSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover upload coming soon'**
+  String get profileCoverUploadSoon;
+
+  /// No description provided for @profilePrivateNotesHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you can see this.'**
+  String get profilePrivateNotesHelper;
+
+  /// No description provided for @profileAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Age'**
+  String get profileAge;
+
+  /// No description provided for @profileJoined.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined'**
+  String get profileJoined;
+
+  /// No description provided for @profileExperience.
+  ///
+  /// In en, this message translates to:
+  /// **'Experience'**
+  String get profileExperience;
+
+  /// No description provided for @profileFavoriteTraining.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite training'**
+  String get profileFavoriteTraining;
+
+  /// No description provided for @profileFocus.
+  ///
+  /// In en, this message translates to:
+  /// **'Focus'**
+  String get profileFocus;
+
+  /// No description provided for @profileGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal'**
+  String get profileGoal;
+
+  /// No description provided for @goalBuildMuscle.
+  ///
+  /// In en, this message translates to:
+  /// **'Build muscle'**
+  String get goalBuildMuscle;
+
+  /// No description provided for @goalLoseFat.
+  ///
+  /// In en, this message translates to:
+  /// **'Lose fat'**
+  String get goalLoseFat;
+
+  /// No description provided for @goalImproveStrength.
+  ///
+  /// In en, this message translates to:
+  /// **'Improve strength'**
+  String get goalImproveStrength;
+
+  /// No description provided for @goalImproveEndurance.
+  ///
+  /// In en, this message translates to:
+  /// **'Improve endurance'**
+  String get goalImproveEndurance;
+
+  /// No description provided for @goalStayConsistent.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay consistent'**
+  String get goalStayConsistent;
+
+  /// No description provided for @goalMobilityRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobility and recovery'**
+  String get goalMobilityRecovery;
+
+  /// No description provided for @activityLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get activityLow;
+
+  /// No description provided for @activityModerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderate'**
+  String get activityModerate;
+
+  /// No description provided for @activityHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get activityHigh;
+
+  /// No description provided for @activityAthlete.
+  ///
+  /// In en, this message translates to:
+  /// **'Athlete'**
+  String get activityAthlete;
+
+  /// No description provided for @weeklyTargetN.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} workouts / week'**
+  String weeklyTargetN(int count);
+
+  /// No description provided for @feedWorkoutShared.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout shared'**
+  String get feedWorkoutShared;
+
+  /// No description provided for @feedWorkoutAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout added to your workouts'**
+  String get feedWorkoutAdded;
+
+  /// No description provided for @feedWorkoutAlreadyAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'This workout is already in your workouts'**
+  String get feedWorkoutAlreadyAdded;
+
+  /// No description provided for @feedNoPostsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No posts yet'**
+  String get feedNoPostsTitle;
+
+  /// No description provided for @feedPostOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Post options'**
+  String get feedPostOptions;
+
+  /// No description provided for @feedNewPost.
+  ///
+  /// In en, this message translates to:
+  /// **'New post'**
+  String get feedNewPost;
+
+  /// No description provided for @feedNewPostSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a photo or update to the feed'**
+  String get feedNewPostSubtitle;
+
+  /// No description provided for @feedNewStory.
+  ///
+  /// In en, this message translates to:
+  /// **'New story'**
+  String get feedNewStory;
+
+  /// No description provided for @feedNewStorySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a quick story for 24 hours'**
+  String get feedNewStorySubtitle;
+
+  /// No description provided for @feedStoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New story'**
+  String get feedStoryTitle;
+
+  /// No description provided for @feedStoryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick one photo to share as your story.'**
+  String get feedStoryHint;
+
+  /// No description provided for @feedGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get feedGallery;
+
+  /// No description provided for @feedCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get feedCamera;
+
+  /// No description provided for @feedShareStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Share story'**
+  String get feedShareStory;
+
+  /// No description provided for @feedOpeningGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening gallery...'**
+  String get feedOpeningGallery;
+
+  /// No description provided for @feedTapAddPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to add photo'**
+  String get feedTapAddPhoto;
+
+  /// No description provided for @feedShareHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your workout, progress or thoughts...'**
+  String get feedShareHint;
+
+  /// No description provided for @feedAddComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a comment...'**
+  String get feedAddComment;
+
+  /// No description provided for @feedAddCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a caption...'**
+  String get feedAddCaption;
+
+  /// No description provided for @feedReportSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Report sent'**
+  String get feedReportSent;
+
+  /// No description provided for @feedReportProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Report profile'**
+  String get feedReportProfile;
+
+  /// No description provided for @feedYourStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Your story'**
+  String get feedYourStory;
+
+  /// No description provided for @chatMessageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Message...'**
+  String get chatMessageHint;
+
+  /// No description provided for @chatCouldNotDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete message'**
+  String get chatCouldNotDelete;
+
+  /// No description provided for @chatCouldNotUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update message'**
+  String get chatCouldNotUpdate;
+
+  /// No description provided for @chatMessageDeletedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'This message was deleted'**
+  String get chatMessageDeletedFallback;
+
+  /// No description provided for @chatImageWithCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Image with caption'**
+  String get chatImageWithCaption;
+
+  /// No description provided for @chatDetailFileType.
+  ///
+  /// In en, this message translates to:
+  /// **'File type'**
+  String get chatDetailFileType;
+
+  /// No description provided for @chatDetailSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get chatDetailSize;
+
+  /// No description provided for @chatDetailDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get chatDetailDuration;
+
+  /// No description provided for @chatDetailDimensions.
+  ///
+  /// In en, this message translates to:
+  /// **'Dimensions'**
+  String get chatDetailDimensions;
+
+  /// No description provided for @chatChooseGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get chatChooseGallery;
+
+  /// No description provided for @chatTakePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get chatTakePhoto;
+
+  /// No description provided for @chatOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get chatOnline;
+
+  /// No description provided for @mapLabelGps.
+  ///
+  /// In en, this message translates to:
+  /// **'GPS'**
+  String get mapLabelGps;
+
+  /// No description provided for @mapLabelPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Points'**
+  String get mapLabelPoints;
+
+  /// No description provided for @shareExercisesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} exercises'**
+  String shareExercisesCount(int count);
+
+  /// No description provided for @shareMinutesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min'**
+  String shareMinutesCount(int count);
+
+  /// No description provided for @feedCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get feedCreateTitle;
+
+  /// No description provided for @feedCreateSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what you want to share'**
+  String get feedCreateSubtitle;
+
+  /// No description provided for @profileOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional'**
+  String get profileOptional;
+
+  /// No description provided for @profileAvatarSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Avatar'**
+  String get profileAvatarSection;
+
+  /// No description provided for @feedNoPostsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check back soon for new workouts and updates.'**
+  String get feedNoPostsBody;
+
+  /// No description provided for @feedRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get feedRefresh;
+
+  /// No description provided for @chatTypeText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get chatTypeText;
+
+  /// No description provided for @chatStatusSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending'**
+  String get chatStatusSending;
+
+  /// No description provided for @shareWorkoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share workout'**
+  String get shareWorkoutTitle;
+
+  /// No description provided for @shareWorkoutPublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get shareWorkoutPublish;
+
+  /// No description provided for @shareWorkoutPublishFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Share to Feed'**
+  String get shareWorkoutPublishFeed;
 }
 
 class _AppLocalizationsDelegate

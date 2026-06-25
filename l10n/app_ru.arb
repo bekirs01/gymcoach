@@ -18,7 +18,7 @@
   "add": "Добавить",
   "today": "Сегодня",
   "tomorrow": "Завтра",
-  "scheduleToday": "Today · {time}",
+  "scheduleToday": "Сегодня · {time}",
   "@scheduleToday": {
     "placeholders": {
       "time": {
@@ -26,7 +26,7 @@
       }
     }
   },
-  "scheduleTomorrow": "Tomorrow · {time}",
+  "scheduleTomorrow": "Завтра · {time}",
   "@scheduleTomorrow": {
     "placeholders": {
       "time": {
@@ -46,7 +46,7 @@
     }
   },
   "activityYesterday": "Вчера",
-  "activityDaysAgo": "{count} days ago",
+  "activityDaysAgo": "{count} дн. назад",
   "@activityDaysAgo": {
     "placeholders": {
       "count": {
@@ -61,7 +61,7 @@
   "homeTrainingFocus": "Тренировочный фокус",
   "homeSchedulePlanPrompt": "Запланируйте тренировку, чтобы сохранять регулярность.",
   "homeOneWorkoutToday": "Сегодня запланирована 1 тренировка",
-  "homeNWorkoutsToday": "{count} workouts planned for today",
+  "homeNWorkoutsToday": "На сегодня запланировано: {count} тренировок",
   "@homeNWorkoutsToday": {
     "placeholders": {
       "count": {
@@ -94,9 +94,9 @@
   "homeScreenTitle": "Тренировки",
   "homeTabDashboard": "Обзор",
   "homeTabWorkouts": "Тренировки",
-  "homeTabDiet": "Diet",
-  "homeBannerCreateHint": "See how to create new workouts",
-  "homeBannerStartHint": "Start by adding a new training day",
+  "homeTabDiet": "Питание",
+  "homeBannerCreateHint": "Узнайте, как создавать новые тренировки",
+  "homeBannerStartHint": "Начните с добавления нового тренировочного дня",
   "homeMyTraining": "Мои тренировки",
   "homeCompletedSessions": "{count} завершённых сессий",
   "@homeCompletedSessions": {
@@ -110,14 +110,14 @@
   "homeMore": "Ещё",
   "homeArticles": "Статьи",
   "homeViewAll": "Все",
-  "homeNoWorkoutsOnDate": "No workouts scheduled for this date",
+  "homeNoWorkoutsOnDate": "На эту дату тренировки не запланированы",
   "homeFeaturedEmptyTitle": "Нет планов",
   "homeFeaturedEmptySubtitle": "Создайте первую тренировку",
   "plansPageTitle": "Планы тренировок",
   "plansPageSubtitle": "Планируйте тренировки и сохраняйте регулярность.",
   "plansCreate": "Создать план",
   "plansSectionYourPlans": "Ваши планы",
-  "plansTotalCount": "{count} total",
+  "plansTotalCount": "Всего: {count}",
   "@plansTotalCount": {
     "placeholders": {
       "count": {
@@ -137,7 +137,7 @@
       }
     }
   },
-  "minutesPlanShort": "{count} min plan",
+  "minutesPlanShort": "План на {count} мин",
   "@minutesPlanShort": {
     "placeholders": {
       "count": {
@@ -191,7 +191,7 @@
     }
   },
   "workoutExerciseHintMulti": "Выберите упражнения из выбранных групп мышц.",
-  "workoutNameHint": "Введите название…",
+  "workoutNameHint": "Например: силовая верха тела",
   "workoutSelected": "Выбрано",
   "workoutBack": "Назад",
   "planRepeatWorkout": "Повторить тренировку",
@@ -223,7 +223,7 @@
   "editPlan": "Изменить план",
   "planSessionOnlyPlanned": "Новую сессию можно начать только для запланированной тренировки.",
   "deletePlanTitle": "Удалить план",
-  "deletePlanConfirm": "Delete \"{name}\" permanently?",
+  "deletePlanConfirm": "Удалить «{name}» навсегда?",
   "@deletePlanConfirm": {
     "placeholders": {
       "name": {
@@ -262,7 +262,7 @@
   },
   "validationWorkoutName": "Введите название тренировки.",
   "validationPickExercise": "Выберите хотя бы одно упражнение.",
-  "chipMinutes": "{count} min",
+  "chipMinutes": "{count} мин",
   "@chipMinutes": {
     "placeholders": {
       "count": {
@@ -271,7 +271,7 @@
     }
   },
   "calendarTitle": "Календарь",
-  "calendarWorkoutsOn": "Workouts on {date}",
+  "calendarWorkoutsOn": "Тренировки на {date}",
   "@calendarWorkoutsOn": {
     "placeholders": {
       "date": {
@@ -285,7 +285,16 @@
   "progressStatusStrong": "Сильно",
   "progressStatusHot": "Горячо",
   "progressCompletedVsPlanned": "{completed}/{planned} Выполнено из запланированных",
-  "@progressCompletedVsPlanned": {"placeholders": {"completed": {"type": "int"}, "planned": {"type": "int"}}},
+  "@progressCompletedVsPlanned": {
+    "placeholders": {
+      "completed": {
+        "type": "int"
+      },
+      "planned": {
+        "type": "int"
+      }
+    }
+  },
   "progressSessionsByDay": "Сессии по дням",
   "progressSessionsByDayHint": "Завершенные тренировки по дням недели",
   "progressPerformanceInsights": "Аналитика результатов",
@@ -301,8 +310,14 @@
   "progressMuscleDistribution": "Распределение по группам",
   "progressMuscleDistributionHint": "Доля завершенных сессий по зонам",
   "progressCompleted": "Завершено",
-  "progressVolumeK": "{value}k",
-  "@progressVolumeK": {"placeholders": {"value": {"type": "String"}}},
+  "progressVolumeK": "{value} тыс.",
+  "@progressVolumeK": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "progressWeeklySessions": "Сессии за неделю",
   "progressActiveStreak": "Активная серия",
   "progressStreakDays": "{count} дн.",
@@ -334,7 +349,7 @@
   "progressHistoryEmpty": "Завершенных сессий пока нет. Завершите тренировку, чтобы увидеть ее здесь.",
   "streakDetailsTitle": "Детали серии",
   "streakDetailsSubtitle": "Отслеживайте регулярность тренировок",
-  "streakDayStreak": "{count} day streak",
+  "streakDayStreak": "Серия: {count} дн.",
   "@streakDayStreak": {
     "placeholders": {
       "count": {
@@ -447,7 +462,7 @@
   "languageSubtitle": "Язык интерфейса приложения",
   "languageEnglish": "Английский",
   "languageRussian": "Русский",
-  "languageTurkish": "Türkçe",
+  "languageTurkish": "Турецкий",
   "languagePickerTitle": "Выберите язык",
   "profilePreferencesSnack": "Настройки будут подключены в будущей версии.",
   "profileLogoutSnack": "Выход будет доступен после запуска аккаунтов.",
@@ -469,8 +484,12 @@
   "sessionExerciseOf": "Упражнение {current} из {total}",
   "@sessionExerciseOf": {
     "placeholders": {
-      "current": {"type": "int"},
-      "total": {"type": "int"}
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "sessionCompleteExercise": "Завершить упражнение",
@@ -593,19 +612,19 @@
   "logWorkoutTypeDefault": "Своя тренировка",
   "logDuration": "Длительность",
   "logSave": "Сохранить запись",
-  "quickLogTitle": "Log past workout",
-  "quickLogDate": "Workout date",
-  "quickLogYesterday": "Yesterday",
-  "quickLogDayBefore": "2 days ago",
-  "quickLogAddExercise": "Add exercise",
-  "templateFromLabel": "From template",
-  "templateSave": "Save as template",
-  "templateSaved": "Template saved",
+  "quickLogTitle": "Записать прошлую тренировку",
+  "quickLogDate": "Дата тренировки",
+  "quickLogYesterday": "Вчера",
+  "quickLogDayBefore": "2 дня назад",
+  "quickLogAddExercise": "Добавить упражнение",
+  "templateFromLabel": "Из шаблона",
+  "templateSave": "Сохранить как шаблон",
+  "templateSaved": "Шаблон сохранён",
   "copyPlanTitle": "Запланировать на другой день",
   "copyPlanConfirm": "Запланировать",
   "snackbarPlanCopied": "Тренировка добавлена в календарь",
-  "sessionManageExercises": "Manage exercises",
-  "sessionAddExercise": "Add exercise",
+  "sessionManageExercises": "Управление упражнениями",
+  "sessionAddExercise": "Добавить упражнение",
   "validationLogName": "Введите название тренировки.",
   "historyWorkoutSummary": "Итоги тренировки",
   "historyCompletedOn": "Завершено",
@@ -629,7 +648,7 @@
   "snackbarWorkoutDeleteFailed": "Не удалось удалить тренировку",
   "snackbarWorkoutLogged": "Тренировка записана",
   "snackbarCalendarAdded": "Тренировка добавлена в календарь",
-  "categorySubtitle": "{count} exercises",
+  "categorySubtitle": "{count} упражнений",
   "@categorySubtitle": {
     "placeholders": {
       "count": {
@@ -653,7 +672,7 @@
   "exSquats": "Приседания",
   "exPlank": "Планка",
   "exLunges": "Выпады",
-  "exJumpingJacks": "Прыжки Jumping Jack",
+  "exJumpingJacks": "Прыжки с разведением рук и ног",
   "exPullUps": "Подтягивания",
   "exShoulderPress": "Жим плечами",
   "exRunning": "Бег",
@@ -666,13 +685,13 @@
   "exRowingSprint": "Спринт на гребле",
   "exJumpRope": "Скакалка",
   "exThoracicRotation": "Ротация грудного отдела",
-  "exHipCars": "Hip CARs",
+  "exHipCars": "Круговые движения в тазобедренном суставе",
   "exAnkleMobility": "Мобильность голеностопа",
   "exShoulderDislocates": "Плечевая мобилизация",
   "exPlankVariations": "Вариации планки",
   "exPallofPress": "Жим Паллофа",
   "exHangingLegRaise": "Подъем ног в висе",
-  "exDeadBug": "Dead Bug",
+  "exDeadBug": "Мёртвый жук",
   "exLightWalk": "Легкая прогулка",
   "exBreathwork": "Дыхательная практика",
   "exFoamRolling": "Миофасциальный ролл",
@@ -694,8 +713,8 @@
   "sampleTypeCustomLog": "Записанная сессия",
   "planUpperPower": "Сила верха",
   "planLowerStrength": "Сила низа",
-  "planFullBodyA": "Все тело A",
-  "planHiit20": "HIIT 20",
+  "planFullBodyA": "Всё тело А",
+  "planHiit20": "ВИИТ 20",
   "planSteadyZone2": "Ровная зона 2",
   "planSprintLadder": "Спринтовая лестница",
   "planMorningReset": "Утренний рестарт",
@@ -766,7 +785,7 @@
   "mapNameTerritoryTitle": "Назовите территорию",
   "mapTerritoryNameLabel": "Название территории",
   "mapCaptureSuccessTitle": "Территория захвачена",
-  "mapCaptureSuccessBody": "{name} is now yours at {area}.",
+  "mapCaptureSuccessBody": "«{name}» теперь ваша — площадь {area}.",
   "@mapCaptureSuccessBody": {
     "placeholders": {
       "name": {
@@ -790,7 +809,7 @@
   "mapLoopClosed": "Круг замкнут — завершите захват, чтобы закрепить территорию.",
   "mapLeaderboardTitle": "Рейтинг территорий",
   "mapLeaderboardEmpty": "Данных рейтинга пока нет.",
-  "mapLeaderboardMeta": "{area} · {count} territories",
+  "mapLeaderboardMeta": "{area} · {count} террит.",
   "@mapLeaderboardMeta": {
     "placeholders": {
       "area": {
@@ -839,5 +858,154 @@
   "chatDetailType": "Тип",
   "chatDetailStatus": "Статус",
   "chatEditMessage": "Редактировать",
-  "chatMicrophoneRequired": "Нужен доступ к микрофону"
+  "chatMicrophoneRequired": "Нужен доступ к микрофону",
+  "settingsDone": "Готово",
+  "settingsClear": "Очистить",
+  "settingsPreferences": "Настройки",
+  "settingsUnits": "Единицы",
+  "settingsTheme": "Тема",
+  "settingsThemeDark": "Тёмная",
+  "settingsPermissions": "Разрешения",
+  "settingsPermissionsFooter": "Статусы отражают настройки устройства и обновляются при возврате в приложение.",
+  "settingsNotificationsSection": "Уведомления и напоминания",
+  "settingsReminderTime": "Время напоминания",
+  "settingsReminderDays": "Дни напоминаний",
+  "settingsPrivacySupport": "Конфиденциальность и поддержка",
+  "settingsPrivacyPolicy": "Политика конфиденциальности",
+  "settingsTermsOfService": "Условия использования",
+  "settingsContactSupport": "Связаться с поддержкой",
+  "settingsAboutApp": "О приложении",
+  "settingsDataPermissions": "Данные и разрешения",
+  "settingsAccountSection": "Аккаунт",
+  "settingsSignOutSubtitle": "Выйти с этого устройства",
+  "settingsCouldNotOpenSettings": "Не удалось открыть настройки",
+  "settingsMeasurementUnits": "Единицы измерения",
+  "settingsSelectDays": "Выберите дни",
+  "settingsRecommendedSchedule": "Рекомендуемый график",
+  "settingsPickSpecificDays": "Выбрать конкретные дни",
+  "settingsPermissionNotifications": "Уведомления",
+  "settingsPermissionNotificationsDesc": "Напоминания о тренировках и важные обновления",
+  "settingsPermissionCamera": "Камера",
+  "settingsPermissionCameraDesc": "Сторис, посты и запись упражнений",
+  "settingsPermissionMicrophone": "Микрофон",
+  "settingsPermissionMicrophoneDesc": "Голосовые сообщения в чате",
+  "settingsPermissionPhotos": "Фото",
+  "settingsPermissionPhotosDesc": "Загрузка постов, сторис и медиа профиля",
+  "settingsPermissionLocation": "Геолокация",
+  "settingsPermissionLocationDesc": "Карта и захват территории в реальном времени",
+  "settingsPermissionAllowed": "Разрешено",
+  "settingsPermissionNotAllowed": "Не разрешено",
+  "settingsPermissionLimited": "Ограничено",
+  "settingsPermissionRestricted": "Запрещено",
+  "settingsChecking": "Проверка…",
+  "unitsMetric": "Метрическая",
+  "unitsImperial": "Имперская",
+  "unitsMetricSubtitle": "Килограммы, сантиметры",
+  "unitsImperialSubtitle": "Фунты, футы и дюймы",
+  "reminderEveryDay": "Каждый день",
+  "reminderWeekdays": "Будни",
+  "reminderCustom": "Своё расписание",
+  "profileBasicInfo": "Основная информация",
+  "profileBodyMetrics": "Параметры тела",
+  "profileGoalsSection": "Цели",
+  "profileTargetWeight": "Целевой вес",
+  "profileTrainingFocus": "Тренировочный фокус",
+  "profileExperienceLevel": "Уровень подготовки",
+  "profileActivityLevel": "Уровень активности",
+  "profileWeeklyTarget": "Цель на неделю",
+  "profileWeeklyWorkoutTarget": "Тренировок в неделю",
+  "profileVisibilitySection": "Видимость профиля",
+  "profileLocation": "Местоположение",
+  "profileUpdatedSnack": "Профиль обновлён",
+  "profileCouldNotSave": "Не удалось сохранить профиль",
+  "profileAvatarUploadSoon": "Загрузка аватара скоро будет доступна",
+  "profileCoverUploadSoon": "Загрузка обложки скоро будет доступна",
+  "profilePrivateNotesHelper": "Видите только вы.",
+  "profileAge": "Возраст",
+  "profileJoined": "Дата регистрации",
+  "profileExperience": "Опыт",
+  "profileFavoriteTraining": "Любимая тренировка",
+  "profileFocus": "Фокус",
+  "profileGoal": "Цель",
+  "goalBuildMuscle": "Набрать мышечную массу",
+  "goalLoseFat": "Снизить жир",
+  "goalImproveStrength": "Улучшить силу",
+  "goalImproveEndurance": "Улучшить выносливость",
+  "goalStayConsistent": "Сохранять регулярность",
+  "goalMobilityRecovery": "Мобильность и восстановление",
+  "activityLow": "Низкая",
+  "activityModerate": "Умеренная",
+  "activityHigh": "Высокая",
+  "activityAthlete": "Спортсмен",
+  "weeklyTargetN": "{count} тренировок / нед.",
+  "@weeklyTargetN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "feedWorkoutShared": "Тренировка отправлена",
+  "feedWorkoutAdded": "Тренировка добавлена в ваш список",
+  "feedWorkoutAlreadyAdded": "Эта тренировка уже в вашем списке",
+  "feedNoPostsTitle": "Пока нет постов",
+  "feedPostOptions": "Действия с постом",
+  "feedNewPost": "Новый пост",
+  "feedNewPostSubtitle": "Поделитесь фото или записью в ленте",
+  "feedNewStory": "Новая сторис",
+  "feedNewStorySubtitle": "Быстрая сторис на 24 часа",
+  "feedStoryTitle": "Новая сторис",
+  "feedStoryHint": "Выберите одно фото для сторис.",
+  "feedGallery": "Галерея",
+  "feedCamera": "Камера",
+  "feedShareStory": "Опубликовать сторис",
+  "feedOpeningGallery": "Открываем галерею…",
+  "feedTapAddPhoto": "Нажмите, чтобы добавить фото",
+  "feedShareHint": "Поделитесь тренировкой, прогрессом или мыслями…",
+  "feedAddComment": "Добавить комментарий…",
+  "feedAddCaption": "Добавить подпись…",
+  "feedReportSent": "Жалоба отправлена",
+  "feedReportProfile": "Пожаловаться на профиль",
+  "feedYourStory": "Ваша сторис",
+  "chatMessageHint": "Сообщение…",
+  "chatCouldNotDelete": "Не удалось удалить сообщение",
+  "chatCouldNotUpdate": "Не удалось изменить сообщение",
+  "chatMessageDeletedFallback": "Это сообщение было удалено",
+  "chatImageWithCaption": "Изображение с подписью",
+  "chatDetailFileType": "Тип файла",
+  "chatDetailSize": "Размер",
+  "chatDetailDuration": "Длительность",
+  "chatDetailDimensions": "Размеры",
+  "chatChooseGallery": "Выбрать из галереи",
+  "chatTakePhoto": "Сделать фото",
+  "chatOnline": "В сети",
+  "mapLabelGps": "GPS",
+  "mapLabelPoints": "Точки",
+  "shareExercisesCount": "{count} упражнений",
+  "@shareExercisesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareMinutesCount": "{count} мин",
+  "@shareMinutesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "feedCreateTitle": "Создать",
+  "feedCreateSubtitle": "Выберите, чем хотите поделиться",
+  "profileOptional": "Необязательно",
+  "profileAvatarSection": "Аватар",
+  "feedNoPostsBody": "Скоро здесь появятся новые тренировки и записи.",
+  "feedRefresh": "Обновить",
+  "chatTypeText": "Текст",
+  "chatStatusSending": "Отправка",
+  "shareWorkoutTitle": "Поделиться тренировкой",
+  "shareWorkoutPublish": "Поделиться",
+  "shareWorkoutPublishFeed": "Поделиться в ленте"
 }

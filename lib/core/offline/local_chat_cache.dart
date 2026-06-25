@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
+import '../../features/chat/domain/chat_attachment.dart';
 import '../../features/chat/domain/chat_conversation.dart';
 import '../../features/chat/domain/chat_message.dart';
 
@@ -56,7 +57,9 @@ final class LocalChatCache {
 
   Future<void> saveConversation(ChatConversation conversation) async {
     await ensureLoaded();
-    _conversations[conversation.id] = _CachedConversation.fromConversation(conversation);
+    _conversations[conversation.id] = _CachedConversation.fromConversation(
+      conversation,
+    );
     await _persist();
   }
 
@@ -123,7 +126,8 @@ final class LocalChatCache {
     final index = messages.indexWhere(
       (item) =>
           item.id == message.id ||
-          (message.clientTempId != null && item.clientTempId == message.clientTempId),
+          (message.clientTempId != null &&
+              item.clientTempId == message.clientTempId),
     );
     if (index >= 0) {
       messages[index] = message;
@@ -182,9 +186,27 @@ final class LocalChatCache {
       }
     }
 
-    final merged = byKey.values.toList();
+    final merged = dedupeMessages(byKey.values.toList());
     merged.sort((a, b) => a.sentAt.compareTo(b.sentAt));
     return merged;
+  }
+
+  static List<ChatMessage> dedupeMessages(List<ChatMessage> messages) {
+    final byKey = <String, ChatMessage>{};
+
+    for (final message in messages) {
+      final key = _semanticKey(message);
+      final existing = byKey[key];
+      if (existing == null) {
+        byKey[key] = message;
+        continue;
+      }
+      byKey[key] = _preferMessage(existing, message);
+    }
+
+    final deduped = byKey.values.toList();
+    deduped.sort((a, b) => a.sentAt.compareTo(b.sentAt));
+    return deduped;
   }
 
   static String _mergeKey(ChatMessage message) {
@@ -194,6 +216,70 @@ final class LocalChatCache {
     return 'id:${message.id}';
   }
 
+  static String _semanticKey(ChatMessage message) {
+    final tempId = message.clientTempId;
+    if (tempId != null && tempId.isNotEmpty) return 'temp:$tempId';
+
+    final body = message.body
+        .trim()
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .toLowerCase();
+    final mediaKey =
+        message.mediaPath ??
+        message.attachments
+            .where((item) => item.storagePath.isNotEmpty)
+            .map((item) => item.storagePath)
+            .join('|');
+    final senderKey =
+        message.senderType == ChatSenderType.seededContact ||
+            message.senderId.startsWith('seed_')
+        ? message.senderId
+        : '';
+
+    if (senderKey.isNotEmpty && body.isNotEmpty) {
+      return 'seed:$senderKey:${message.messageType.name}:$body:$mediaKey';
+    }
+    if (_demoSeedBodies.contains(body)) {
+      return 'demo:${message.messageType.name}:$body:$mediaKey';
+    }
+    return 'id:${message.id}';
+  }
+
+  static final Set<String> _demoSeedBodies = {
+    'hey, did you train today?',
+    'yes, just finished shoulders.',
+    'nice, i\'m going to the gym later.',
+    'send your workout after.',
+    'sure 😄',
+    'how was your leg day?',
+    'hard but good.',
+    'same here, i\'m still tired.',
+    'recovery day tomorrow.',
+    'did you try the new stretch routine?',
+    'not yet, sending it now.',
+    'sent a workout plan',
+    'any tips for pacing on long runs?',
+    'start slow, finish strong.',
+    'thanks for the tips!',
+    'squats felt heavy today.',
+    'same, deload week maybe?',
+    'leg day was intense',
+  };
+
+  static ChatMessage _preferMessage(ChatMessage current, ChatMessage incoming) {
+    if (_shouldPreferLocal(incoming, current)) return current;
+    if (_shouldPreferLocal(current, incoming)) return incoming;
+    if (current.id.startsWith('msg_') && !incoming.id.startsWith('msg_')) {
+      return _mergeLocalMedia(incoming, current);
+    }
+    if (incoming.id.startsWith('msg_') && !current.id.startsWith('msg_')) {
+      return _mergeLocalMedia(current, incoming);
+    }
+    return incoming.sentAt.isAfter(current.sentAt)
+        ? _mergeLocalMedia(incoming, current)
+        : _mergeLocalMedia(current, incoming);
+  }
+
   static bool _shouldPreferLocal(ChatMessage remote, ChatMessage local) {
     if (local.isPending || local.isUploading) return true;
     if (local.isFailed && !remote.isFailed) return true;
@@ -201,7 +287,8 @@ final class LocalChatCache {
       return false;
     }
     if (local.hasImage &&
-        (local.localImagePath?.isNotEmpty == true || local.localPreviewBytes != null) &&
+        (local.localImagePath?.isNotEmpty == true ||
+            local.localPreviewBytes != null) &&
         (remote.primaryImageUrl == null || remote.primaryImageUrl!.isEmpty)) {
       return true;
     }
@@ -213,9 +300,13 @@ final class LocalChatCache {
     return false;
   }
 
-  static ChatMessage _mergeLocalMedia(ChatMessage primary, ChatMessage secondary) {
+  static ChatMessage _mergeLocalMedia(
+    ChatMessage primary,
+    ChatMessage secondary,
+  ) {
     return primary.copyWith(
-      localPreviewBytes: primary.localPreviewBytes ?? secondary.localPreviewBytes,
+      localPreviewBytes:
+          primary.localPreviewBytes ?? secondary.localPreviewBytes,
       localImagePath: primary.localImagePath ?? secondary.localImagePath,
       localVoicePath: primary.localVoicePath ?? secondary.localVoicePath,
       isPending: primary.isPending || secondary.isPending,
@@ -237,7 +328,8 @@ final class LocalChatCache {
     final file = await _ensureFile();
     final map = {
       'conversations': {
-        for (final entry in _conversations.entries) entry.key: entry.value.toJson(),
+        for (final entry in _conversations.entries)
+          entry.key: entry.value.toJson(),
       },
     };
     await file.writeAsString(jsonEncode(map), flush: true);
@@ -302,8 +394,10 @@ final class _CachedConversation {
       statusText: statusText,
       isRemote: isRemote,
       isSeeded: isSeeded,
-      cachedLastMessageText: cachedLastMessageText ?? this.cachedLastMessageText,
-      cachedLastMessageTime: cachedLastMessageTime ?? this.cachedLastMessageTime,
+      cachedLastMessageText:
+          cachedLastMessageText ?? this.cachedLastMessageText,
+      cachedLastMessageTime:
+          cachedLastMessageTime ?? this.cachedLastMessageTime,
     );
   }
 
@@ -354,7 +448,9 @@ final class _CachedConversation {
       isRemote: json['is_remote'] as bool? ?? true,
       isSeeded: json['is_seeded'] as bool? ?? false,
       cachedLastMessageText: json['cached_last_message_text'] as String?,
-      cachedLastMessageTime: DateTime.tryParse(json['cached_last_message_time'] as String? ?? ''),
+      cachedLastMessageTime: DateTime.tryParse(
+        json['cached_last_message_time'] as String? ?? '',
+      ),
     );
   }
 }
@@ -366,7 +462,9 @@ Map<String, dynamic> _messageToJson(ChatMessage message) {
     'body': message.body,
     'sent_at': message.sentAt.toIso8601String(),
     'message_type': ChatMessage.messageTypeToDb(message.messageType),
-    'sender_type': message.senderType == ChatSenderType.seededContact ? 'seeded_contact' : 'user',
+    'sender_type': message.senderType == ChatSenderType.seededContact
+        ? 'seeded_contact'
+        : 'user',
     'client_temp_id': message.clientTempId,
     'is_pending': message.isPending,
     'has_failed': message.hasFailed,
@@ -385,6 +483,7 @@ Map<String, dynamic> _messageToJson(ChatMessage message) {
     'media_url': message.mediaUrl,
     'audio_duration_ms': message.audioDurationMs,
     'audio_waveform': message.audioWaveform,
+    'attachments': message.attachments.map(_attachmentToJson).toList(),
   };
 }
 
@@ -405,11 +504,17 @@ ChatMessage _messageFromJson(Map<String, dynamic> json) {
     sendState = ChatMessageSendState.failed;
   }
 
+  final attachmentRows = json['attachments'] as List<dynamic>? ?? const [];
+  final attachments = attachmentRows
+      .map((row) => _attachmentFromJson(Map<String, dynamic>.from(row as Map)))
+      .toList();
+
   return ChatMessage(
     id: json['id'] as String? ?? '',
     senderId: json['sender_id'] as String? ?? '',
     body: json['body'] as String? ?? '',
-    sentAt: DateTime.tryParse(json['sent_at'] as String? ?? '') ?? DateTime.now(),
+    sentAt:
+        DateTime.tryParse(json['sent_at'] as String? ?? '') ?? DateTime.now(),
     messageType: ChatMessage.parseMessageType(json['message_type'] as String?),
     senderType: ChatMessage.parseSenderType(json['sender_type'] as String?),
     clientTempId: json['client_temp_id'] as String?,
@@ -421,7 +526,9 @@ ChatMessage _messageFromJson(Map<String, dynamic> json) {
     editedAt: DateTime.tryParse(json['edited_at'] as String? ?? ''),
     deletedAt: DateTime.tryParse(json['deleted_at'] as String? ?? ''),
     replyToMessageId: json['reply_to_message_id'] as String?,
-    deliveryStatus: ChatMessage.parseDeliveryStatus(json['delivery_status'] as String?),
+    deliveryStatus: ChatMessage.parseDeliveryStatus(
+      json['delivery_status'] as String?,
+    ),
     deliveredAt: DateTime.tryParse(json['delivered_at'] as String? ?? ''),
     readAt: DateTime.tryParse(json['read_at'] as String? ?? ''),
     deletedForEveryone: json['deleted_for_everyone'] as bool? ?? false,
@@ -430,5 +537,65 @@ ChatMessage _messageFromJson(Map<String, dynamic> json) {
     mediaUrl: json['media_url'] as String?,
     audioDurationMs: (json['audio_duration_ms'] as num?)?.toInt(),
     audioWaveform: waveform,
+    attachments: attachments,
+  );
+}
+
+Map<String, dynamic> _attachmentToJson(ChatAttachment attachment) {
+  return {
+    'id': attachment.id,
+    'message_id': attachment.messageId,
+    'conversation_id': attachment.conversationId,
+    'uploader_id': attachment.uploaderId,
+    'storage_bucket': attachment.storageBucket,
+    'storage_path': attachment.storagePath,
+    'mime_type': attachment.mimeType,
+    'size_bytes': attachment.sizeBytes,
+    'attachment_type': attachment.attachmentType.name,
+    'width': attachment.width,
+    'height': attachment.height,
+    'duration_ms': attachment.durationMs,
+    'waveform': attachment.waveform,
+    'original_file_name': attachment.originalFileName,
+    'signed_url': attachment.signedUrl,
+    'created_at': attachment.createdAt?.toIso8601String(),
+  };
+}
+
+ChatAttachment _attachmentFromJson(Map<String, dynamic> json) {
+  final waveformRaw = json['waveform'];
+  final waveform = <double>[];
+  if (waveformRaw is List) {
+    for (final value in waveformRaw) {
+      if (value is num) waveform.add(value.toDouble().clamp(0.0, 1.0));
+    }
+  }
+
+  final typeRaw = json['attachment_type'] as String?;
+  final mimeType = json['mime_type'] as String? ?? '';
+  final attachmentType = switch (typeRaw) {
+    'image' => ChatAttachmentType.image,
+    'voice' => ChatAttachmentType.voice,
+    'file' => ChatAttachmentType.file,
+    _ => ChatAttachment.typeFromMime(mimeType),
+  };
+
+  return ChatAttachment(
+    id: json['id'] as String? ?? '',
+    messageId: json['message_id'] as String? ?? '',
+    conversationId: json['conversation_id'] as String? ?? '',
+    uploaderId: json['uploader_id'] as String? ?? '',
+    storageBucket: json['storage_bucket'] as String? ?? 'chat-media',
+    storagePath: json['storage_path'] as String? ?? '',
+    mimeType: mimeType,
+    sizeBytes: (json['size_bytes'] as num?)?.toInt() ?? 0,
+    attachmentType: attachmentType,
+    width: (json['width'] as num?)?.toInt(),
+    height: (json['height'] as num?)?.toInt(),
+    durationMs: (json['duration_ms'] as num?)?.toInt(),
+    waveform: waveform,
+    originalFileName: json['original_file_name'] as String?,
+    signedUrl: json['signed_url'] as String?,
+    createdAt: DateTime.tryParse(json['created_at'] as String? ?? ''),
   );
 }

@@ -48,18 +48,44 @@ class MapFloatingControls extends StatelessWidget {
             onPressed: onLeaderboard,
           ),
           const SizedBox(height: 14),
-          FilledButton.icon(
-            onPressed: onStartCapture,
-            icon: const Icon(Icons.route_rounded, size: 18),
-            label: Text(l10n.mapStartCapture),
-            style: FilledButton.styleFrom(
-              backgroundColor: PremiumColors.accentBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(PremiumRadii.lg),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onStartCapture,
+              borderRadius: BorderRadius.circular(PremiumRadii.lg),
+              child: Ink(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(PremiumRadii.lg),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [PremiumColors.accentBlue, PremiumColors.accentBlueSoft],
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x406B8FC7),
+                      blurRadius: 14,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.route_rounded, size: 18, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.mapStartCapture,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
             ),
           ),
         ],

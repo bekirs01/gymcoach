@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/premium_tokens.dart';
@@ -378,16 +379,16 @@ class _FeedPageState extends State<FeedPage> {
         await addPlan(plan);
         if (!mounted) return true;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Workout added to your workouts'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.feedWorkoutAdded),
             behavior: SnackBarBehavior.floating,
           ),
         );
         return true;
       case CopyWorkoutAlreadyExists():
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('This workout is already in your workouts'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.feedWorkoutAlreadyAdded),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -582,9 +583,9 @@ class _FeedPageState extends State<FeedPage> {
                 hasScrollBody: false,
                 child: _FeedMessage(
                   icon: Icons.photo_library_outlined,
-                  title: 'No posts yet',
-                  body: 'Check back soon for new workouts and updates.',
-                  actionLabel: 'Refresh',
+                  title: AppLocalizations.of(context)!.feedNoPostsTitle,
+                  body: AppLocalizations.of(context)!.feedNoPostsBody,
+                  actionLabel: AppLocalizations.of(context)!.feedRefresh,
                   onAction: () => unawaited(_onRefresh()),
                 ),
               )

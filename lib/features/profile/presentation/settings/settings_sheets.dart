@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../../app/theme/premium_tokens.dart';
 import '../../domain/profile_settings_options.dart';
@@ -15,13 +16,14 @@ Future<AppLanguageCode?> showLanguagePickerSheet({
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (sheetContext) {
+      final l10n = AppLocalizations.of(sheetContext)!;
       return DecoratedBox(
         decoration: const BoxDecoration(
           color: PremiumColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SettingsSheetShell(
-          title: 'Choose language',
+          title: l10n.languagePickerTitle,
           child: ListView(
             shrinkWrap: true,
             children: [
@@ -50,13 +52,14 @@ Future<MeasurementUnits?> showUnitsPickerSheet({
     context: context,
     backgroundColor: Colors.transparent,
     builder: (sheetContext) {
+      final l10n = AppLocalizations.of(sheetContext)!;
       return DecoratedBox(
         decoration: const BoxDecoration(
           color: PremiumColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SettingsSheetShell(
-          title: 'Measurement units',
+          title: l10n.settingsMeasurementUnits,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -76,8 +79,8 @@ Future<MeasurementUnits?> showUnitsPickerSheet({
                       size: 18,
                     ),
                   ),
-                  title: units.label,
-                  subtitle: units.subtitle,
+                  title: units.localizedLabel(l10n),
+                  subtitle: units.localizedSubtitle(l10n),
                   selected: units == selected,
                   onTap: () => Navigator.pop(sheetContext, units),
                 ),
@@ -99,13 +102,14 @@ Future<TimeOfDay?> showReminderTimePickerSheet({
     context: context,
     backgroundColor: Colors.transparent,
     builder: (sheetContext) {
+      final l10n = AppLocalizations.of(sheetContext)!;
       return DecoratedBox(
         decoration: const BoxDecoration(
           color: PremiumColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SettingsSheetShell(
-          title: 'Reminder time',
+          title: l10n.settingsReminderTime,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -135,7 +139,7 @@ Future<TimeOfDay?> showReminderTimePickerSheet({
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
-                    child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w700)),
+                    child: Text(l10n.settingsDone, style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
               ),
@@ -162,13 +166,15 @@ Future<({ReminderDaysMode mode, Set<int> customDays})?> showReminderDaysPickerSh
     builder: (sheetContext) {
       return StatefulBuilder(
         builder: (context, setSheetState) {
+          final l10n = AppLocalizations.of(context)!;
+          final weekdayNames = ReminderDaysCodec.weekdayLabels(l10n);
           return DecoratedBox(
             decoration: const BoxDecoration(
               color: PremiumColors.surface,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: SettingsSheetShell(
-              title: 'Reminder days',
+              title: l10n.settingsReminderDays,
               child: ListView(
                 shrinkWrap: true,
                 children: [
@@ -184,17 +190,19 @@ Future<({ReminderDaysMode mode, Set<int> customDays})?> showReminderDaysPickerSh
                         ),
                         child: const Icon(Icons.event_repeat_rounded, color: PremiumColors.accentBlue, size: 18),
                       ),
-                      title: option.label,
-                      subtitle: option == ReminderDaysMode.custom ? 'Pick specific days' : 'Recommended schedule',
+                      title: option.localizedLabel(l10n),
+                      subtitle: option == ReminderDaysMode.custom
+                          ? l10n.settingsPickSpecificDays
+                          : l10n.settingsRecommendedSchedule,
                       selected: mode == option,
                       onTap: () => setSheetState(() => mode = option),
                     ),
                   if (mode == ReminderDaysMode.custom) ...[
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
                       child: Text(
-                        'Select days',
-                        style: TextStyle(color: PremiumColors.textMuted, fontSize: 12, fontWeight: FontWeight.w700),
+                        l10n.settingsSelectDays,
+                        style: const TextStyle(color: PremiumColors.textMuted, fontSize: 12, fontWeight: FontWeight.w700),
                       ),
                     ),
                     Padding(
@@ -204,10 +212,9 @@ Future<({ReminderDaysMode mode, Set<int> customDays})?> showReminderDaysPickerSh
                         runSpacing: 8,
                         children: List.generate(7, (index) {
                           final day = index + 1;
-                          const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
                           final active = days.contains(day);
                           return FilterChip(
-                            label: Text(names[index]),
+                            label: Text(weekdayNames[index]),
                             selected: active,
                             onSelected: (value) {
                               setSheetState(() {
@@ -244,7 +251,7 @@ Future<({ReminderDaysMode mode, Set<int> customDays})?> showReminderDaysPickerSh
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
-                        child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w700)),
+                        child: Text(l10n.settingsDone, style: const TextStyle(fontWeight: FontWeight.w700)),
                       ),
                     ),
                   ),
@@ -269,6 +276,7 @@ Future<bool?> showLogoutConfirmationSheet({
     context: context,
     backgroundColor: Colors.transparent,
     builder: (sheetContext) {
+      final l10n = AppLocalizations.of(sheetContext)!;
       return DecoratedBox(
         decoration: const BoxDecoration(
           color: PremiumColors.surface,
@@ -301,7 +309,7 @@ Future<bool?> showLogoutConfirmationSheet({
                           side: const BorderSide(color: PremiumColors.glassBorder),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text('Cancel'),
+                        child: Text(l10n.cancel),
                       ),
                     ),
                     const SizedBox(width: 12),

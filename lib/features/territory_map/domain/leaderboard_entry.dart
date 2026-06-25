@@ -5,6 +5,7 @@ class LeaderboardEntry {
     required this.totalAreaSquareMeters,
     required this.territoryCount,
     required this.userId,
+    this.avatarUrl = '',
   });
 
   final int rank;
@@ -12,6 +13,25 @@ class LeaderboardEntry {
   final double totalAreaSquareMeters;
   final int territoryCount;
   final String userId;
+  final String avatarUrl;
+
+  LeaderboardEntry copyWith({
+    int? rank,
+    String? displayName,
+    double? totalAreaSquareMeters,
+    int? territoryCount,
+    String? userId,
+    String? avatarUrl,
+  }) {
+    return LeaderboardEntry(
+      rank: rank ?? this.rank,
+      displayName: displayName ?? this.displayName,
+      totalAreaSquareMeters: totalAreaSquareMeters ?? this.totalAreaSquareMeters,
+      territoryCount: territoryCount ?? this.territoryCount,
+      userId: userId ?? this.userId,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+    );
+  }
 
   factory LeaderboardEntry.fromJson(Map<String, dynamic> json) {
     return LeaderboardEntry(
@@ -25,6 +45,7 @@ class LeaderboardEntry {
       territoryCount: (json['territory_count'] as num? ?? json['territoryCount'] as num? ?? 0)
           .toInt(),
       userId: json['user_id'] as String? ?? json['userId'] as String? ?? '',
+      avatarUrl: json['avatar_url'] as String? ?? json['avatarUrl'] as String? ?? '',
     );
   }
 }

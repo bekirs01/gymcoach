@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -9,10 +10,12 @@ class ChatImageViewerScreen extends StatelessWidget {
     super.key,
     this.imageUrl,
     this.imageBytes,
+    this.localImagePath,
   });
 
   final String? imageUrl;
   final Uint8List? imageBytes;
+  final String? localImagePath;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +28,11 @@ class ChatImageViewerScreen extends StatelessWidget {
               child: InteractiveViewer(
                 minScale: 1,
                 maxScale: 3,
-                child: _ImageContent(imageUrl: imageUrl, imageBytes: imageBytes),
+                child: _ImageContent(
+                  imageUrl: imageUrl,
+                  imageBytes: imageBytes,
+                  localImagePath: localImagePath,
+                ),
               ),
             ),
             Positioned(
@@ -56,10 +63,12 @@ class _ImageContent extends StatelessWidget {
   const _ImageContent({
     required this.imageUrl,
     required this.imageBytes,
+    required this.localImagePath,
   });
 
   final String? imageUrl;
   final Uint8List? imageBytes;
+  final String? localImagePath;
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +76,18 @@ class _ImageContent extends StatelessWidget {
       return Image.memory(imageBytes!, fit: BoxFit.contain);
     }
 
+    if (localImagePath != null && localImagePath!.isNotEmpty) {
+      return Image.file(
+        File(localImagePath!),
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => _networkOrFallback(),
+      );
+    }
+
+    return _networkOrFallback();
+  }
+
+  Widget _networkOrFallback() {
     if (imageUrl != null && imageUrl!.isNotEmpty) {
       return Image.network(
         imageUrl!,
@@ -76,15 +97,26 @@ class _ImageContent extends StatelessWidget {
           return const SizedBox(
             width: 48,
             height: 48,
-            child: CircularProgressIndicator(strokeWidth: 2, color: PremiumColors.accentBlue),
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: PremiumColors.accentBlue,
+            ),
           );
         },
         errorBuilder: (context, error, stackTrace) {
-          return const Icon(Icons.broken_image_outlined, color: PremiumColors.textMuted, size: 48);
+          return const Icon(
+            Icons.broken_image_outlined,
+            color: PremiumColors.textMuted,
+            size: 48,
+          );
         },
       );
     }
 
-    return const Icon(Icons.image_not_supported_outlined, color: PremiumColors.textMuted, size: 48);
+    return const Icon(
+      Icons.image_not_supported_outlined,
+      color: PremiumColors.textMuted,
+      size: 48,
+    );
   }
 }

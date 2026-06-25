@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../app/theme/premium_tokens.dart';
 import '../../../app/widgets/premium_background.dart';
 import '../../social/data/social_api_client.dart';
+import '../domain/profile_field_l10n.dart';
 import '../../social/data/social_seed_data.dart';
 import '../../social/domain/feed_post.dart';
 import '../data/profile_repository.dart';
@@ -384,45 +385,50 @@ class _ProfilePageState extends State<ProfilePage> {
         bio: _profile.bio.trim().isEmpty ? seed.bio : _profile.bio,
         extraSections: [
           ProfileAboutBlock(
-            title: 'Location',
+            title: l10n.profileLocation,
             body: _profile.locationText.trim().isEmpty ? seed.city : _profile.locationText,
             icon: Icons.location_on_outlined,
           ),
           ProfileAboutBlock(
-            title: 'Training focus',
+            title: l10n.profileTrainingFocus,
             body: _profile.trainingFocus.trim().isEmpty ? seed.trainingFocus : _profile.trainingFocus,
             icon: Icons.fitness_center_rounded,
           ),
           ProfileAboutBlock(
-            title: 'Goal',
-            body: _profile.fitnessGoal.trim().isEmpty ? seed.goal : _profile.fitnessGoal,
+            title: l10n.profileGoal,
+            body: ProfileFieldL10n.fitnessGoalLabel(
+              l10n,
+              _profile.fitnessGoal.trim().isEmpty ? seed.goal : _profile.fitnessGoal,
+            ),
             icon: Icons.flag_outlined,
           ),
           ProfileAboutBlock(
-            title: 'Experience',
-            body: _profile.experienceLevel.trim().isEmpty ? seed.experience : _profile.experienceLevel,
+            title: l10n.profileExperience,
+            body: _profile.experienceLevel.trim().isEmpty
+                ? seed.experience
+                : ProfileFieldL10n.experienceLabel(l10n, _profile.experienceLevel),
             icon: Icons.trending_up_rounded,
           ),
           ProfileAboutBlock(
-            title: 'Joined',
+            title: l10n.profileJoined,
             body: seed.joinedLabel,
             icon: Icons.calendar_month_outlined,
           ),
           ProfileAboutBlock(
-            title: 'Weekly target',
+            title: l10n.profileWeeklyTarget,
             body: _profile.weeklyWorkoutTarget > 0
-                ? ProfileDefaults.weeklyTargetLabel(_profile.weeklyWorkoutTarget)
+                ? ProfileFieldL10n.weeklyTargetLabel(l10n, _profile.weeklyWorkoutTarget)
                 : seed.weeklyTarget,
             icon: Icons.event_repeat_rounded,
           ),
           ProfileAboutBlock(
-            title: 'Favorite training',
+            title: l10n.profileFavoriteTraining,
             body: seed.favoriteTrainingType,
             icon: Icons.star_outline_rounded,
           ),
           if (seed.age > 0)
             ProfileAboutBlock(
-              title: 'Age',
+              title: l10n.profileAge,
               body: '${seed.age}',
               icon: Icons.person_outline_rounded,
             ),
@@ -434,7 +440,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ProfileAboutBlock(
             title: l10n.profileFitnessSummary,
-            body: '${_profile.fitnessGoal}\n${_profile.weightKg} kg · ${_profile.heightCm} cm',
+            body: '${ProfileFieldL10n.fitnessGoalLabel(l10n, _profile.fitnessGoal)}\n${_profile.weightKg} kg · ${_profile.heightCm} cm',
             icon: Icons.monitor_heart_outlined,
           ),
         ],

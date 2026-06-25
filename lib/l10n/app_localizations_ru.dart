@@ -65,12 +65,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String scheduleToday(String time) {
-    return 'Today · $time';
+    return 'Сегодня · $time';
   }
 
   @override
   String scheduleTomorrow(String time) {
-    return 'Tomorrow · $time';
+    return 'Завтра · $time';
   }
 
   @override
@@ -83,7 +83,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String activityDaysAgo(int count) {
-    return '$count days ago';
+    return '$count дн. назад';
   }
 
   @override
@@ -111,7 +111,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String homeNWorkoutsToday(int count) {
-    return '$count workouts planned for today';
+    return 'На сегодня запланировано: $count тренировок';
   }
 
   @override
@@ -193,13 +193,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeTabWorkouts => 'Тренировки';
 
   @override
-  String get homeTabDiet => 'Diet';
+  String get homeTabDiet => 'Питание';
 
   @override
-  String get homeBannerCreateHint => 'See how to create new workouts';
+  String get homeBannerCreateHint => 'Узнайте, как создавать новые тренировки';
 
   @override
-  String get homeBannerStartHint => 'Start by adding a new training day';
+  String get homeBannerStartHint =>
+      'Начните с добавления нового тренировочного дня';
 
   @override
   String get homeMyTraining => 'Мои тренировки';
@@ -222,7 +223,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeViewAll => 'Все';
 
   @override
-  String get homeNoWorkoutsOnDate => 'No workouts scheduled for this date';
+  String get homeNoWorkoutsOnDate => 'На эту дату тренировки не запланированы';
 
   @override
   String get homeFeaturedEmptyTitle => 'Нет планов';
@@ -245,7 +246,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String plansTotalCount(int count) {
-    return '$count total';
+    return 'Всего: $count';
   }
 
   @override
@@ -269,7 +270,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String minutesPlanShort(int count) {
-    return '$count min plan';
+    return 'План на $count мин';
   }
 
   @override
@@ -339,7 +340,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Выберите упражнения из выбранных групп мышц.';
 
   @override
-  String get workoutNameHint => 'Введите название…';
+  String get workoutNameHint => 'Например: силовая верха тела';
 
   @override
   String get workoutSelected => 'Выбрано';
@@ -419,7 +420,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String deletePlanConfirm(String name) {
-    return 'Delete \"$name\" permanently?';
+    return 'Удалить «$name» навсегда?';
   }
 
   @override
@@ -479,7 +480,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String chipMinutes(int count) {
-    return '$count min';
+    return '$count мин';
   }
 
   @override
@@ -487,7 +488,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String calendarWorkoutsOn(String date) {
-    return 'Workouts on $date';
+    return 'Тренировки на $date';
   }
 
   @override
@@ -561,7 +562,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String progressVolumeK(String value) {
-    return '${value}k';
+    return '$value тыс.';
   }
 
   @override
@@ -643,7 +644,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String streakDayStreak(int count) {
-    return '$count day streak';
+    return 'Серия: $count дн.';
   }
 
   @override
@@ -873,7 +874,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get languageRussian => 'Русский';
 
   @override
-  String get languageTurkish => 'Türkçe';
+  String get languageTurkish => 'Турецкий';
 
   @override
   String get languagePickerTitle => 'Выберите язык';
@@ -1165,28 +1166,28 @@ class AppLocalizationsRu extends AppLocalizations {
   String get logSave => 'Сохранить запись';
 
   @override
-  String get quickLogTitle => 'Log past workout';
+  String get quickLogTitle => 'Записать прошлую тренировку';
 
   @override
-  String get quickLogDate => 'Workout date';
+  String get quickLogDate => 'Дата тренировки';
 
   @override
-  String get quickLogYesterday => 'Yesterday';
+  String get quickLogYesterday => 'Вчера';
 
   @override
-  String get quickLogDayBefore => '2 days ago';
+  String get quickLogDayBefore => '2 дня назад';
 
   @override
-  String get quickLogAddExercise => 'Add exercise';
+  String get quickLogAddExercise => 'Добавить упражнение';
 
   @override
-  String get templateFromLabel => 'From template';
+  String get templateFromLabel => 'Из шаблона';
 
   @override
-  String get templateSave => 'Save as template';
+  String get templateSave => 'Сохранить как шаблон';
 
   @override
-  String get templateSaved => 'Template saved';
+  String get templateSaved => 'Шаблон сохранён';
 
   @override
   String get copyPlanTitle => 'Запланировать на другой день';
@@ -1198,10 +1199,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get snackbarPlanCopied => 'Тренировка добавлена в календарь';
 
   @override
-  String get sessionManageExercises => 'Manage exercises';
+  String get sessionManageExercises => 'Управление упражнениями';
 
   @override
-  String get sessionAddExercise => 'Add exercise';
+  String get sessionAddExercise => 'Добавить упражнение';
 
   @override
   String get validationLogName => 'Введите название тренировки.';
@@ -1247,7 +1248,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String categorySubtitle(int count) {
-    return '$count exercises';
+    return '$count упражнений';
   }
 
   @override
@@ -1303,7 +1304,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get exLunges => 'Выпады';
 
   @override
-  String get exJumpingJacks => 'Прыжки Jumping Jack';
+  String get exJumpingJacks => 'Прыжки с разведением рук и ног';
 
   @override
   String get exPullUps => 'Подтягивания';
@@ -1342,7 +1343,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get exThoracicRotation => 'Ротация грудного отдела';
 
   @override
-  String get exHipCars => 'Hip CARs';
+  String get exHipCars => 'Круговые движения в тазобедренном суставе';
 
   @override
   String get exAnkleMobility => 'Мобильность голеностопа';
@@ -1360,7 +1361,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get exHangingLegRaise => 'Подъем ног в висе';
 
   @override
-  String get exDeadBug => 'Dead Bug';
+  String get exDeadBug => 'Мёртвый жук';
 
   @override
   String get exLightWalk => 'Легкая прогулка';
@@ -1426,10 +1427,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get planLowerStrength => 'Сила низа';
 
   @override
-  String get planFullBodyA => 'Все тело A';
+  String get planFullBodyA => 'Всё тело А';
 
   @override
-  String get planHiit20 => 'HIIT 20';
+  String get planHiit20 => 'ВИИТ 20';
 
   @override
   String get planSteadyZone2 => 'Ровная зона 2';
@@ -1654,7 +1655,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String mapCaptureSuccessBody(String name, String area) {
-    return '$name is now yours at $area.';
+    return '«$name» теперь ваша — площадь $area.';
   }
 
   @override
@@ -1702,7 +1703,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String mapLeaderboardMeta(String area, int count) {
-    return '$area · $count territories';
+    return '$area · $count террит.';
   }
 
   @override
@@ -1821,4 +1822,400 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chatMicrophoneRequired => 'Нужен доступ к микрофону';
+
+  @override
+  String get settingsDone => 'Готово';
+
+  @override
+  String get settingsClear => 'Очистить';
+
+  @override
+  String get settingsPreferences => 'Настройки';
+
+  @override
+  String get settingsUnits => 'Единицы';
+
+  @override
+  String get settingsTheme => 'Тема';
+
+  @override
+  String get settingsThemeDark => 'Тёмная';
+
+  @override
+  String get settingsPermissions => 'Разрешения';
+
+  @override
+  String get settingsPermissionsFooter =>
+      'Статусы отражают настройки устройства и обновляются при возврате в приложение.';
+
+  @override
+  String get settingsNotificationsSection => 'Уведомления и напоминания';
+
+  @override
+  String get settingsReminderTime => 'Время напоминания';
+
+  @override
+  String get settingsReminderDays => 'Дни напоминаний';
+
+  @override
+  String get settingsPrivacySupport => 'Конфиденциальность и поддержка';
+
+  @override
+  String get settingsPrivacyPolicy => 'Политика конфиденциальности';
+
+  @override
+  String get settingsTermsOfService => 'Условия использования';
+
+  @override
+  String get settingsContactSupport => 'Связаться с поддержкой';
+
+  @override
+  String get settingsAboutApp => 'О приложении';
+
+  @override
+  String get settingsDataPermissions => 'Данные и разрешения';
+
+  @override
+  String get settingsAccountSection => 'Аккаунт';
+
+  @override
+  String get settingsSignOutSubtitle => 'Выйти с этого устройства';
+
+  @override
+  String get settingsCouldNotOpenSettings => 'Не удалось открыть настройки';
+
+  @override
+  String get settingsMeasurementUnits => 'Единицы измерения';
+
+  @override
+  String get settingsSelectDays => 'Выберите дни';
+
+  @override
+  String get settingsRecommendedSchedule => 'Рекомендуемый график';
+
+  @override
+  String get settingsPickSpecificDays => 'Выбрать конкретные дни';
+
+  @override
+  String get settingsPermissionNotifications => 'Уведомления';
+
+  @override
+  String get settingsPermissionNotificationsDesc =>
+      'Напоминания о тренировках и важные обновления';
+
+  @override
+  String get settingsPermissionCamera => 'Камера';
+
+  @override
+  String get settingsPermissionCameraDesc =>
+      'Сторис, посты и запись упражнений';
+
+  @override
+  String get settingsPermissionMicrophone => 'Микрофон';
+
+  @override
+  String get settingsPermissionMicrophoneDesc => 'Голосовые сообщения в чате';
+
+  @override
+  String get settingsPermissionPhotos => 'Фото';
+
+  @override
+  String get settingsPermissionPhotosDesc =>
+      'Загрузка постов, сторис и медиа профиля';
+
+  @override
+  String get settingsPermissionLocation => 'Геолокация';
+
+  @override
+  String get settingsPermissionLocationDesc =>
+      'Карта и захват территории в реальном времени';
+
+  @override
+  String get settingsPermissionAllowed => 'Разрешено';
+
+  @override
+  String get settingsPermissionNotAllowed => 'Не разрешено';
+
+  @override
+  String get settingsPermissionLimited => 'Ограничено';
+
+  @override
+  String get settingsPermissionRestricted => 'Запрещено';
+
+  @override
+  String get settingsChecking => 'Проверка…';
+
+  @override
+  String get unitsMetric => 'Метрическая';
+
+  @override
+  String get unitsImperial => 'Имперская';
+
+  @override
+  String get unitsMetricSubtitle => 'Килограммы, сантиметры';
+
+  @override
+  String get unitsImperialSubtitle => 'Фунты, футы и дюймы';
+
+  @override
+  String get reminderEveryDay => 'Каждый день';
+
+  @override
+  String get reminderWeekdays => 'Будни';
+
+  @override
+  String get reminderCustom => 'Своё расписание';
+
+  @override
+  String get profileBasicInfo => 'Основная информация';
+
+  @override
+  String get profileBodyMetrics => 'Параметры тела';
+
+  @override
+  String get profileGoalsSection => 'Цели';
+
+  @override
+  String get profileTargetWeight => 'Целевой вес';
+
+  @override
+  String get profileTrainingFocus => 'Тренировочный фокус';
+
+  @override
+  String get profileExperienceLevel => 'Уровень подготовки';
+
+  @override
+  String get profileActivityLevel => 'Уровень активности';
+
+  @override
+  String get profileWeeklyTarget => 'Цель на неделю';
+
+  @override
+  String get profileWeeklyWorkoutTarget => 'Тренировок в неделю';
+
+  @override
+  String get profileVisibilitySection => 'Видимость профиля';
+
+  @override
+  String get profileLocation => 'Местоположение';
+
+  @override
+  String get profileUpdatedSnack => 'Профиль обновлён';
+
+  @override
+  String get profileCouldNotSave => 'Не удалось сохранить профиль';
+
+  @override
+  String get profileAvatarUploadSoon => 'Загрузка аватара скоро будет доступна';
+
+  @override
+  String get profileCoverUploadSoon => 'Загрузка обложки скоро будет доступна';
+
+  @override
+  String get profilePrivateNotesHelper => 'Видите только вы.';
+
+  @override
+  String get profileAge => 'Возраст';
+
+  @override
+  String get profileJoined => 'Дата регистрации';
+
+  @override
+  String get profileExperience => 'Опыт';
+
+  @override
+  String get profileFavoriteTraining => 'Любимая тренировка';
+
+  @override
+  String get profileFocus => 'Фокус';
+
+  @override
+  String get profileGoal => 'Цель';
+
+  @override
+  String get goalBuildMuscle => 'Набрать мышечную массу';
+
+  @override
+  String get goalLoseFat => 'Снизить жир';
+
+  @override
+  String get goalImproveStrength => 'Улучшить силу';
+
+  @override
+  String get goalImproveEndurance => 'Улучшить выносливость';
+
+  @override
+  String get goalStayConsistent => 'Сохранять регулярность';
+
+  @override
+  String get goalMobilityRecovery => 'Мобильность и восстановление';
+
+  @override
+  String get activityLow => 'Низкая';
+
+  @override
+  String get activityModerate => 'Умеренная';
+
+  @override
+  String get activityHigh => 'Высокая';
+
+  @override
+  String get activityAthlete => 'Спортсмен';
+
+  @override
+  String weeklyTargetN(int count) {
+    return '$count тренировок / нед.';
+  }
+
+  @override
+  String get feedWorkoutShared => 'Тренировка отправлена';
+
+  @override
+  String get feedWorkoutAdded => 'Тренировка добавлена в ваш список';
+
+  @override
+  String get feedWorkoutAlreadyAdded => 'Эта тренировка уже в вашем списке';
+
+  @override
+  String get feedNoPostsTitle => 'Пока нет постов';
+
+  @override
+  String get feedPostOptions => 'Действия с постом';
+
+  @override
+  String get feedNewPost => 'Новый пост';
+
+  @override
+  String get feedNewPostSubtitle => 'Поделитесь фото или записью в ленте';
+
+  @override
+  String get feedNewStory => 'Новая сторис';
+
+  @override
+  String get feedNewStorySubtitle => 'Быстрая сторис на 24 часа';
+
+  @override
+  String get feedStoryTitle => 'Новая сторис';
+
+  @override
+  String get feedStoryHint => 'Выберите одно фото для сторис.';
+
+  @override
+  String get feedGallery => 'Галерея';
+
+  @override
+  String get feedCamera => 'Камера';
+
+  @override
+  String get feedShareStory => 'Опубликовать сторис';
+
+  @override
+  String get feedOpeningGallery => 'Открываем галерею…';
+
+  @override
+  String get feedTapAddPhoto => 'Нажмите, чтобы добавить фото';
+
+  @override
+  String get feedShareHint => 'Поделитесь тренировкой, прогрессом или мыслями…';
+
+  @override
+  String get feedAddComment => 'Добавить комментарий…';
+
+  @override
+  String get feedAddCaption => 'Добавить подпись…';
+
+  @override
+  String get feedReportSent => 'Жалоба отправлена';
+
+  @override
+  String get feedReportProfile => 'Пожаловаться на профиль';
+
+  @override
+  String get feedYourStory => 'Ваша сторис';
+
+  @override
+  String get chatMessageHint => 'Сообщение…';
+
+  @override
+  String get chatCouldNotDelete => 'Не удалось удалить сообщение';
+
+  @override
+  String get chatCouldNotUpdate => 'Не удалось изменить сообщение';
+
+  @override
+  String get chatMessageDeletedFallback => 'Это сообщение было удалено';
+
+  @override
+  String get chatImageWithCaption => 'Изображение с подписью';
+
+  @override
+  String get chatDetailFileType => 'Тип файла';
+
+  @override
+  String get chatDetailSize => 'Размер';
+
+  @override
+  String get chatDetailDuration => 'Длительность';
+
+  @override
+  String get chatDetailDimensions => 'Размеры';
+
+  @override
+  String get chatChooseGallery => 'Выбрать из галереи';
+
+  @override
+  String get chatTakePhoto => 'Сделать фото';
+
+  @override
+  String get chatOnline => 'В сети';
+
+  @override
+  String get mapLabelGps => 'GPS';
+
+  @override
+  String get mapLabelPoints => 'Точки';
+
+  @override
+  String shareExercisesCount(int count) {
+    return '$count упражнений';
+  }
+
+  @override
+  String shareMinutesCount(int count) {
+    return '$count мин';
+  }
+
+  @override
+  String get feedCreateTitle => 'Создать';
+
+  @override
+  String get feedCreateSubtitle => 'Выберите, чем хотите поделиться';
+
+  @override
+  String get profileOptional => 'Необязательно';
+
+  @override
+  String get profileAvatarSection => 'Аватар';
+
+  @override
+  String get feedNoPostsBody =>
+      'Скоро здесь появятся новые тренировки и записи.';
+
+  @override
+  String get feedRefresh => 'Обновить';
+
+  @override
+  String get chatTypeText => 'Текст';
+
+  @override
+  String get chatStatusSending => 'Отправка';
+
+  @override
+  String get shareWorkoutTitle => 'Поделиться тренировкой';
+
+  @override
+  String get shareWorkoutPublish => 'Поделиться';
+
+  @override
+  String get shareWorkoutPublishFeed => 'Поделиться в ленте';
 }

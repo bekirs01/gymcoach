@@ -23,7 +23,7 @@ abstract final class TerritoryConfig {
   static const minAreaSquareMeters = 100.0;
   static const maxAccuracyMeters = 50.0;
   static const warnAccuracyMeters = 25.0;
-  static const minPointDistanceMeters = 4.0;
+  static const minPointDistanceMeters = 2.0;
   static const maxClosureDistanceMeters = 35.0;
   static const maxSpeedMps = 12.0;
 

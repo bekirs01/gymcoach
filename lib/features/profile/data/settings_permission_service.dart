@@ -1,4 +1,5 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:gym/l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 enum SettingsPermissionKind {
@@ -32,6 +33,13 @@ final class SettingsPermissionSnapshot {
         SettingsPermissionStatusLabel.notAllowed => 'Not allowed',
         SettingsPermissionStatusLabel.limited => 'Limited',
         SettingsPermissionStatusLabel.restricted => 'Restricted',
+      };
+
+  String localizedLabelText(AppLocalizations l10n) => switch (label) {
+        SettingsPermissionStatusLabel.allowed => l10n.settingsPermissionAllowed,
+        SettingsPermissionStatusLabel.notAllowed => l10n.settingsPermissionNotAllowed,
+        SettingsPermissionStatusLabel.limited => l10n.settingsPermissionLimited,
+        SettingsPermissionStatusLabel.restricted => l10n.settingsPermissionRestricted,
       };
 }
 

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
@@ -125,6 +126,7 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final media = MediaQuery.of(context);
     final bottomInset = media.viewInsets.bottom;
     final sheetHeight = media.size.height * 0.92;
@@ -148,9 +150,9 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
                 children: [
                   Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'New story',
+                          l10n.feedStoryTitle,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 20,
@@ -167,9 +169,9 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Pick one photo to share as your story.',
-                    style: TextStyle(color: PremiumColors.textSecondary),
+                  Text(
+                    l10n.feedStoryHint,
+                    style: const TextStyle(color: PremiumColors.textSecondary),
                   ),
                   const SizedBox(height: 14),
                   GestureDetector(
@@ -196,7 +198,7 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      _picking ? 'Opening gallery...' : 'Tap to add photo',
+                                      _picking ? l10n.feedOpeningGallery : l10n.feedTapAddPhoto,
                                       style: const TextStyle(color: PremiumColors.textMuted),
                                     ),
                                   ],
@@ -213,7 +215,7 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
                         child: OutlinedButton.icon(
                           onPressed: _picking || _saving ? null : () => _pickImage(ImageSource.gallery),
                           icon: const Icon(Icons.photo_library_outlined, size: 18),
-                          label: const Text('Gallery', overflow: TextOverflow.ellipsis),
+                          label: Text(l10n.feedGallery, overflow: TextOverflow.ellipsis),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -221,7 +223,7 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
                         child: OutlinedButton.icon(
                           onPressed: _picking || _saving ? null : () => _pickImage(ImageSource.camera),
                           icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                          label: const Text('Camera', overflow: TextOverflow.ellipsis),
+                          label: Text(l10n.feedCamera, overflow: TextOverflow.ellipsis),
                         ),
                       ),
                     ],
@@ -235,7 +237,7 @@ class _CreateStorySheetState extends State<_CreateStorySheet> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Share story'),
+                        : Text(l10n.feedShareStory),
                   ),
                   SizedBox(height: bottomInset > 0 ? 8 : 0),
                 ],

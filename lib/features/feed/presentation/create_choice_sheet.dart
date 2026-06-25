@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 
 import '../../../app/theme/premium_tokens.dart';
 
@@ -22,6 +23,7 @@ class _CreateChoiceSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Material(
       color: PremiumColors.surface,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(PremiumRadii.xl)),
@@ -44,31 +46,31 @@ class _CreateChoiceSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Create',
-                style: TextStyle(
+              Text(
+                l10n.feedCreateTitle,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Choose what you want to share',
-                style: TextStyle(color: PremiumColors.textSecondary),
+              Text(
+                l10n.feedCreateSubtitle,
+                style: const TextStyle(color: PremiumColors.textSecondary),
               ),
               const SizedBox(height: 16),
               _CreateChoiceTile(
                 icon: Icons.grid_on_rounded,
-                title: 'New post',
-                subtitle: 'Share a photo or update to the feed',
+                title: l10n.feedNewPost,
+                subtitle: l10n.feedNewPostSubtitle,
                 onTap: () => Navigator.pop(context, CreateChoice.post),
               ),
               const SizedBox(height: 10),
               _CreateChoiceTile(
                 icon: Icons.auto_stories_rounded,
-                title: 'New story',
-                subtitle: 'Share a quick story for 24 hours',
+                title: l10n.feedNewStory,
+                subtitle: l10n.feedNewStorySubtitle,
                 onTap: () => Navigator.pop(context, CreateChoice.story),
               ),
             ],

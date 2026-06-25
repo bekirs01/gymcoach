@@ -101,6 +101,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
   Future<void> _menu() async {
     if (_isMine) return;
+    final l10n = AppLocalizations.of(context)!;
     final action = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: PremiumColors.surface,
@@ -111,12 +112,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           children: [
             ListTile(
               leading: const Icon(Icons.block_rounded, color: Colors.redAccent),
-              title: const Text('Block user', style: TextStyle(color: Colors.white)),
+              title: Text(l10n.feedBlockUser, style: const TextStyle(color: Colors.white)),
               onTap: () => Navigator.pop(context, 'block'),
             ),
             ListTile(
               leading: const Icon(Icons.flag_outlined, color: PremiumColors.textSecondary),
-              title: const Text('Report profile', style: TextStyle(color: Colors.white)),
+              title: Text(l10n.feedReportProfile, style: const TextStyle(color: Colors.white)),
               onTap: () => Navigator.pop(context, 'report'),
             ),
           ],
@@ -131,7 +132,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       await widget.client.reportPost(postId: '', userId: widget.userId, reason: 'profile');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Report sent')),
+          SnackBar(content: Text(l10n.feedReportSent)),
         );
       }
     }
@@ -302,12 +303,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               ? const []
               : [
                   ProfileAboutBlock(
-                    title: 'Focus',
+                    title: l10n.profileFocus,
                     body: user.trainingFocus,
                     icon: Icons.fitness_center_rounded,
                   ),
                   ProfileAboutBlock(
-                    title: 'Location',
+                    title: l10n.profileLocation,
                     body: user.city,
                     icon: Icons.location_on_outlined,
                   ),
@@ -332,6 +333,7 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -342,7 +344,7 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center, style: const TextStyle(color: PremiumColors.textSecondary)),
             const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            FilledButton(onPressed: onRetry, child: Text(l10n.chatRetry)),
           ],
         ),
       ),

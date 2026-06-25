@@ -181,7 +181,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                   minLines: 3,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    hintText: 'Share your workout, progress or thoughts...',
+                    hintText: AppLocalizations.of(context)!.feedShareHint,
                     hintStyle: const TextStyle(color: PremiumColors.textMuted),
                     filled: true,
                     fillColor: PremiumColors.midnightBottom,

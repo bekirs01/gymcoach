@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import '../config/territory_config.dart';
 import '../data/supabase_territory_api_client.dart';
 import '../data/territory_api_client.dart';
+import '../data/mock_territory_api_client.dart';
+import '../data/territory_leaderboard_samples.dart';
 import '../domain/capture_point.dart';
 import '../domain/capture_session.dart';
 import '../domain/leaderboard_entry.dart';
@@ -63,6 +65,7 @@ class TerritoryMapController extends ChangeNotifier {
       permissionState = await _permissionService.requestPermission();
     }
     await refreshTerritories();
+    unawaited(refreshLeaderboard());
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(const Duration(seconds: 45), (_) {
       if (capturePhase == CapturePhase.idle) {
@@ -88,9 +91,19 @@ class TerritoryMapController extends ChangeNotifier {
 
   Future<List<LeaderboardEntry>> refreshLeaderboard() async {
     try {
-      leaderboard = await apiClient.getLeaderboard();
+      final remote = await apiClient.getLeaderboard();
+      final userId = switch (apiClient) {
+        SupabaseTerritoryApiClient client => client.currentUserId,
+        MockTerritoryApiClient client => client.currentUserId,
+        _ => null,
+      };
+      leaderboard = TerritoryLeaderboardSamples.mergeWithSamples(
+        remote,
+        currentUserId: userId,
+      );
       errorMessage = null;
     } catch (error) {
+      leaderboard = TerritoryLeaderboardSamples.demoEntries();
       errorMessage = error.toString();
     }
     notifyListeners();

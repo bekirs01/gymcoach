@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym/l10n/app_localizations.dart';
 
 enum AppLanguageCode {
   en,
@@ -53,6 +54,16 @@ enum MeasurementUnits {
         MeasurementUnits.metric => 'Kilograms, centimeters',
         MeasurementUnits.imperial => 'Pounds, feet and inches',
       };
+
+  String localizedLabel(AppLocalizations l10n) => switch (this) {
+        MeasurementUnits.metric => l10n.unitsMetric,
+        MeasurementUnits.imperial => l10n.unitsImperial,
+      };
+
+  String localizedSubtitle(AppLocalizations l10n) => switch (this) {
+        MeasurementUnits.metric => l10n.unitsMetricSubtitle,
+        MeasurementUnits.imperial => l10n.unitsImperialSubtitle,
+      };
 }
 
 enum ReminderDaysMode {
@@ -77,6 +88,12 @@ enum ReminderDaysMode {
         ReminderDaysMode.everyDay => 'Every day',
         ReminderDaysMode.weekdays => 'Weekdays',
         ReminderDaysMode.custom => 'Custom',
+      };
+
+  String localizedLabel(AppLocalizations l10n) => switch (this) {
+        ReminderDaysMode.everyDay => l10n.reminderEveryDay,
+        ReminderDaysMode.weekdays => l10n.reminderWeekdays,
+        ReminderDaysMode.custom => l10n.reminderCustom,
       };
 }
 
@@ -107,8 +124,33 @@ abstract final class ReminderDaysCodec {
     };
   }
 
+  static String localizedDisplayLabel(AppLocalizations l10n, String? value) {
+    final mode = ReminderDaysMode.fromStorage(value);
+    return switch (mode) {
+      ReminderDaysMode.everyDay => l10n.reminderEveryDay,
+      ReminderDaysMode.weekdays => l10n.reminderWeekdays,
+      ReminderDaysMode.custom => _localizedCustomLabel(l10n, decodeCustomDays(value)),
+    };
+  }
+
+  static List<String> weekdayLabels(AppLocalizations l10n) => [
+        l10n.weekdayMon,
+        l10n.weekdayTue,
+        l10n.weekdayWed,
+        l10n.weekdayThu,
+        l10n.weekdayFri,
+        l10n.weekdaySat,
+        l10n.weekdaySun,
+      ];
+
   static String _customLabel(Set<int> days) {
     const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final sorted = days.toList()..sort();
+    return sorted.map((d) => names[d - 1]).join(', ');
+  }
+
+  static String _localizedCustomLabel(AppLocalizations l10n, Set<int> days) {
+    final names = weekdayLabels(l10n);
     final sorted = days.toList()..sort();
     return sorted.map((d) => names[d - 1]).join(', ');
   }
@@ -137,5 +179,15 @@ abstract final class ReminderTimeCodec {
     final minute = time.minute.toString().padLeft(2, '0');
     final period = time.period == DayPeriod.am ? 'AM' : 'PM';
     return '$hour:$minute $period';
+  }
+
+  static String localizedDisplay(AppLocalizations l10n, String? value) {
+    final time = decode(value);
+    if (l10n.localeName.startsWith('ru')) {
+      final hour = time.hour.toString().padLeft(2, '0');
+      final minute = time.minute.toString().padLeft(2, '0');
+      return '$hour:$minute';
+    }
+    return display(value);
   }
 }

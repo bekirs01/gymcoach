@@ -43,6 +43,7 @@ abstract final class TerritoryMapRowMapper {
           .toDouble(),
       territoryCount: (row['territory_count'] as num? ?? row['territoryCount'] as num? ?? 0).toInt(),
       userId: row['user_id'] as String? ?? row['userId'] as String? ?? '',
+      avatarUrl: row['avatar_url'] as String? ?? row['avatarUrl'] as String? ?? '',
     );
   }
 
